@@ -1,10 +1,10 @@
 # Mapping Tool
-Under rapid development
+Under rapid development.
 
 ## Project Structure
 ### mapper
 The actual embeddable mapper component lives here.
-This component can be used with various backends, such as Electron (local files) or a web server like Flask (API calls back to a shared database.
+This component can be used with various backends, such as Electron (local files) or a web server like Flask (API calls back to a shared database).
 
 ### src/electron
 The desktop app, build on Electron.
