@@ -1,5 +1,7 @@
 # Mapping Tool
 Under rapid development.
+See [JOURNAL.md](JOURNAL.md) for information on development decisions.
+See [REQUIREMENTS.md](REQUIREMENTS.md) for information on feature requirements.
 
 ## Project Structure
 ### mapper
