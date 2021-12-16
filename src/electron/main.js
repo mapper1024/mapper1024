@@ -1,3 +1,5 @@
+// Boilerplate code to load index.html as an app.
+
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
 
