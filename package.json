@@ -1,0 +1,23 @@
+{
+  "name": "mapper1024",
+  "version": "0.0.1",
+  "description": "An accessible and efficient map making tool",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mapper1024/mapper1024.git"
+  },
+  "author": "Benjamin Leskey",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/mapper1024/mapper1024/issues"
+  },
+  "homepage": "https://github.com/mapper1024/mapper1024#readme",
+  "devDependencies": {
+    "electron": "^16.0.4"
+  }
+}
