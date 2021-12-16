@@ -10,7 +10,7 @@ const createWindow = () => {
 		}
 	})
 
-	win.loadFile('src/index.html')
+	win.loadFile('src/electron/index.html')
 }
 
 app.whenReady().then(() => {

@@ -2,7 +2,7 @@
   "name": "mapper1024",
   "version": "0.0.1",
   "description": "An accessible and efficient map making tool",
-  "main": "src/main.js",
+  "main": "src/electron/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron ."
