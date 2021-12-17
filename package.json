@@ -6,7 +6,7 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "electron .",
-		"libpack": "rollup -o dist/mapper1024.$(jq < package.json .version -r).js -i mapper/index.js; cp dist/mapper1024.$(jq < package.json .version -r).js dist/mapper1024.js"
+		"libpack": "rollup -o dist/mapper1024.$(jq < package.json .version -r).js -i mapper/index.js"
 	},
 	"repository": {
 		"type": "git",
