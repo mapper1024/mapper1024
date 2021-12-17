@@ -4,7 +4,7 @@ See [JOURNAL.md](JOURNAL.md) for information on development decisions.
 See [REQUIREMENTS.md](REQUIREMENTS.md) for information on feature requirements.
 
 ## Release Downloads
-The [current release](https://github.com/mapper1024/mapper1024/releases/latest) is built for all supported platforms.
+The [current release](https://github.com/mapper1024/mapper1024/releases/latest) is built for all supported platforms. The mapper component javascript library is also bundled with each release.
 
 ## Project Structure
 ### mapper
@@ -18,6 +18,13 @@ Serves the mapper component wrapped in a desktop app UI with a local file storag
 ### src/flask
 An example web server, for testing the mapping tool in a remote context.
 Serves the mapper component wrapped in a web UI with an API/web server database backend.
+
+## Usage
+### Desktop App
+The mapping tool can be run as an Electron desktop app; the mapping component and backends are all bundled in the Electron app.
+
+### Web App
+Alternatively, the mapping component can be embedded in any other web app. The mapper component library is bundled into a single javascript module file with each release.
 
 ## Building & Running
 ### Electron (Local)

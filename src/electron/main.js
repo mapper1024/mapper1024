@@ -2,11 +2,6 @@
 
 const { app, BrowserWindow } = require('electron')
 
-// Ignore Squirrel startup for now.
-if(require('electron-squirrel-startup')) {
-	app.quit()
-}
-
 const path = require('path')
 
 const createWindow = () => {

@@ -1,6 +1,5 @@
 // Load mapper and insert into main UI.
-import { Mapper } from "../../mapper/mapper.js"
-import { MemoryMapBackend } from "../../mapper/backend.js"
+import { Mapper, MemoryMapBackend } from "../../mapper/index.js"
 let mapper = new Mapper(new MemoryMapBackend())
 mapper.render(document.getElementById("mapper"))
 
