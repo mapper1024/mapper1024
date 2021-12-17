@@ -1,8 +1,5 @@
 name: package
-on:
-    push:
-        branches:
-            - master
+on: push
 jobs:
     package-appimage-x64:
         runs-on: ubuntu-18.04
@@ -13,8 +10,8 @@ jobs:
                 node-version: "17"
             - run: yarn
             - run: yarn run electron-builder --x64 -l AppImage -p never
-            - uses: actions/upload-artifact@v2
+            - name: Release
+              uses: softprops/action-gh-release@v1
+              if: startsWith(github.ref, 'refs/tags/')
               with:
-                name: AppImage
-                path: dist/*.AppImage
-                if-no-files-found: error
+                files: dist/*.AppImage
