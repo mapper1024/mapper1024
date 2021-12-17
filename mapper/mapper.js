@@ -3,6 +3,8 @@
  * TODO: backend connection
  * Instantiate Mapper and then call the render() method to insert the UI into a div element.
  */
+import { version } from "./version.js"
+
 class Mapper {
 	/* Set the backend for the mapper, i.e. the map it is presenting.
 	 * See: backend.js
@@ -16,7 +18,7 @@ class Mapper {
 	 */
 	render(element) {
 		// TODO: UI
-		element.innerHTML = "hello"
+		element.innerHTML = "Hello from version " + version
 	}
 }
 
