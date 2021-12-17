@@ -5,8 +5,7 @@
 	"main": "src/electron/main.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "electron .",
-		"build": "electron-builder -mwl"
+		"start": "electron ."
 	},
 	"repository": {
 		"type": "git",
@@ -25,25 +24,7 @@
 	},
 	"build": {
 		"appId": "io.github.mapper1024.mapper1024",
-		"productName": "Mapper1024",
-		"linux": {
-			"target": [
-				"AppImage",
-				"tar.gz"
-			]
-		},
-		"win": {
-			"target": [
-				"portable",
-				"squirrel"
-			]
-		},
-		"mac": {
-			"target": [
-				"pkg",
-				"zip"
-			]
-		}
+		"productName": "Mapper1024"
 	},
 	"dependencies": {
 		"electron-squirrel-startup": "^1.0.0"
