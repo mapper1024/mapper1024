@@ -3,6 +3,9 @@ Under rapid development.
 See [JOURNAL.md](JOURNAL.md) for information on development decisions.
 See [REQUIREMENTS.md](REQUIREMENTS.md) for information on feature requirements.
 
+## Release Downloads
+The [current release](https://github.com/mapper1024/mapper1024/releases/latest) is built for all supported platforms.
+
 ## Project Structure
 ### mapper
 The actual embeddable mapper component lives here.
