@@ -12,7 +12,7 @@ jobs:
               with:
                 node-version: "17"
             - run: yarn
-            - run: yarn run electron-builder --x64 -l AppImage
+            - run: yarn run electron-builder --x64 -l AppImage -p never
             - uses: actions/upload-artifact@v2
               with:
                 name: AppImage
