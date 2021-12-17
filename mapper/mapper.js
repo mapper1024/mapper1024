@@ -4,6 +4,13 @@
  * Instantiate Mapper and then call the render() method to insert the UI into a div element.
  */
 class Mapper {
+	/* Set the backend for the mapper, i.e. the map it is presenting.
+	 * See: backend.js
+	 */
+	constructor(backend) {
+		this.backend = backend;
+	}
+
 	/* Render Mapper into a div element
 	 * Example: mapper.render(document.getElementById("mapper_div"))
 	 */

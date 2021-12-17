@@ -1,5 +1,5 @@
 // Load mapper and insert into main UI.
-import { Mapper } from "../mapper/main.js";
+import { Mapper } from "../mapper/mapper.js";
 let mapper = new Mapper();
 mapper.render(document.getElementById("mapper"));
 
