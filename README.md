@@ -18,10 +18,10 @@ Serves the mapper component wrapped in a web UI with an API/web server database 
 
 ## Building & Running
 ### Electron (Local)
-To run with Electron as a local desktop app, use the npm commands:
+To run with Electron as a local desktop app, use the yarn commands:
 ```sh
-npm install
-npm start
+yarn
+yarn start
 ```
 
 ### Flask (Example server)
