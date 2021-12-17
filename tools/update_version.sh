@@ -8,6 +8,11 @@ if [ -z "$VERSION" ]; then
 	exit 1
 fi
 
+if ! (echo "$VERSION" | grep '^[0-9]*\.[0-9]*\.[0-9]*$' > /dev/null); then
+	echo "That version does not match the major.minor.patch format."
+	exit 1
+fi
+
 if [[ ! -f package.json ]]; then
 	echo "package.json not found. You must run $0 in the project directory."
 	exit 1
