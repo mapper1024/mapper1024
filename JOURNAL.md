@@ -1,7 +1,7 @@
 # Prototype: 2021-12
 ## Mapper Component
 The mapper is implemented as Javascript modules and classes; this is the simplest choice for a web component.
-The mapper is split into two parts: the frontend Mapper, which is the UI, and the pluggable backend MapperBackend (TODO) instances which are defined by whatever is embedding the Mapper, which are the database access logic.
+The mapper is split into two parts: the frontend Mapper, which is the UI, and the pluggable backend MapBackend instances which are defined by whatever is embedding the Mapper, which are the database access logic.
 
 ## Electron
 Electron is a default choice for making web-based desktop apps.
