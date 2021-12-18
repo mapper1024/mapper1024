@@ -1,23 +1,13 @@
-# Mapping Tool
+# [Mapping Tool](https://mapper1024.github.io)
 Under rapid development.
-See [JOURNAL.md](JOURNAL.md) for information on development decisions.
-See [REQUIREMENTS.md](REQUIREMENTS.md) for information on feature requirements.
 
 ## Release Downloads
 The [current release](https://github.com/mapper1024/mapper1024/releases/latest) is built for all supported platforms. The mapper component javascript library is also bundled with each release.
 
-## Project Structure
-### mapper
-The actual embeddable mapper component lives here.
-This component can be used with various backends, such as Electron (local files) or a web server like Flask (API calls back to a shared database).
-
-### src/electron
-The desktop app, build on Electron.
-Serves the mapper component wrapped in a desktop app UI with a local file storage backend.
-
-### src/flask
-An example web server, for testing the mapping tool in a remote context.
-Serves the mapper component wrapped in a web UI with an API/web server database backend.
+## Documentation
+* [doc/JOURNAL.md](doc/JOURNAL.md): development process and decisions journal
+* [doc/REQUIREMENTS.md](doc/REQUIREMENTS.md): specified feature requirements
+* [doc/STRUCTURE.md](doc/STRUCTURE.md): map of the project's directories
 
 ## Usage
 ### Desktop App
