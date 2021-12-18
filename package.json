@@ -26,8 +26,5 @@
 	"build": {
 		"appId": "io.github.mapper1024.mapper1024",
 		"productName": "Mapper1024"
-	},
-	"dependencies": {
-		"electron-squirrel-startup": "^1.0.0"
 	}
 }
