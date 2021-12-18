@@ -14,6 +14,8 @@ def interface(path):
     return send_from_directory("interface", path)
 
 # The actual mapper component as static files.
+# This could be replaced with loading the mapper component from the bundled release file from another server.
+# However, serving it directly makes development easier: no rebundling needed to test changes.
 @app.route("/mapper/<path:path>")
 def mapper(path):
 	return send_from_directory("../../mapper", path)
