@@ -12,7 +12,7 @@ class RenderContext {
 		this.mapper = mapper
 
 		// The UI is just a canvas.
-		// We will keep it filling the parent element.
+		// We will keep its size filling the parent element.
 		this.canvas = document.createElement("canvas")
 		this.parent.appendChild(this.canvas)
 
