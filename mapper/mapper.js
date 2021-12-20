@@ -1,5 +1,3 @@
-import { version } from "./version.js"
-
 /* A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
  * See Mapper.render() for instantiation.
