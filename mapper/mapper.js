@@ -17,9 +17,9 @@ class RenderContext {
 		this.parent.appendChild(this.canvas)
 
 		// The canvas has no extra size.
-		this.canvas.style.padding = '0';
-		this.canvas.style.margin = '0';
-		this.canvas.style.border = '0';
+		this.canvas.style.padding = '0'
+		this.canvas.style.margin = '0'
+		this.canvas.style.border = '0'
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize())

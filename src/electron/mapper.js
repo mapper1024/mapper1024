@@ -1,6 +1,5 @@
-// Load mapper and insert into main UI.
-import { Mapper, MemoryMapBackend } from "../../mapper/index.js"
-let mapper = new Mapper(new MemoryMapBackend())
-mapper.render(document.getElementById("mapper"))
+import { Mapper } from "../../mapper/index.js"
+import { SQLiteMapBackend } from "./sqlite_map_backend.js"
 
-// TODO: Register backend based on local files.
+let mapper = new Mapper(new SQLiteMapBackend(":memory:"))
+mapper.render(document.getElementById("mapper"))

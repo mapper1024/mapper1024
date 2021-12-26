@@ -26,5 +26,8 @@
 	"build": {
 		"appId": "io.github.mapper1024.mapper1024",
 		"productName": "Mapper1024"
+	},
+	"dependencies": {
+		"sqlite3": "^5.0.2"
 	}
 }
