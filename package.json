@@ -28,6 +28,7 @@
 		"productName": "Mapper1024"
 	},
 	"dependencies": {
+		"sqlite": "^4.0.23",
 		"sqlite3": "^5.0.2"
 	}
 }
