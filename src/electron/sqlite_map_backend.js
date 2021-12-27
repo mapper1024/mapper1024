@@ -15,10 +15,10 @@ class SQLiteMapBackend extends MapBackend {
 		this.db.prepare("CREATE TABLE IF NOT EXISTS node (nodeid INT PRIMARY KEY, parentid INT, FOREIGN KEY (nodeid) REFERENCES entity(entityid), FOREIGN KEY (parentid) REFERENCES entity(entityid))").run();
 
 		/* Each property can be either a
-			* string
-			* number (real float)
-			* point (x, y, and z real float)
-			*/
+		 * string
+		 * number (real float)
+		 * point (x, y, and z real float)
+		 */
 		this.db.prepare("CREATE TABLE IF NOT EXISTS property (entityid INT, property TEXT, v_string TEXT, v_number REAL, x REAL, y REAL, z REAL, PRIMARY KEY (entityid, property), FOREIGN KEY (entityid) REFERENCES entity(entityid))").run();
 		this.db.prepare("CREATE TABLE IF NOT EXISTS neighbor (nodeaid INT, nodebid INT, PRIMARY KEY (nodeaid, nodebid), FOREIGN KEY (nodeaid) REFERENCES node(nodeid) FOREIGN KEY (nodebid) REFERENCES node(nodeid))").run();
 
