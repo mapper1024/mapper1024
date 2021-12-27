@@ -5,6 +5,7 @@ VERSION="$1"
 
 if [ -z "$VERSION" ]; then
 	echo "Usage: $0 <version number>"
+	echo "Current version is: $(jq < package.json .version -r)"
 	exit 1
 fi
 
