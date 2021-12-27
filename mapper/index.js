@@ -2,4 +2,5 @@
 export * from "./backend.js"
 export * from "./hook_container.js"
 export * from "./mapper.js"
+export * from "./point.js"
 export * from "./version.js"

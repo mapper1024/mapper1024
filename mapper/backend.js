@@ -2,14 +2,6 @@ function new_unique_id() {
 	return Date.now().toString(32) + ":" + Math.random().toString(32)
 }
 
-class Point {
-	constructor(x, y, z) {
-		this.x = x
-		this.y = y
-		this.z = z
-	}
-}
-
 class NodeRef {
 	constructor(id, backend) {
 		this.id = id
@@ -33,8 +25,7 @@ class NodeRef {
 	}
 
 	async getPPoint(propertyName) {
-		const [x, y, z] = await Promise.all([this.getPNumber(propertyName + ".x"), this.getPNumber(propertyName + ".y"), this.getPNumber(propertyName + ".z")])
-		return new Point(x, y, z)
+		return this.backend.getPPoint(this.id, propertyName)
 	}
 
 	async setPNumber(propertyName, value) {
@@ -46,11 +37,7 @@ class NodeRef {
 	}
 
 	async setPPoint(propertyName, point) {
-		return Promise.all([
-			this.setPNumber(propertyName + ".x", point.x),
-			this.setPNumber(propertyName + ".y", point.y),
-			this.setPNumber(propertyName + ".z", point.z),
-		])
+		return this.backend.setPPoint(this.id, propertyName, point)
 	}
 
 	async center() {
@@ -70,19 +57,28 @@ class MapBackend {
 		return this.setPString(entity, propertyName, value.toString())
 	}
 
-	getPString(entity, propertyName) {
+	async setPPoint(entity, propertyName, point) {
+		return this.setPString(entity, propertyName, JSON.stringify(point))
+	}
+
+	async getPPoint(entity, propertyName) {
+		const object = JSON.parse(await this.getPString(entity, propertyName));
+		return Point.fromJSON(object.x, object.y, object.z)
+	}
+
+	async getPString(entity, propertyName) {
 		throw "not implemented"
 	}
 
-	setPString(entity, propertyName, value) {
+	async setPString(entity, propertyName, value) {
 		throw "not implemented"
 	}
 
-	getNeighbors(nodeId) {
+	async getNeighbors(nodeId) {
 		throw "not implemented"
 	}
 
-	removeNeighbor(nodeIdA, nodeIdB) {
+	async removeNeighbor(nodeIdA, nodeIdB) {
 		throw "not implemented"
 	}
 
