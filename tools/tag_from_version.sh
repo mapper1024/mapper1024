@@ -23,6 +23,11 @@ if git rev-parse v"$VERSION" > /dev/null 2>&1 || git ls-remote --exit-code --tag
 	exit 1
 fi
 
+if ! yarn run check-format; then
+	echo "The check-format script failed."
+	exit 1
+fi
+
 echo "Tagging..."
 git tag v"$VERSION"
 echo "Pushing branch..."
