@@ -8,24 +8,24 @@ class RenderContext {
 	 * Will set up event listeners and build the initial UI.
 	 */
 	constructor(parent, mapper) {
-		this.parent = parent
-		this.mapper = mapper
+		this.parent = parent;
+		this.mapper = mapper;
 
 		// The UI is just a canvas.
 		// We will keep its size filling the parent element.
-		this.canvas = document.createElement("canvas")
-		this.parent.appendChild(this.canvas)
+		this.canvas = document.createElement("canvas");
+		this.parent.appendChild(this.canvas);
 
 		// The canvas has no extra size.
-		this.canvas.style.padding = '0'
-		this.canvas.style.margin = '0'
-		this.canvas.style.border = '0'
+		this.canvas.style.padding = "0";
+		this.canvas.style.margin = "0";
+		this.canvas.style.border = "0";
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
-		this.parentObserver = new ResizeObserver(() => this.recalculateSize())
-		this.parentObserver.observe(this.parent)
+		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
+		this.parentObserver.observe(this.parent);
 
-		this.recalculateSize()
+		this.recalculateSize();
 	}
 
 	/* Recalculate the UI size based on the parent.
@@ -33,23 +33,23 @@ class RenderContext {
 	 */
 	recalculateSize() {
 		// Keep the canvas matching the parent size.
-		this.canvas.width = this.parent.clientWidth
-		this.canvas.height = this.parent.clientHeight
+		this.canvas.width = this.parent.clientWidth;
+		this.canvas.height = this.parent.clientHeight;
 
-		this.redraw()
+		this.redraw();
 	}
 
 	/* Completely redraw the displayed UI. */
 	redraw() {
-		var c = this.canvas.getContext("2d")
-		c.beginPath()
-		c.rect(0, 0, this.canvas.width, this.canvas.height)
-		c.fillStyle = "blue"
-		c.fill()
+		var c = this.canvas.getContext("2d");
+		c.beginPath();
+		c.rect(0, 0, this.canvas.width, this.canvas.height);
+		c.fillStyle = "blue";
+		c.fill();
 	}
 
 	disconnect() {
-		this.parentObserver.disconnect()
+		this.parentObserver.disconnect();
 		this.parent.removeChild(this.canvas);
 	}
 }
@@ -64,7 +64,7 @@ class Mapper {
 	 * See: backend.js
 	 */
 	constructor(backend) {
-		this.backend = backend
+		this.backend = backend;
 	}
 
 	/* Render Mapper into a div element
@@ -76,4 +76,4 @@ class Mapper {
 	}
 }
 
-export { Mapper }
+export { Mapper };

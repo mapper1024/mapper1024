@@ -1,7 +1,7 @@
-name: package
+name: build
 on: push
 jobs:
-    package-libpack:
+    check:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
@@ -9,13 +9,24 @@ jobs:
               with:
                 node-version: "17"
             - run: yarn
-            - run: yarn libpack
+            - run: yarn run check-format
+    package-libpack:
+        needs: check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v2
+              with:
+                node-version: "17"
+            - run: yarn
+            - run: yarn run libpack
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')
               with:
                 files: dist/*.js
     package-appimage-x64:
+        needs: check
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
@@ -30,6 +41,7 @@ jobs:
               with:
                 files: dist/*.AppImage
     package-linux-zip-x64:
+        needs: check
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
@@ -44,6 +56,7 @@ jobs:
               with:
                 files: dist/*.zip
     package-windows-portable:
+        needs: check
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v2
@@ -59,6 +72,7 @@ jobs:
                 files: |
                     dist/*.exe
     package-windows-nsis:
+        needs: check
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v2

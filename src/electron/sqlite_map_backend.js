@@ -2,8 +2,9 @@ import { MapBackend, Point } from "../../mapper/index.js";
 const sqlite3 = require("sqlite3").verbose();
 const sqlite = require("sqlite");
 
-class SQLiteMapBackend {
+class SQLiteMapBackend extends MapBackend {
 	constructor(filename) {
+		super();
 		this.filename = filename;
 	}
 
