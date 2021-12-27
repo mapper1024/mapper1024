@@ -1,17 +1,9 @@
 import { Point } from "./point.js";
 
-class NodeRef {
+class EntityRef {
 	constructor(id, backend) {
 		this.id = id;
 		this.backend = backend;
-	}
-
-	async getNeighbors() {
-		return this.backend.getNeighbors(this.id);
-	}
-
-	async removeNeighbor(neighborId) {
-		return this.backend.removeNeighbor(this.id, neighborId);
 	}
 
 	async getPNumber(propertyName) {
@@ -37,9 +29,19 @@ class NodeRef {
 	async setPPoint(propertyName, point) {
 		return this.backend.setPPoint(this.id, propertyName, point);
 	}
+}
 
+class NodeRef extends EntityRef {
 	async center() {
 		return this.getPPoint("center");
+	}
+
+	async getNeighbors() {
+		return this.backend.getNeighbors(this.id);
+	}
+
+	async removeNeighbor(neighborId) {
+		return this.backend.removeNeighbor(this.id, neighborId);
 	}
 }
 
@@ -47,33 +49,43 @@ class NodeRef {
  * The backend translates between the concept of a map and a database, a file, an API, or whatever else is actually being used to store the data.
  */
 class MapBackend {
-	async getPNumber(entity, propertyName) {
-		return parseFloat(await this.getPString(entity, propertyName));
+	async getPNumber(entityId, propertyName) {
+		return parseFloat(await this.getPString(entityId, propertyName));
 	}
 
-	async setPNumber(entity, propertyName, value) {
-		return this.setPString(entity, propertyName, value.toString());
+	async setPNumber(entityId, propertyName, value) {
+		return this.setPString(entityId, propertyName, value.toString());
 	}
 
-	async setPPoint(entity, propertyName, point) {
-		return this.setPString(entity, propertyName, JSON.stringify(point));
+	async setPPoint(entityId, propertyName, point) {
+		return this.setPString(entityId, propertyName, JSON.stringify(point));
 	}
 
-	async getPPoint(entity, propertyName) {
-		const object = JSON.parse(await this.getPString(entity, propertyName));
+	async getPPoint(entityId, propertyName) {
+		const object = JSON.parse(await this.getPString(entityId, propertyName));
 		return Point.fromJSON(object.x, object.y, object.z);
 	}
 
-	async getPString(entity, propertyName) {
-		entity;
+	async getPString(entityId, propertyName) {
+		entityId;
 		propertyName;
 		throw "not implemented";
 	}
 
-	async setPString(entity, propertyName, value) {
-		entity;
+	async setPString(entityId, propertyName, value) {
+		entityId;
 		propertyName;
 		value;
+		throw "not implemented";
+	}
+
+	async createEntity(type) {
+		type;
+		throw "not implemented";
+	}
+
+	async createNode(parentId) {
+		parentId;
 		throw "not implemented";
 	}
 
@@ -86,6 +98,10 @@ class MapBackend {
 		nodeIdA;
 		nodeIdB;
 		throw "not implemented";
+	}
+
+	getEntityRef(id) {
+		return new EntityRef(id, this);
 	}
 
 	getNodeRef(id) {
