@@ -80,15 +80,15 @@ class SQLiteMapBackend extends MapBackend {
 	async getPString(entityId, propertyName) {
 		return (await this.s_gps.get({
 			entityId: entityId,
-			$property: propertyName,
+			property: propertyName,
 		})).v_string;
 	}
 
 	async setPString(entityId, propertyName, value) {
 		return this.s_sps.run({
 			entityId: entityId,
-			$property: propertyName,
-			$value: value,
+			property: propertyName,
+			value: value,
 		});
 	}
 }
