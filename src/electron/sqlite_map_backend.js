@@ -1,6 +1,6 @@
 import { MapBackend, Point } from "../../mapper/index.js";
 
-const sqlite3 = require("sqlite3").verbose();
+const Database = require('better-sqlite3');
 const sqlite = require("sqlite");
 
 class SQLiteMapBackend extends MapBackend {
@@ -12,7 +12,7 @@ class SQLiteMapBackend extends MapBackend {
 	async load() {
 		this.db = await sqlite.open({
 			filename: this.filename,
-			driver: sqlite3.Database,
+			driver: Database,
 		});
 
 		await this.db.run("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT)");
