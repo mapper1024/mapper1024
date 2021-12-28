@@ -90,6 +90,10 @@ class MapBackend {
 		throw "not implemented";
 	}
 
+	async flush() {
+		// Default no action needed.
+	}
+
 	getEntityRef(id) {
 		return new EntityRef(id, this);
 	}

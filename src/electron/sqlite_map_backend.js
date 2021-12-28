@@ -82,7 +82,7 @@ class SQLiteMapBackend extends MapBackend {
 
 	async getNodeParent(nodeId) {
 		const row = this.s_getNodeParent.get({nodeId: nodeId});
-		return row.parentId ? this.getNodeRef(row.parentId) : null;
+		return row.parentid ? this.getNodeRef(row.parentid) : null;
 	}
 
 	async * getNodeChildren(nodeId) {

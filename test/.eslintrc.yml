@@ -1,10 +1,13 @@
 env:
   node: true
-  browser: true
   es2020: true
-extends: eslint:recommended
+extends:
+    - eslint:recommended
+    - plugin:mocha/recommended
 parserOptions:
   sourceType: module
+plugins:
+    - mocha
 rules:
   indent:
     - error

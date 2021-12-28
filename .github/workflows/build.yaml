@@ -9,7 +9,9 @@ jobs:
               with:
                 node-version: "16"
             - run: yarn
+            - run: yarn run electron-rebuild
             - run: yarn run check-format
+            - run: yarn run test
     package-libpack:
         needs: check
         runs-on: ubuntu-latest

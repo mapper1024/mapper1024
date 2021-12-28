@@ -28,6 +28,7 @@
 		"electron-mocha": "^11.0.2",
 		"electron-rebuild": "^3.2.5",
 		"eslint": "^8.5.0",
+		"eslint-plugin-mocha": "^10.0.3",
 		"esm": "^3.2.25",
 		"rollup": "^2.61.1"
 	},
@@ -36,6 +37,7 @@
 		"productName": "Mapper1024"
 	},
 	"dependencies": {
-		"better-sqlite3": "^7.4.5"
+		"better-sqlite3": "^7.4.5",
+		"tmp": "^0.2.1"
 	}
 }
