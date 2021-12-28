@@ -56,11 +56,11 @@ class NodeRef extends EntityRef {
 }
 
 class EdgeRef extends EntityRef {
-	async getNodes() {
-		return this.backend.getEdgeNodes(this.id);
+	async * getNodes() {
+		yield* this.backend.getEdgeNodes(this.id);
 	}
 
-	async getNode(startId) {
+	async getOtherNode(startId) {
 		return this.backend.getEdgeOtherNode(this.id, startId);
 	}
 
@@ -75,8 +75,8 @@ class DirEdgeRef extends EntityRef {
 		this.startId = startId;
 	}
 
-	async getOtherNode() {
-		return this.getNode(this.startId);
+	async getDirOtherNode() {
+		return this.getOtherNode(this.startId);
 	}
 }
 
