@@ -15,7 +15,7 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.db.prepare("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT)").run();
 		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid), FOREIGN KEY (parentid) REFERENCES entity(entityid) ON DELETE CASCADE)").run();
-		this.db.prepare("CREATE TABLE IF NOT EXISTS connection (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid), FOREIGN KEY (nodeid) REFERENCES entity(entityid))").run();
+		this.db.prepare("CREATE TABLE IF NOT EXISTS connection (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES entity(entityid) ON DELETE CASCADE)").run();
 
 		/* Each property can be either a
 		 * string
