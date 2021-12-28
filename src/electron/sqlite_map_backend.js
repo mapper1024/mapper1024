@@ -58,8 +58,8 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.baseCreateEdge = this.db.transaction((nodeAId, nodeBId) => {
 			const id = this.baseCreateEntity("edge");
-			this.s_createConnection.run({edgeID: id, nodeId: nodeAId});
-			this.s_createConnection.run({edgeID: id, nodeId: nodeBId});
+			this.s_createConnection.run({edgeId: id, nodeId: nodeAId});
+			this.s_createConnection.run({edgeId: id, nodeId: nodeBId});
 			return this.getEdgeRef(id);
 		});
 	}

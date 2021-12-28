@@ -3,7 +3,7 @@ const tmp = require("tmp");
 const _require = require("esm")(module);
 const fs = require("fs/promises");
 const { SQLiteMapBackend } = _require("../src/electron/sqlite_map_backend.js");
-const { Point } = _require("../mapper/index.js");
+const { Point, asyncFrom } = _require("../mapper/index.js");
 
 describe("SQLiteMapBackend", function() {
 	let backend;
@@ -46,6 +46,8 @@ describe("SQLiteMapBackend", function() {
 		let childB;
 		let grandchildA;
 		let grandchildB;
+		let childEdge;
+		let grandchildEdge;
 
 		const grandchildString = "a grandchild's string";
 
@@ -58,7 +60,10 @@ describe("SQLiteMapBackend", function() {
 			grandchildA = await backend.createNode(childB.id);
 			grandchildB = await backend.createNode(childB.id);
 
-			grandchildA.setPString("another string property", grandchildString);
+			await grandchildA.setPString("another string property", grandchildString);
+
+			childEdge = await backend.createEdge(childA.id, childB.id);
+			grandchildEdge = await backend.createEdge(grandchildB.id, grandchildA.id);
 		});
 
 		describe("graph", function() {
@@ -70,9 +75,18 @@ describe("SQLiteMapBackend", function() {
 
 				expect((await grandchildA.getParent()).id, "grandchildA parent").to.equal(childB.id);
 				expect((await grandchildB.getParent()).id, "grandchildB parent").to.equal(childB.id);
+
+				expect(await asyncFrom(root.getChildren(), (child) => child.id)).has.members([childA.id, childB.id]);
 			});
 
 			it("should have edges", async function() {
+
+			});
+
+			it("should have removable nodes", async function() {
+			});
+
+			it("should have removable edges", async function() {
 
 			});
 		});
