@@ -28,6 +28,11 @@ if ! yarn run check-format; then
 	exit 1
 fi
 
+if ! yarn run test; then
+	echo "The test script failed."
+	exit 1
+fi
+
 echo "Tagging..."
 git tag v"$VERSION"
 echo "Pushing branch..."

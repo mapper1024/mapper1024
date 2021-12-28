@@ -1,6 +1,5 @@
 import { MapBackend, Point } from "../../mapper/index.js";
-
-const Database = require("better-sqlite3");
+import Database from "better-sqlite3";
 
 class SQLiteMapBackend extends MapBackend {
 	constructor(filename) {
