@@ -90,6 +90,7 @@ describe("SQLiteMapBackend", function() {
 			expect(await asyncFrom(childA.getEdges(), async (edge) => (await edge.getDirOtherNode()).id)).has.members([childB.id, childC.id]);
 
 			expect(await asyncFrom(childEdgeAC.getNodes(), (node) => node.id)).has.members([childA.id, childC.id]);
+			expect(await asyncFrom(grandchildEdge.getNodes(), (node) => node.id)).has.members([grandchildA.id, grandchildB.id]);
 		});
 
 		it("should have removable nodes", async function() {

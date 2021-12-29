@@ -1,5 +1,5 @@
 async function asyncFrom(asyncIterable, mapFunction) {
-	const values = []
+	const values = [];
 	if(mapFunction === undefined) {
 		for await (const value of asyncIterable) {
 			values.push(value);
