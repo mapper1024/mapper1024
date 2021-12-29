@@ -5,6 +5,11 @@ async function asyncFrom(asyncIterable, mapFunction) {
 			values.push(value);
 		}
 	}
+	else if(mapFunction.constructor.name === "AsyncFunction") {
+		for await (const value of asyncIterable) {
+			values.push(await mapFunction(value));
+		}
+	}
 	else {
 		for await (const value of asyncIterable) {
 			values.push(mapFunction(value));

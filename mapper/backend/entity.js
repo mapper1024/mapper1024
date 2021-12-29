@@ -4,6 +4,10 @@ class EntityRef {
 		this.backend = backend;
 	}
 
+	async exists() {
+		return this.backend.entityExists(this.id);
+	}
+
 	async getPNumber(propertyName) {
 		return this.backend.getPNumber(this.id, propertyName);
 	}
@@ -69,7 +73,7 @@ class EdgeRef extends EntityRef {
 	}
 }
 
-class DirEdgeRef extends EntityRef {
+class DirEdgeRef extends EdgeRef {
 	constructor(id, startId, backend) {
 		super(id, backend);
 		this.startId = startId;

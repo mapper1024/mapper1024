@@ -11,10 +11,15 @@ class SQLiteMapBackend extends MapBackend {
 		this.db = Database(this.filename);
 
 		this.db.pragma("foreign_keys = ON");
+		this.db.pragma("recursive_triggers = ON");
 
 		this.db.prepare("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT)").run();
-		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid), FOREIGN KEY (parentid) REFERENCES entity(entityid) ON DELETE CASCADE)").run();
-		this.db.prepare("CREATE TABLE IF NOT EXISTS connection (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES entity(entityid) ON DELETE CASCADE)").run();
+
+		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
+		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
+
+		this.db.prepare("CREATE TABLE IF NOT EXISTS connection (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
+		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_connectiondeleted AFTER DELETE ON connection FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.edgeid; END");
 
 		/* Each property can be either a
 		 * string
@@ -29,6 +34,8 @@ class SQLiteMapBackend extends MapBackend {
 		this.s_spp = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, x, y, z) VALUES ($entityId, $property, $x, $y, $z)");
 		this.s_gps = this.db.prepare("SELECT v_string FROM property WHERE entityid = $entityId AND property = $property");
 		this.s_sps = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, v_string) VALUES ($entityId, $property, $value)");
+
+		this.s_entityExists = this.db.prepare("SELECT entityid FROM entity WHERE entityid = $entityId");
 
 		this.s_createEntity = this.db.prepare("INSERT INTO entity (type) VALUES ($type)");
 		this.s_createNode = this.db.prepare("INSERT INTO node (entityid, parentId) VALUES ($entityId, $parentId)");
@@ -60,12 +67,16 @@ class SQLiteMapBackend extends MapBackend {
 			const id = this.baseCreateEntity("edge");
 			this.s_createConnection.run({edgeId: id, nodeId: nodeAId});
 			this.s_createConnection.run({edgeId: id, nodeId: nodeBId});
-			return this.getEdgeRef(id);
+			return id;
 		});
 	}
 
 	baseCreateEntity(type) {
 		return this.s_createEntity.run({type: type}).lastInsertRowid;
+	}
+
+	async entityExists(entityId) {
+		return this.s_entityExists.get({entityId: entityId}) !== undefined;
 	}
 
 	async createEntity(type) {

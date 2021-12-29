@@ -44,9 +44,12 @@ describe("SQLiteMapBackend", function() {
 		let root;
 		let childA;
 		let childB;
+		let childC;
 		let grandchildA;
 		let grandchildB;
-		let childEdge;
+		let grandchildC;
+		let childEdgeAB;
+		let childEdgeAC;
 		let grandchildEdge;
 
 		const grandchildString = "a grandchild's string";
@@ -56,39 +59,69 @@ describe("SQLiteMapBackend", function() {
 
 			childA = await backend.createNode(root.id);
 			childB = await backend.createNode(root.id);
+			childC = await backend.createNode(root.id);
 
 			grandchildA = await backend.createNode(childB.id);
 			grandchildB = await backend.createNode(childB.id);
+			grandchildC = await backend.createNode(childC.id);
 
 			await grandchildA.setPString("another string property", grandchildString);
 
-			childEdge = await backend.createEdge(childA.id, childB.id);
+			childEdgeAB = await backend.createEdge(childA.id, childB.id);
+			childEdgeAC = await backend.createEdge(childA.id, childC.id);
 			grandchildEdge = await backend.createEdge(grandchildB.id, grandchildA.id);
 		});
 
-		describe("graph", function() {
-			it("should have node trees", async function() {
-				expect(await root.getParent()).to.equal(null);
+		it("should have node trees", async function() {
+			expect(await root.getParent()).to.equal(null);
 
-				expect((await childA.getParent()).id, "childA parent").to.equal(root.id);
-				expect((await childB.getParent()).id, "childB parent").to.equal(root.id);
+			expect((await childA.getParent()).id, "childA parent").to.equal(root.id);
+			expect((await childB.getParent()).id, "childB parent").to.equal(root.id);
 
-				expect((await grandchildA.getParent()).id, "grandchildA parent").to.equal(childB.id);
-				expect((await grandchildB.getParent()).id, "grandchildB parent").to.equal(childB.id);
+			expect((await grandchildA.getParent()).id, "grandchildA parent").to.equal(childB.id);
+			expect((await grandchildB.getParent()).id, "grandchildB parent").to.equal(childB.id);
 
-				expect(await asyncFrom(root.getChildren(), (child) => child.id)).has.members([childA.id, childB.id]);
-			});
+			expect(await asyncFrom(root.getChildren(), (child) => child.id)).has.members([childA.id, childB.id, childC.id]);
+		});
 
-			it("should have edges", async function() {
+		it("should have edges", async function() {
+			expect(await asyncFrom(childA.getEdges(), (edge) => edge.id)).has.members([childEdgeAB.id, childEdgeAC.id]);
+			expect(await asyncFrom(childA.getEdges(), async (edge) => (await edge.getOtherNode(childA.id)).id)).has.members([childB.id, childC.id]);
+			expect(await asyncFrom(childA.getEdges(), async (edge) => (await edge.getDirOtherNode()).id)).has.members([childB.id, childC.id]);
 
-			});
+			expect(await asyncFrom(childEdgeAC.getNodes(), (node) => node.id)).has.members([childA.id, childC.id]);
+		});
 
-			it("should have removable nodes", async function() {
-			});
+		it("should have removable nodes", async function() {
+			await childB.remove();
 
-			it("should have removable edges", async function() {
+			expect(await root.exists(), "root").to.equal(true);
+			expect(await childA.exists(), "childA").to.equal(true);
+			expect(await childC.exists(), "childC").to.equal(true);
+			expect(await grandchildC.exists(), "grandchildC").to.equal(true);
 
-			});
+			expect(await childEdgeAC.exists(), "childEdgeAC").to.equal(true);
+
+			expect(await childB.exists(), "childB").to.equal(false);
+			expect(await grandchildA.exists(), "grandchildA").to.equal(false);
+			expect(await grandchildB.exists(), "grandchildB").to.equal(false);
+
+			expect(await childEdgeAB.exists(), "childEdgeAB").to.equal(false);
+		});
+
+		it("should have removable edges", async function() {
+			await childEdgeAB.remove();
+
+			expect(await childEdgeAB.exists()).to.equal(false);
+
+			expect(await childEdgeAC.exists()).to.equal(true);
+
+			expect(await childA.exists()).to.equal(true);
+			expect(await childB.exists()).to.equal(true);
+			expect(await childC.exists()).to.equal(true);
+
+			expect(await asyncFrom(childA.getEdges(), (edge) => edge.id)).to.include(childEdgeAC.id).but.not.to.include(childEdgeAB.id);
+			expect(await asyncFrom(childB.getEdges())).to.be.empty;
 		});
 
 		it("should persist over multiple opens", async function() {
@@ -101,6 +134,9 @@ describe("SQLiteMapBackend", function() {
 
 			const grandchildA_again = await backend2.getNodeRef(grandchildA.id);
 			expect(await grandchildA_again.getPString("another string property")).to.equal(grandchildString);
+
+			const childEdgeAC_again = await backend2.getEdgeRef(childEdgeAC.id);
+			expect(await asyncFrom(childEdgeAC_again.getNodes(), (node) => node.id)).has.members([childA.id, childC.id]);
 		});
 	});
 

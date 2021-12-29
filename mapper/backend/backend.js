@@ -1,5 +1,6 @@
 import { Point } from "../point.js";
 import { EntityRef, NodeRef, EdgeRef, DirEdgeRef } from "./entity.js";
+import { asyncFrom } from "../utils.js";
 
 /** Abstract mapper backend, i.e. what map is being presented.
  * The backend translates between the concept of a map and a database, a file, an API, or whatever else is actually being used to store the data.
@@ -80,7 +81,7 @@ class MapBackend {
 	}
 
 	/** Get all direct children of a node.
-	 * @returns {Iterable.<NodeRef>}
+	 * @returns {AsyncIterable.<NodeRef>}
 	 */
 	async getNodeChildren(nodeId) {
 		nodeId;
@@ -104,7 +105,7 @@ class MapBackend {
 	}
 
 	async getEdgeOtherNode(edgeId, nodeId) {
-		const [nodeA, nodeB] = await this.getEdgeNodes(edgeId);
+		const [nodeA, nodeB] = await asyncFrom(this.getEdgeNodes(edgeId));
 		return (nodeA.id == nodeId) ? nodeB : nodeA;
 	}
 
@@ -114,6 +115,11 @@ class MapBackend {
 
 	async removeNode(nodeId) {
 		return this.removeEntity(nodeId);
+	}
+
+	async entityExists(entityId) {
+		entityId;
+		throw "not implemented";
 	}
 
 	async removeEntity(entityId) {
