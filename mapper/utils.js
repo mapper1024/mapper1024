@@ -1,3 +1,8 @@
+/** Get an array from an asynchronous iterable.
+ * @param asyncIterable {AsyncIterable} any async interable (like an asynchronous generator)
+ * @param mapFunction {async function|function|undefined} a callback to map values from the asyncIterable to final return values in the array
+ * @returns {Array}
+ */
 async function asyncFrom(asyncIterable, mapFunction) {
 	const values = [];
 	if(mapFunction === undefined) {
