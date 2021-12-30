@@ -4,6 +4,7 @@ import { asyncFrom } from "../utils.js";
 
 /** Abstract mapper backend, i.e. what map is being presented.
  * The backend translates between the concept of a map and a database, a file, an API, or whatever else is actually being used to store the data.
+ * Most methods here are low-level; users of the backend should use methods from EntityRef and its children which delegate to the MapBackend.
  */
 class MapBackend {
 	/** Get a number property on an entity.
@@ -21,7 +22,7 @@ class MapBackend {
 		return this.setPString(entityId, propertyName, value.toString());
 	}
 
-	/** Get a Point property on an entity.
+	/** Set a Point property on an entity.
 	 * Has a default implementation based on string properties.
 	 */
 	async setPPoint(entityId, propertyName, point) {
@@ -88,40 +89,71 @@ class MapBackend {
 		throw "not implemented";
 	}
 
+	/** Create a new edge between two nodes.
+	 * Order of node IDs does not matter.
+	 * @param nodeAId {number} The ID of one of the nodes on the edge.
+	 * @param nodeBId {number} The ID of the other node on the edge.
+	 * @returns {EdgeRef} A reference to the new edge.
+	 */
 	async createEdge(nodeAId, nodeBId) {
 		nodeAId;
 		nodeBId;
 		throw "not implemented";
 	}
 
+	/** Get all edges attached to a node.
+	 * @returns {AsyncIterable.<EdgeRef>}
+	 */
 	async getNodeEdges(nodeId) {
 		nodeId;
 		throw "not implemented";
 	}
 
+	/** Get the two nodes attached to an edge, in no particular order.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
 	async getEdgeNodes(edgeId) {
 		edgeId;
 		throw "not implemented";
 	}
 
+	/** Given an edge and one of the nodes on the edge, get the other node on the edge.
+	 * @param edgeId {number}
+	 * @param nodeId {number}
+	 * Has a default implementation based on #getEdgeNodes().
+	 * @returns {NodeRef}
+	 */
 	async getEdgeOtherNode(edgeId, nodeId) {
 		const [nodeA, nodeB] = await asyncFrom(this.getEdgeNodes(edgeId));
 		return (nodeA.id == nodeId) ? nodeB : nodeA;
 	}
 
+	/** Remove an edge from the backend.
+	 * Has a default implementation that just removes the entity.
+	 */
 	async removeEdge(edgeId) {
 		return this.removeEntity(edgeId);
 	}
 
+	/** Remove a node from the backend.
+	 * Has a default implementation that just removes the entity.
+	 */
 	async removeNode(nodeId) {
 		return this.removeEntity(nodeId);
 	}
 
+	/** Check if an entity exists.
+	 * @returns {boolean}
+	 */
 	async entityExists(entityId) {
 		entityId;
 		throw "not implemented";
 	}
 
+	/** Remove an entity from the backend.
+	 * This method should work to remove any entity.
+	 * However, calling code should use #removeEdge() and #removeNode() when applicable instead, for potential optimization purposes.
+	 */
 	async removeEntity(entityId) {
 		entityId;
 		throw "not implemented";

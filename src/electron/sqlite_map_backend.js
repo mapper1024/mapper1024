@@ -1,33 +1,48 @@
 import { MapBackend, Point } from "../../mapper/index.js";
 const Database = require("better-sqlite3");
 
+/** SQLite-backed map backend.
+ * Each map is an individual SQLite database file.
+ * This backend is built for the Electron desktop app usecase.
+ */
 class SQLiteMapBackend extends MapBackend {
+	/** Ready the backend on a specific database filename.
+	 * Note that the file will not be opened or created until #load() is called.
+	 * The backend cannot be used until #load() finishes.
+	 */
 	constructor(filename) {
 		super();
 		this.filename = filename;
 	}
 
+	/** Open the backend database, or create it if it does not exist. */
 	async load() {
 		this.db = Database(this.filename);
 
+		// We use foreign keys and recursive triggers to delete child nodes and edges.
 		this.db.pragma("foreign_keys = ON");
 		this.db.pragma("recursive_triggers = ON");
 
 		this.db.prepare("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT)").run();
 
+		// Node table and trigger to delete the corresponding entitty when a node is deleted.
 		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
 		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
 
-		this.db.prepare("CREATE TABLE IF NOT EXISTS connection (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
-		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_connectiondeleted AFTER DELETE ON connection FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.edgeid; END");
+		// Similar to nodes, a edge's corresponding entity will be deleted via trigger as soon as the edge is deleted.
+		this.db.prepare("CREATE TABLE IF NOT EXISTS edge (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
+		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_edgedeleted AFTER DELETE ON edge FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.edgeid; END");
 
-		/* Each property can be either a
-		 * string
-		 * number (real float)
-		 * point (x, y, and z real float)
+		/* Multiple types of property are possible, all combined into one table for now.
+		 * Each property can be (with columns):
+		 * 	string (v_string TEXT)
+		 * 	number (v_number REAL)
+		 * 	point (x, y, and z REAL)
+		 * The columns corresponding to the other property types are NULL or disregarded.
 		 */
 		this.db.prepare("CREATE TABLE IF NOT EXISTS property (entityid INT, property TEXT, v_string TEXT, v_number REAL, x REAL, y REAL, z REAL, PRIMARY KEY (entityid, property), FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE)").run();
 
+		// Property access prepared statements.
 		this.s_gpn = this.db.prepare("SELECT v_number FROM property WHERE entityid = $entityId AND property = $property");
 		this.s_spn = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, v_number) VALUES ($entityId, $property, $value)");
 		this.s_gpp = this.db.prepare("SELECT x, y, z FROM property WHERE entityid = $entityId AND property = $property");
@@ -39,30 +54,44 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.s_createEntity = this.db.prepare("INSERT INTO entity (type) VALUES ($type)");
 		this.s_createNode = this.db.prepare("INSERT INTO node (entityid, parentId) VALUES ($entityId, $parentId)");
-		this.s_createConnection = this.db.prepare("INSERT INTO connection (edgeid, nodeid) VALUES ($edgeId, $nodeId)");
+		this.s_createConnection = this.db.prepare("INSERT INTO edge (edgeid, nodeid) VALUES ($edgeId, $nodeId)");
 
 		this.s_getNodeParent = this.db.prepare("SELECT parentId FROM node WHERE entityid = $nodeId");
 		this.s_getNodeChildren = this.db.prepare("SELECT entityid FROM node WHERE parentID = $nodeId");
-		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM connection WHERE nodeid = $nodeId");
-		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM connection WHERE edgeid = $edgeId");
+		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM edge WHERE nodeid = $nodeId");
+		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM edge WHERE edgeid = $edgeId");
 
+		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
 		this.s_deleteEntity = this.db.prepare("DELETE FROM entity WHERE entityid = $entityId");
 
-		let globalEntityIdRow = this.db.prepare("SELECT entityid FROM entity WHERE type = 'global'").get();
+		/* Find or create the global entity.
+		 * There can be only one.
+		 */
+		this.db.transaction(() => {
+			let globalEntityIdRow = this.db.prepare("SELECT entityid FROM entity WHERE type = 'global'").get();
+			if(globalEntityIdRow === undefined) {
+				this.global = this.getEntityRef(this.baseCreateEntity("global"));
+			}
+			else {
+				this.global = this.getEntityRef(globalEntityIdRow.entityid);
+			}
+		}).exclusive();
 
-		if(globalEntityIdRow === undefined) {
-			this.global = await this.createEntity("global");
-		}
-		else {
-			this.global = this.getEntityRef(globalEntityIdRow.entityid);
-		}
-
+		/** Create a node atomically.
+		 * @param parentId {number|null} The ID of the node's parent, or null if none.
+		 * @returns {number} The ID of the new node.
+		 */
 		this.baseCreateNode = this.db.transaction((parentId) => {
 			const id = this.baseCreateEntity("node");
 			this.s_createNode.run({entityId: id, parentId: parentId});
 			return id;
 		});
 
+		/** Create an edge atomically.
+		 * @param nodeAId {number} The ID of one of the nodes on the edge.
+		 * @param nodeBId {number} The ID of the other node on the edge.
+		 * @returns {number} The ID of the new edge.
+		 */
 		this.baseCreateEdge = this.db.transaction((nodeAId, nodeBId) => {
 			const id = this.baseCreateEntity("edge");
 			this.s_createConnection.run({edgeId: id, nodeId: nodeAId});

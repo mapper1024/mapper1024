@@ -10,3 +10,10 @@ Serves the mapper component wrapped in a desktop app UI with a local file storag
 ## src/flask
 An example web server, for testing the mapping tool in a remote context.
 Serves the mapper component wrapped in a web UI with an API/web server database backend.
+
+## test
+[Mocha](https://mochajs.org/) test cases.
+
+## test_datasets
+Database generators to create test-case maps.
+May include methods to generate maps programatically for test purposes, map files, SQL dumps, etc.

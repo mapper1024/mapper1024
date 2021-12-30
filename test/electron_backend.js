@@ -126,10 +126,14 @@ describe("SQLiteMapBackend", function() {
 		});
 
 		it("should persist over multiple opens", async function() {
+			backend.global.setPString("some property", "some value");
 			await backend.flush();
 
 			let backend2 = new SQLiteMapBackend(backendFilename);
 			await backend2.load();
+
+			expect(backend.global.id).to.equal(backend2.global.id);
+			expect(await backend2.global.getPString("some property")).to.equal("some value");
 
 			expect(await grandchildA.getPString("another string property")).to.equal(grandchildString);
 
