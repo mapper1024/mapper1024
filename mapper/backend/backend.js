@@ -160,23 +160,34 @@ class MapBackend {
 	}
 
 	/** Flush the backend to storage.
-	 * This may happen automatically, but flush forces it. */
+	 * This may happen automatically, but flush forces it.
+	 * Has a default implementation that does nothing.
+	 */
 	async flush() {
-		// Default no action needed.
 	}
 
+	/** Create an EntityRef to an entity in this backend.
+	 * Use getNodeRef, getEdgeRef, or getDirEdgeRef for greater type-specific functionality if the entity is a node or edge.
+	 */
 	getEntityRef(id) {
 		return new EntityRef(id, this);
 	}
 
+	/** Create a NodeRef to a node in this backend. */
 	getNodeRef(id) {
 		return new NodeRef(id, this);
 	}
 
+	/** Create an EdgeRef to an edge in this backend. */
 	getEdgeRef(id) {
 		return new EdgeRef(id, this);
 	}
 
+	/** Create a DirEdgeRef to an edge in this backend, starting from the specified node.
+	 * @param id {number} The ID of the edge to get.
+	 * @param startId {number} The ID of a node attached to this edge.
+	 * @returns {DirEdgeRef} Starting from the specified start ID.
+	 */
 	getDirEdgeRef(id, startId) {
 		return new DirEdgeRef(id, startId, this);
 	}
