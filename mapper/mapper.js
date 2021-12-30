@@ -1,10 +1,10 @@
-/* A render context of a mapper into a specific element.
+/** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
  * See Mapper.render() for instantiation.
  * Call disconnect() on a render context once the element is no longer being used for a specific Mapper to close event listeners.
  */
 class RenderContext {
-	/* Construct the render context for the specified mapper in a specific parent element.
+	/** Construct the render context for the specified mapper in a specific parent element.
 	 * Will set up event listeners and build the initial UI.
 	 */
 	constructor(parent, mapper) {
@@ -28,7 +28,7 @@ class RenderContext {
 		this.recalculateSize();
 	}
 
-	/* Recalculate the UI size based on the parent.
+	/** Recalculate the UI size based on the parent.
 	 * This requires a full redraw.
 	 */
 	recalculateSize() {
@@ -39,7 +39,7 @@ class RenderContext {
 		this.redraw();
 	}
 
-	/* Completely redraw the displayed UI. */
+	/** Completely redraw the displayed UI. */
 	redraw() {
 		var c = this.canvas.getContext("2d");
 		c.beginPath();
@@ -48,13 +48,14 @@ class RenderContext {
 		c.fill();
 	}
 
+	/** Disconnect the render context from the page and clean up listeners. */
 	disconnect() {
 		this.parentObserver.disconnect();
 		this.parent.removeChild(this.canvas);
 	}
 }
 
-/* Mapper interface
+/** Mapper interface
  * A connection to a database and mapper UI.
  * TODO: backend connection
  * Instantiate Mapper and then call the render() method to insert the UI into a div element.
@@ -67,8 +68,8 @@ class Mapper {
 		this.backend = backend;
 	}
 
-	/* Render Mapper into a div element
-	 * Returns a RenderContext.
+	/** Render Mapper into a div element
+	 * @returns {RenderContext}
 	 * Example: const renderContext = mapper.render(document.getElementById("mapper_div"))
 	 */
 	render(element) {
