@@ -5,6 +5,13 @@ import { asyncFrom } from "../utils.js";
 /** Abstract mapper backend, i.e. what map is being presented.
  * The backend translates between the concept of a map and a database, a file, an API, or whatever else is actually being used to store the data.
  * Most methods here are low-level; users of the backend should use methods from EntityRef and its children which delegate to the MapBackend.
+ *
+ * Underlying structure:
+ * The backend consists of a set of entities, which can have arbitrary properties.
+ * A special entity, "global", is used for properties of the whole map.
+ * Two types of entities have specific handling to form a graph:
+ * "node" - an entity with a parent and positional information.
+ * "edge" - an entity connecting two adjacent nodes.
  */
 class MapBackend {
 	/** Get a number property on an entity.
