@@ -33,6 +33,11 @@ if ! yarn run test; then
 	exit 1
 fi
 
+if ! yarn run doc; then
+	echo "The doc script failed."
+	exit 1
+fi
+
 echo "Tagging..."
 git tag v"$VERSION"
 echo "Pushing branch..."
