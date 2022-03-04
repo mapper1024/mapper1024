@@ -19,7 +19,7 @@ class HookContainer {
 
 	call(hookName, ...args) {
 		if(hookName in this.hooks) {
-			for(const hookFunction in this.hooks[hookName]) {
+			for(const hookFunction of this.hooks[hookName]) {
 				hookFunction(...args);
 			}
 		}

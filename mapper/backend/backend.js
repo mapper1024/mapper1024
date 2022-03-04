@@ -198,6 +198,12 @@ class MapBackend {
 	getDirEdgeRef(id, startId) {
 		return new DirEdgeRef(id, startId, this);
 	}
+
+	getNodesInArea(a, b) {
+		a;
+		b;
+		throw "not implemented";
+	}
 }
 
 export { MapBackend };

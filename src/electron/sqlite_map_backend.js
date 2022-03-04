@@ -61,6 +61,8 @@ class SQLiteMapBackend extends MapBackend {
 		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM edge WHERE nodeid = $nodeId");
 		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM edge WHERE edgeid = $edgeId");
 
+		this.s_getNodesInArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid WHERE property.property = 'center' AND property.x >= $ax AND property.x <= $bx AND property.y >= $ay AND property.y <= $by AND property.z >= $az AND property.z <= $bz");
+
 		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
 		this.s_deleteEntity = this.db.prepare("DELETE FROM entity WHERE entityid = $entityId");
 
@@ -193,6 +195,13 @@ class SQLiteMapBackend extends MapBackend {
 			property: propertyName,
 			value: value,
 		});
+	}
+
+	async * getNodesInArea(a, b) {
+		for(const row of this.s_getNodesInArea.iterate({ax: a.x, ay: a.y, az: a.z, bx: b.x, by: b.y, bz: b.z})) {
+			console.log(row);
+			yield this.getNodeRef(row.entityid);
+		}
 	}
 }
 

@@ -46,6 +46,10 @@ class NodeRef extends EntityRef {
 		yield* this.backend.getNodeChildren(this.id);
 	}
 
+	async setCenter(point) {
+		return this.setPPoint("center", point);
+	}
+
 	async center() {
 		return this.getPPoint("center");
 	}

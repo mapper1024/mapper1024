@@ -1,3 +1,6 @@
+import { HookContainer } from "./hook_container.js";
+import { Point } from "./point.js";
+
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
  * See Mapper.render() for instantiation.
@@ -21,11 +24,25 @@ class RenderContext {
 		this.canvas.style.margin = "0";
 		this.canvas.style.border = "0";
 
+		this.mapper.hooks.add("update", () => this.redraw());
+
+		this.canvas.addEventListener("click", async (event) => {
+			await this.mapper.insertNode(this.canvasPointToMap(new Point(event.x, event.y)));
+		});
+
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
 		this.parentObserver.observe(this.parent);
 
 		this.recalculateSize();
+	}
+
+	canvasPointToMap(point) {
+		return new Point(point.x, point.y, 0);
+	}
+
+	mapPointToCanvas(point) {
+		return new Point(point.x, point.y);
 	}
 
 	/** Recalculate the UI size based on the parent.
@@ -46,6 +63,20 @@ class RenderContext {
 		c.rect(0, 0, this.canvas.width, this.canvas.height);
 		c.fillStyle = "blue";
 		c.fill();
+
+		(async () => {
+			for await (const nodeRef of this.visibleNodes()) {
+				const point = this.mapPointToCanvas(await nodeRef.center());
+				c.beginPath();
+				c.arc(point.x, point.y, 16, 0, 2 * Math.PI, false);
+				c.fillStyle = "green";
+				c.fill();
+			}
+		})();
+	}
+
+	async * visibleNodes() {
+		yield* this.mapper.getNodesInArea(this.canvasPointToMap(new Point(0, 0)), this.canvasPointToMap(new Point(this.canvas.width, this.canvas.height)));
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
@@ -66,6 +97,14 @@ class Mapper {
 	 */
 	constructor(backend) {
 		this.backend = backend;
+		this.hooks = new HookContainer();
+
+		this.hooks.add("updateNode", () => this.hooks.call("update"));
+		this.hooks.add("insertNode", (nodeRef) => this.hooks.call("updateNode", nodeRef));
+	}
+
+	async * getNodesInArea(a, b) {
+		yield* this.backend.getNodesInArea(a, b);
 	}
 
 	/** Render Mapper into a div element
@@ -74,6 +113,12 @@ class Mapper {
 	 */
 	render(element) {
 		return new RenderContext(element, this);
+	}
+
+	async insertNode(point) {
+		const nodeRef = await this.backend.createNode();
+		await nodeRef.setCenter(point);
+		this.hooks.call("insertNode", nodeRef);
 	}
 }
 
