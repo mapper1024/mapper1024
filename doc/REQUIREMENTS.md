@@ -29,3 +29,6 @@ The mapper should be extendable to support rendering the map from varying points
 Sources:
  - Self
  - Röhl, T., & Herbrik, R. (2008). Mapping the Imaginary—Maps in Fantasy Role-Playing Games. *Forum: Qualitative Social Research*, 9(3), 1–26.
+
+# Usecase: Educator
+...
