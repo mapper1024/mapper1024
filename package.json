@@ -6,11 +6,17 @@
 	"scripts": {
 		"test": "electron-mocha",
 		"start": "electron .",
+
+		"electron-rebuild": "$(npm bin)/electron-rebuild",
+		"eslint": "$(npm bin)/eslint",
+		"rollup": "$(npm bin)/rollup",
+		"jsdoc": "$(npm bin)/jsdoc",
+
 		"build-and-run": "npm run check-format && npm run start",
-		"format": "git ls-files | grep '\\.js$' | xargs npm run eslint --fix",
+		"format": "git ls-files | grep '\\.js$' | xargs npm run eslint -- --fix",
 		"check-format": "git ls-files | grep '\\.js$' | xargs npm run eslint",
-		"libpack": "rollup -o dist/mapper1024.$(jq < package.json .version -r).js -i mapper/index.js",
-		"doc": "git ls-files mapper | grep '\\.js$' | xargs npm run jsdoc -d jsdoc"
+		"libpack": "npm run rollup -o dist/mapper1024.$(jq < package.json .version -r).js -i mapper/index.js",
+		"doc": "git ls-files mapper | grep '\\.js$' | xargs npm run jsdoc -- -d jsdoc"
 	},
 	"repository": {
 		"type": "git",

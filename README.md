@@ -22,6 +22,7 @@ Alternatively, the mapping component can be embedded in any other web app. The m
 To run with Electron as a local desktop app, use the npm commands:
 ```sh
 npm install
+npm run electron-rebuild
 npm start
 ```
 
