@@ -22,6 +22,7 @@ Alternatively, the mapping component can be embedded in any other web app. The m
 To run with Electron as a local desktop app, use the yarn commands:
 ```sh
 yarn
+yarn electron-rebuild
 yarn start
 ```
 
