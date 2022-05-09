@@ -8,12 +8,12 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                 node-version: "16"
-            - run: yarn
-            - run: yarn run electron-rebuild
-            - run: yarn run check-format
+            - run: npm install
+            - run: npm run electron-rebuild
+            - run: npm run check-format
             - uses: GabrielBB/xvfb-action@v1
               with:
-                run: yarn run test
+                run: npm run test
     package-libpack:
         needs: check
         runs-on: ubuntu-latest
@@ -22,8 +22,8 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                 node-version: "16"
-            - run: yarn
-            - run: yarn run libpack
+            - run: npm install
+            - run: npm run libpack
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')
@@ -37,8 +37,8 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                 node-version: "16"
-            - run: yarn
-            - run: yarn run electron-builder --x64 -l AppImage -p never
+            - run: npm install
+            - run: npm run electron-builder --x64 -l AppImage -p never
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')
@@ -52,8 +52,8 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                 node-version: "16"
-            - run: yarn
-            - run: yarn run electron-builder --x64 -l zip -p never
+            - run: npm install
+            - run: npm run electron-builder --x64 -l zip -p never
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')
@@ -67,8 +67,8 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                 node-version: "16"
-            - run: yarn
-            - run: yarn run electron-builder --x64 --ia32 -p never -w portable
+            - run: npm install
+            - run: npm run electron-builder --x64 --ia32 -p never -w portable
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')
@@ -83,8 +83,8 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                 node-version: "16"
-            - run: yarn
-            - run: yarn run electron-builder --x64 --ia32 -p never -w nsis
+            - run: npm install
+            - run: npm run electron-builder --x64 --ia32 -p never -w nsis
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')

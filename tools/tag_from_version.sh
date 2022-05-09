@@ -23,17 +23,17 @@ if git rev-parse v"$VERSION" > /dev/null 2>&1 || git ls-remote --exit-code --tag
 	exit 1
 fi
 
-if ! yarn run check-format; then
+if ! npm run check-format; then
 	echo "The check-format script failed."
 	exit 1
 fi
 
-if ! yarn run test; then
+if ! npm run test; then
 	echo "The test script failed."
 	exit 1
 fi
 
-if ! yarn run doc; then
+if ! npm run doc; then
 	echo "The doc script failed."
 	exit 1
 fi

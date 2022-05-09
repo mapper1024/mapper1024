@@ -19,10 +19,10 @@ Alternatively, the mapping component can be embedded in any other web app. The m
 
 ## Building & Running
 ### Electron (Local)
-To run with Electron as a local desktop app, use the yarn commands:
+To run with Electron as a local desktop app, use the npm commands:
 ```sh
-yarn
-yarn start
+npm install
+npm start
 ```
 
 ### Flask (Example server)
