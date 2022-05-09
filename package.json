@@ -7,11 +7,11 @@
 		"test": "electron-mocha",
 		"start": "electron .",
 
-		"electron-rebuild": "$(npm bin)/electron-rebuild",
-		"electron-builder": "$(npm bin)/electron-builder",
-		"eslint": "$(npm bin)/eslint",
-		"rollup": "$(npm bin)/rollup",
-		"jsdoc": "$(npm bin)/jsdoc",
+		"electron-rebuild": "node_modules/.bin/electron-rebuild",
+		"electron-builder": "node_modules/.bin/electron-builder",
+		"eslint": "node_modules/.bin/eslint",
+		"rollup": "node_modules/.bin/rollup",
+		"jsdoc": "node_modules/.bin/jsdoc",
 
 		"build-and-run": "npm run check-format && npm run start",
 		"format": "git ls-files | grep '\\.js$' | xargs npm run eslint -- --fix",
