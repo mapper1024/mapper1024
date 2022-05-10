@@ -58,37 +58,42 @@ class RenderContext {
 	}
 
 	/** Completely redraw the displayed UI. */
-	redraw() {
+	async redraw() {
 		var c = this.canvas.getContext("2d");
 		c.beginPath();
 		c.rect(0, 0, this.canvas.width, this.canvas.height);
 		c.fillStyle = "blue";
 		c.fill();
 
-		(async () => {
-			const seenEdges = {};
+		const seenEdges = {};
 
-			for await (const nodeRef of this.visibleNodes()) {
-				const point = this.mapPointToCanvas(await nodeRef.center());
-				c.beginPath();
-				c.arc(point.x, point.y, 16, 0, 2 * Math.PI, false);
-				c.fillStyle = "green";
-				c.fill();
+		// For all visible nodes.
+		for await (const nodeRef of this.visibleNodes()) {
+			// Node central point.
+			const point = this.mapPointToCanvas(await nodeRef.center());
 
-				for await (const dirEdgeRef of this.mapper.getNodeEdges(nodeRef)) {
-					if(seenEdges[dirEdgeRef.id] === undefined) {
-						seenEdges[dirEdgeRef.id] = true;
+			// Draw node.
+			c.beginPath();
+			c.arc(point.x, point.y, 16, 0, 2 * Math.PI, false);
+			c.fillStyle = "green";
+			c.fill();
 
-						const otherNodeRef = await dirEdgeRef.getDirOtherNode();
-						const otherPoint = this.mapPointToCanvas(await otherNodeRef.center());
-						c.beginPath();
-						c.moveTo(point.x, point.y);
-						c.lineTo(otherPoint.x, otherPoint.y);
-						c.stroke();
-					}
+			// For all edges connected to this node...
+			for await (const dirEdgeRef of this.mapper.getNodeEdges(nodeRef)) {
+				// ...that we have not yet draw.
+				if(seenEdges[dirEdgeRef.id] === undefined) {
+					seenEdges[dirEdgeRef.id] = true;
+
+					// Draw edge to the other node.
+					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+					const otherPoint = this.mapPointToCanvas(await otherNodeRef.center());
+					c.beginPath();
+					c.moveTo(point.x, point.y);
+					c.lineTo(otherPoint.x, otherPoint.y);
+					c.stroke();
 				}
 			}
-		})();
+		}
 	}
 
 	async * visibleNodes() {
