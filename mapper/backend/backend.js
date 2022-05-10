@@ -51,7 +51,7 @@ class MapBackend {
 	async getPString(entityId, propertyName) {
 		entityId;
 		propertyName;
-		throw "not implemented";
+		throw "getPString not implemented";
 	}
 
 	/** Set a string property on an entity. */
@@ -59,7 +59,7 @@ class MapBackend {
 		entityId;
 		propertyName;
 		value;
-		throw "not implemented";
+		throw "setPString not implemented";
 	}
 
 	/** Create a new entity in the backend.
@@ -68,7 +68,7 @@ class MapBackend {
 	 */
 	async createEntity(type) {
 		type;
-		throw "not implemented";
+		throw "createEntity not implemented";
 	}
 
 	/** Creates a new "node" entity.
@@ -77,7 +77,7 @@ class MapBackend {
 	 */
 	async createNode(parentId) {
 		parentId;
-		throw "not implemented";
+		throw "createNode not implemented";
 	}
 
 	/** Get the parent node of a node by ID, or null if the node has no parent.
@@ -85,7 +85,7 @@ class MapBackend {
 	 */
 	async getNodeParent(nodeId) {
 		nodeId;
-		throw "not implemented";
+		throw "getNodeParent not implemented";
 	}
 
 	/** Get all direct children of a node.
@@ -93,7 +93,7 @@ class MapBackend {
 	 */
 	async getNodeChildren(nodeId) {
 		nodeId;
-		throw "not implemented";
+		throw "getNodeChildren not implemented";
 	}
 
 	/** Create a new edge between two nodes.
@@ -105,7 +105,7 @@ class MapBackend {
 	async createEdge(nodeAId, nodeBId) {
 		nodeAId;
 		nodeBId;
-		throw "not implemented";
+		throw "createEdge not implemented";
 	}
 
 	/** Get all edges attached to a node.
@@ -113,7 +113,7 @@ class MapBackend {
 	 */
 	async getNodeEdges(nodeId) {
 		nodeId;
-		throw "not implemented";
+		throw "getNodeEdges not implemented";
 	}
 
 	/** Get the two nodes attached to an edge, in no particular order.
@@ -121,7 +121,7 @@ class MapBackend {
 	 */
 	async getEdgeNodes(edgeId) {
 		edgeId;
-		throw "not implemented";
+		throw "getEdgeNodes not implemented";
 	}
 
 	/** Given an edge and one of the nodes on the edge, get the other node on the edge.
@@ -154,7 +154,7 @@ class MapBackend {
 	 */
 	async entityExists(entityId) {
 		entityId;
-		throw "not implemented";
+		throw "entityExists not implemented";
 	}
 
 	/** Remove an entity from the backend.
@@ -163,7 +163,7 @@ class MapBackend {
 	 */
 	async removeEntity(entityId) {
 		entityId;
-		throw "not implemented";
+		throw "removeEntity not implemented";
 	}
 
 	/** Flush the backend to storage.
@@ -202,7 +202,17 @@ class MapBackend {
 	getNodesInArea(a, b) {
 		a;
 		b;
-		throw "not implemented";
+		throw "getNodesInArea not implemented";
+	}
+
+	async * getAdjacentNodes(nodeRef, blendDistance) {
+		const center = await nodeRef.center();
+		const distance = Point.scalarMultiply(new Point(1, 1, 1), blendDistance);
+		for await (const otherNodeRef of this.getNodesInArea(Point.subtract(center, distance), Point.add(center, distance))) {
+			if(otherNodeRef.id !== nodeRef.id) {
+				yield otherNodeRef;
+			}
+		}
 	}
 }
 

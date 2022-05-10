@@ -199,7 +199,6 @@ class SQLiteMapBackend extends MapBackend {
 
 	async * getNodesInArea(a, b) {
 		for(const row of this.s_getNodesInArea.iterate({ax: a.x, ay: a.y, az: a.z, bx: b.x, by: b.y, bz: b.z})) {
-			console.log(row);
 			yield this.getNodeRef(row.entityid);
 		}
 	}

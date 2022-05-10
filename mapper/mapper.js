@@ -1,5 +1,6 @@
 import { HookContainer } from "./hook_container.js";
 import { Point } from "./point.js";
+import { asyncFrom } from "./utils.js";
 
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
@@ -71,6 +72,15 @@ class RenderContext {
 				c.arc(point.x, point.y, 16, 0, 2 * Math.PI, false);
 				c.fillStyle = "green";
 				c.fill();
+
+				for await (const dirEdgeRef of this.mapper.getNodeEdges(nodeRef)) {
+					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+					const otherPoint = this.mapPointToCanvas(await otherNodeRef.center());
+					c.beginPath();
+					c.moveTo(point.x, point.y);
+					c.lineTo(otherPoint.x, otherPoint.y);
+					c.stroke();
+				}
 			}
 		})();
 	}
@@ -101,10 +111,18 @@ class Mapper {
 
 		this.hooks.add("updateNode", () => this.hooks.call("update"));
 		this.hooks.add("insertNode", (nodeRef) => this.hooks.call("updateNode", nodeRef));
+
+		this.options = {
+			blendDistance: 400,
+		};
 	}
 
 	async * getNodesInArea(a, b) {
 		yield* this.backend.getNodesInArea(a, b);
+	}
+
+	async * getNodeEdges(nodeRef) {
+		yield* this.backend.getNodeEdges(nodeRef.id);
 	}
 
 	/** Render Mapper into a div element
@@ -118,7 +136,30 @@ class Mapper {
 	async insertNode(point) {
 		const nodeRef = await this.backend.createNode();
 		await nodeRef.setCenter(point);
+		await this.connectNode(nodeRef, this.options);
 		this.hooks.call("insertNode", nodeRef);
+	}
+
+	async connectNode(nodeRef, options) {
+		await this.connectNodeToParent(nodeRef);
+		await this.connectNodeToAdjacentNodes(nodeRef, options.blendDistance);
+		await this.cleanNodeConnectionsAround(nodeRef);
+	}
+
+	async connectNodeToParent(nodeRef) {
+		// TODO: Parents
+		nodeRef;
+	}
+
+	async connectNodeToAdjacentNodes(nodeRef, blendDistance) {
+		for (const otherNodeRef of await asyncFrom(this.backend.getAdjacentNodes(nodeRef, blendDistance))) {
+			await this.backend.createEdge(nodeRef.id, otherNodeRef.id);
+		}
+	}
+
+	async cleanNodeConnectionsAround(nodeRef) {
+		// TODO: Clean up edges
+		nodeRef;
 	}
 }
 
