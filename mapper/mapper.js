@@ -66,6 +66,8 @@ class RenderContext {
 		c.fill();
 
 		(async () => {
+			const seenEdges = {};
+
 			for await (const nodeRef of this.visibleNodes()) {
 				const point = this.mapPointToCanvas(await nodeRef.center());
 				c.beginPath();
@@ -74,12 +76,16 @@ class RenderContext {
 				c.fill();
 
 				for await (const dirEdgeRef of this.mapper.getNodeEdges(nodeRef)) {
-					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
-					const otherPoint = this.mapPointToCanvas(await otherNodeRef.center());
-					c.beginPath();
-					c.moveTo(point.x, point.y);
-					c.lineTo(otherPoint.x, otherPoint.y);
-					c.stroke();
+					if(seenEdges[dirEdgeRef.id] === undefined) {
+						seenEdges[dirEdgeRef.id] = true;
+
+						const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+						const otherPoint = this.mapPointToCanvas(await otherNodeRef.center());
+						c.beginPath();
+						c.moveTo(point.x, point.y);
+						c.lineTo(otherPoint.x, otherPoint.y);
+						c.stroke();
+					}
 				}
 			}
 		})();
