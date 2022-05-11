@@ -3,7 +3,7 @@ const tmp = require("tmp");
 const _require = require("esm")(module);
 const fs = require("fs/promises");
 const { SQLiteMapBackend } = _require("../src/electron/sqlite_map_backend.js");
-const { Point, asyncFrom } = _require("../mapper/index.js");
+const { Vector3, asyncFrom } = _require("../mapper/index.js");
 
 describe("SQLiteMapBackend", function() {
 	let backend;
@@ -25,18 +25,18 @@ describe("SQLiteMapBackend", function() {
 	describe("properties", function() {
 		const string = "the test string";
 		const number = 0xCAFF00D;
-		const point = new Point(12.34, 56.78, 90.12);
+		const vector3 = new Vector3(12.34, 56.78, 90.12);
 
 		beforeEach(async function() {
 			await backend.global.setPString("string property", string);
 			await backend.global.setPNumber("number property", number);
-			await backend.global.setPPoint("point property", point);
+			await backend.global.setPVector3("vector3 property", vector3);
 		});
 
 		it("should hold set values", async function() {
 			expect(await backend.global.getPString("string property")).to.equal(string);
 			expect(await backend.global.getPNumber("number property")).to.equal(number);
-			expect(await backend.global.getPPoint("point property")).to.deep.equal(point);
+			expect(await backend.global.getPVector3("vector3 property")).to.deep.equal(vector3);
 		});
 	});
 
@@ -91,6 +91,13 @@ describe("SQLiteMapBackend", function() {
 
 			expect(await asyncFrom(childEdgeAC.getNodes(), (node) => node.id)).has.members([childA.id, childC.id]);
 			expect(await asyncFrom(grandchildEdge.getNodes(), (node) => node.id)).has.members([grandchildA.id, grandchildB.id]);
+		});
+
+		it("should have fetchable edges", async function() {
+			expect((await backend.getEdgeBetween(childA.id, childB.id)).id).to.equal(childEdgeAB.id);
+			expect((await backend.getEdgeBetween(childB.id, childA.id)).id).to.equal(childEdgeAB.id);
+			expect((await backend.getEdgeBetween(childC.id, childA.id)).id).to.equal(childEdgeAC.id);
+			expect(await backend.getEdgeBetween(childC.id, childB.id)).to.equal(null);
 		});
 
 		it("should have removable nodes", async function() {
