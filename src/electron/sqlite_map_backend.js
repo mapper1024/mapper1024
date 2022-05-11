@@ -1,4 +1,4 @@
-import { MapBackend, Point } from "../../mapper/index.js";
+import { MapBackend, Vector3 } from "../../mapper/index.js";
 const Database = require("better-sqlite3");
 
 /** SQLite-backed map backend.
@@ -37,7 +37,7 @@ class SQLiteMapBackend extends MapBackend {
 		 * Each property can be (with columns):
 		 * 	string (v_string TEXT)
 		 * 	number (v_number REAL)
-		 * 	point (x, y, and z REAL)
+		 * 	vector3 (x, y, and z REAL)
 		 * The columns corresponding to the other property types are NULL or disregarded.
 		 */
 		this.db.prepare("CREATE TABLE IF NOT EXISTS property (entityid INT, property TEXT, v_string TEXT, v_number REAL, x REAL, y REAL, z REAL, PRIMARY KEY (entityid, property), FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE)").run();
@@ -166,21 +166,21 @@ class SQLiteMapBackend extends MapBackend {
 		});
 	}
 
-	async getPPoint(entityId, propertyName) {
+	async getPVector3(entityId, propertyName) {
 		const row = this.s_gpp.get({
 			entityId: entityId,
 			property: propertyName,
 		});
-		return new Point(row.x, row.y, row.z);
+		return new Vector3(row.x, row.y, row.z);
 	}
 
-	async setPPoint(entityId, propertyName, point) {
+	async setPVector3(entityId, propertyName, vector3) {
 		return this.s_spp.run({
 			entityId: entityId,
 			property: propertyName,
-			x: point.x,
-			y: point.y,
-			z: point.z,
+			x: vector3.x,
+			y: vector3.y,
+			z: vector3.z,
 		});
 	}
 

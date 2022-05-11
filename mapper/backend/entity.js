@@ -1,4 +1,4 @@
-import { Point } from "../point.js";
+import { Line3 } from "../geometry.js";
 import { asyncFrom } from "../utils.js";
 
 class EntityRef {
@@ -19,8 +19,8 @@ class EntityRef {
 		return this.backend.getPString(this.id, propertyName);
 	}
 
-	async getPPoint(propertyName) {
-		return this.backend.getPPoint(this.id, propertyName);
+	async getPVector3(propertyName) {
+		return this.backend.getPVector3(this.id, propertyName);
 	}
 
 	async setPNumber(propertyName, value) {
@@ -31,8 +31,8 @@ class EntityRef {
 		return this.backend.setPString(this.id, propertyName, value);
 	}
 
-	async setPPoint(propertyName, point) {
-		return this.backend.setPPoint(this.id, propertyName, point);
+	async setPVector3(propertyName, v) {
+		return this.backend.setPVector3(this.id, propertyName, v);
 	}
 
 	async remove() {
@@ -49,12 +49,12 @@ class NodeRef extends EntityRef {
 		yield* this.backend.getNodeChildren(this.id);
 	}
 
-	async setCenter(point) {
-		return this.setPPoint("center", point);
+	async setCenter(v) {
+		return this.setPVector3("center", v);
 	}
 
 	async center() {
-		return this.getPPoint("center");
+		return this.getPVector3("center");
 	}
 
 	async * getEdges() {
@@ -75,21 +75,9 @@ class EdgeRef extends EntityRef {
 		return this.backend.getEdgeOtherNode(this.id, startId);
 	}
 
-	async getVector(startId) {
-		return Point.subtract(await (await this.getOtherNode(startId)).center(), await (await this.backend.getNodeRef(startId)).center());
-	}
-
-	async getCorners() {
-		return await asyncFrom(this.getNodes(), async nodeRef => nodeRef.center());
-	}
-
-	async distanceSquared() {
-		const [a, b] = await this.getCorners();
-		return Point.distanceSquared(a, b);
-	}
-
-	async distance() {
-		return Math.sqrt(await this.distanceSquared());
+	async getLine() {
+		const [a, b] = await asyncFrom(this.getNodes(), async nodeRef => nodeRef.center());
+		return new Line3(a, b);
 	}
 
 	async remove() {
@@ -105,10 +93,6 @@ class DirEdgeRef extends EdgeRef {
 
 	async getDirOtherNode() {
 		return this.getOtherNode(this.startId);
-	}
-
-	async getDirVector() {
-		return this.getVector(this.startId);
 	}
 }
 

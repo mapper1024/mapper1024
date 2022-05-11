@@ -1,5 +1,5 @@
 import { HookContainer } from "./hook_container.js";
-import { Point } from "./point.js";
+import { Vector3 } from "./geometry.js";
 import { asyncFrom } from "./utils.js";
 
 /** A render context of a mapper into a specific element.
@@ -28,7 +28,7 @@ class RenderContext {
 		this.mapper.hooks.add("update", () => this.redraw());
 
 		this.canvas.addEventListener("click", async (event) => {
-			await this.mapper.insertNode(this.canvasPointToMap(new Point(event.x, event.y)));
+			await this.mapper.insertNode(this.canvasPointToMap(new Vector3(event.x, event.y)));
 		});
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
@@ -38,12 +38,12 @@ class RenderContext {
 		this.recalculateSize();
 	}
 
-	canvasPointToMap(point) {
-		return new Point(point.x, point.y, 0);
+	canvasPointToMap(v) {
+		return new Vector3(v.x, v.y, 0);
 	}
 
-	mapPointToCanvas(point) {
-		return new Point(point.x, point.y);
+	mapPointToCanvas(v) {
+		return new Vector3(v.x, v.y);
 	}
 
 	/** Recalculate the UI size based on the parent.
@@ -70,11 +70,11 @@ class RenderContext {
 		// For all visible nodes.
 		for await (const nodeRef of this.visibleNodes()) {
 			// Node central point.
-			const point = this.mapPointToCanvas(await nodeRef.center());
+			const center = this.mapPointToCanvas(await nodeRef.center());
 
 			// Draw node.
 			c.beginPath();
-			c.arc(point.x, point.y, 16, 0, 2 * Math.PI, false);
+			c.arc(center.x, center.y, 16, 0, 2 * Math.PI, false);
 			c.fillStyle = "green";
 			c.fill();
 
@@ -86,10 +86,11 @@ class RenderContext {
 
 					// Draw edge to the other node.
 					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
-					const otherPoint = this.mapPointToCanvas(await otherNodeRef.center());
+					const otherCenter = this.mapPointToCanvas(await otherNodeRef.center());
+
 					c.beginPath();
-					c.moveTo(point.x, point.y);
-					c.lineTo(otherPoint.x, otherPoint.y);
+					c.moveTo(center.x, center.y);
+					c.lineTo(otherCenter.x, otherCenter.y);
 					c.stroke();
 				}
 			}
@@ -97,7 +98,7 @@ class RenderContext {
 	}
 
 	async * visibleNodes() {
-		yield* this.mapper.getNodesInArea(this.canvasPointToMap(new Point(0, 0)), this.canvasPointToMap(new Point(this.canvas.width, this.canvas.height)));
+		yield* this.mapper.getNodesInArea(this.canvasPointToMap(new Vector3(0, 0)), this.canvasPointToMap(new Vector3(this.canvas.width, this.canvas.height)));
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
@@ -177,7 +178,7 @@ class Mapper {
 		for (const dirEdgeRef of await asyncFrom(this.backend.getNodeEdges(nodeRef.id))) {
 			if(!removed[dirEdgeRef.id]) {
 				for (const intersectingEdgeRef of await asyncFrom(this.backend.getIntersectingEdges(dirEdgeRef, options.blendDistance))) {
-					if(await dirEdgeRef.distanceSquared() < await intersectingEdgeRef.distanceSquared()) {
+					if((await dirEdgeRef.getLine()).distanceSquared() < (await intersectingEdgeRef.getLine()).distanceSquared()) {
 						intersectingEdgeRef.remove();
 						removed[intersectingEdgeRef.id] = true;
 					}

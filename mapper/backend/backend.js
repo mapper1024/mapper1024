@@ -1,4 +1,4 @@
-import { Point } from "../point.js";
+import { Vector3 } from "../geometry.js";
 import { EntityRef, NodeRef, EdgeRef, DirEdgeRef } from "./entity.js";
 import { asyncFrom } from "../utils.js";
 
@@ -29,20 +29,20 @@ class MapBackend {
 		return this.setPString(entityId, propertyName, value.toString());
 	}
 
-	/** Set a Point property on an entity.
+	/** Set a Vector3 property on an entity.
 	 * Has a default implementation based on string properties.
 	 */
-	async setPPoint(entityId, propertyName, point) {
-		return this.setPString(entityId, propertyName, JSON.stringify(point));
+	async setPVector3(entityId, propertyName, v) {
+		return this.setPString(entityId, propertyName, JSON.stringify(v));
 	}
 
-	/** Get a Point property on an entity.
+	/** Get a Vector3 property on an entity.
 	 * Has a default implementation based on string properties.
-	 * @returns {Point}
+	 * @returns {Vector3}
 	 */
-	async getPPoint(entityId, propertyName) {
+	async getPVector3(entityId, propertyName) {
 		const object = JSON.parse(await this.getPString(entityId, propertyName));
-		return Point.fromJSON(object.x, object.y, object.z);
+		return Vector3.fromJSON(object.x, object.y, object.z);
 	}
 
 	/** Get a string property on an entity.
@@ -213,8 +213,8 @@ class MapBackend {
 
 	async * getAdjacentNodes(nodeRef, blendDistance) {
 		const center = await nodeRef.center();
-		const distance = Point.scalarMultiply(new Point(1, 1, 1), blendDistance);
-		for await (const otherNodeRef of this.getNodesInArea(Point.subtract(center, distance), Point.add(center, distance))) {
+		const distance = (new Vector3(1, 1, 1)).multiplyScalar(blendDistance);
+		for await (const otherNodeRef of this.getNodesInArea(center.subtract(distance), center.add(distance))) {
 			if(otherNodeRef.id !== nodeRef.id) {
 				yield otherNodeRef;
 			}
@@ -228,24 +228,19 @@ class MapBackend {
 	}
 
 	async * getIntersectingEdges(edgeRef, blendDistance) {
-		const [cornerA, cornerB] = await edgeRef.getCorners();
-		const [centerA, centerB] = await asyncFrom(edgeRef.getNodes(), async nodeRef => await nodeRef.center());
-		const centerMin = Point.min(centerA, centerB);
-		const centerMax = Point.max(centerA, centerB);
-		const distance = Point.scalarMultiply(new Point(1, 1, 1), blendDistance);
+		const line = await edgeRef.getLine();
+		const distance = (new Vector3(1, 1, 1)).multiplyScalar(blendDistance);
 
 		const seen = {
 			[edgeRef.id]: true,
 		};
 
-		for await (const nodeRef of this.getNodesInArea(Point.subtract(centerMin, distance), Point.add(centerMax, distance))) {
+		for await (const nodeRef of this.getNodesInArea(line.fullMin().subtract(distance), line.fullMax().add(distance))) {
 			for await (const dirEdgeRef of nodeRef.getEdges()) {
 				if(!seen[dirEdgeRef.id]) {
 					seen[dirEdgeRef.id] = true;
 
-					const [otherCornerA, otherCornerB] = await dirEdgeRef.getCorners();
-
-					if(Point.lineIntersects(cornerA, cornerB, otherCornerA, otherCornerB)) {
+					if(line.intersects(await dirEdgeRef.getLine())) {
 						yield dirEdgeRef;
 					}
 				}
