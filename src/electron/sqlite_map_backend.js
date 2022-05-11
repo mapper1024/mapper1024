@@ -204,8 +204,8 @@ class SQLiteMapBackend extends MapBackend {
 		return (row === undefined) ? null : this.getEdgeRef(row.edgeid);
 	}
 
-	async * getNodesInArea(a, b) {
-		for(const row of this.s_getNodesInArea.iterate({ax: a.x, ay: a.y, az: a.z, bx: b.x, by: b.y, bz: b.z})) {
+	async * getNodesInArea(box) {
+		for(const row of this.s_getNodesInArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z})) {
 			yield this.getNodeRef(row.entityid);
 		}
 	}

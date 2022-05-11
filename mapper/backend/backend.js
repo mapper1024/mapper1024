@@ -1,4 +1,4 @@
-import { Vector3 } from "../geometry.js";
+import { Vector3, Box3 } from "../geometry.js";
 import { EntityRef, NodeRef, EdgeRef, DirEdgeRef } from "./entity.js";
 import { asyncFrom } from "../utils.js";
 
@@ -213,8 +213,7 @@ class MapBackend {
 
 	async * getAdjacentNodes(nodeRef, blendDistance) {
 		const center = await nodeRef.center();
-		const distance = (new Vector3(1, 1, 1)).multiplyScalar(blendDistance);
-		for await (const otherNodeRef of this.getNodesInArea(center.subtract(distance), center.add(distance))) {
+		for await (const otherNodeRef of this.getNodesInArea(Box3.fromRadius(center, blendDistance))) {
 			if(otherNodeRef.id !== nodeRef.id) {
 				yield otherNodeRef;
 			}
@@ -229,13 +228,13 @@ class MapBackend {
 
 	async * getIntersectingEdges(edgeRef, blendDistance) {
 		const line = await edgeRef.getLine();
-		const distance = (new Vector3(1, 1, 1)).multiplyScalar(blendDistance);
+		const distance = Vector3.UNIT.multiplyScalar(blendDistance);
 
 		const seen = {
 			[edgeRef.id]: true,
 		};
 
-		for await (const nodeRef of this.getNodesInArea(line.fullMin().subtract(distance), line.fullMax().add(distance))) {
+		for await (const nodeRef of this.getNodesInArea(new Box3(line.fullMin().subtract(distance), line.fullMax().add(distance)))) {
 			for await (const dirEdgeRef of nodeRef.getEdges()) {
 				if(!seen[dirEdgeRef.id]) {
 					seen[dirEdgeRef.id] = true;

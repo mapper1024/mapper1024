@@ -1,5 +1,5 @@
 import { HookContainer } from "./hook_container.js";
-import { Vector3 } from "./geometry.js";
+import { Vector3, Box3 } from "./geometry.js";
 import { asyncFrom } from "./utils.js";
 
 /** A render context of a mapper into a specific element.
@@ -44,6 +44,14 @@ class RenderContext {
 
 	mapPointToCanvas(v) {
 		return new Vector3(v.x, v.y);
+	}
+
+	screenSize() {
+		return new Vector3(this.canvas.width, this.canvas.height);
+	}
+
+	screenBox() {
+		return new Box3(Vector3.ZERO, this.screenSize());
 	}
 
 	/** Recalculate the UI size based on the parent.
@@ -98,7 +106,7 @@ class RenderContext {
 	}
 
 	async * visibleNodes() {
-		yield* this.mapper.getNodesInArea(this.canvasPointToMap(new Vector3(0, 0)), this.canvasPointToMap(new Vector3(this.canvas.width, this.canvas.height)));
+		yield* this.mapper.getNodesInArea(this.screenBox().map(this.canvasPointToMap));
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
@@ -130,8 +138,8 @@ class Mapper {
 		};
 	}
 
-	async * getNodesInArea(a, b) {
-		yield* this.backend.getNodesInArea(a, b);
+	async * getNodesInArea(box) {
+		yield* this.backend.getNodesInArea(box);
 	}
 
 	async * getNodeEdges(nodeRef) {

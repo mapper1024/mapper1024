@@ -44,6 +44,7 @@ class Vector3 {
 }
 
 Vector3.ZERO = new Vector3(0, 0, 0);
+Vector3.UNIT = new Vector3(1, 1, 1);
 
 class Line3 {
 	constructor(a, b) {
@@ -85,4 +86,24 @@ class Line3 {
 	}
 }
 
-export { Vector3, Line3 };
+class Box3 {
+	constructor(a, b) {
+		this.a = a;
+		this.b = b;
+	}
+
+	static fromRadius(center, radius) {
+		const radiusVector = Vector3.UNIT.multiplyScalar(radius);
+		return new Box3(center.subtract(radiusVector), center.add(radiusVector));
+	}
+
+	line() {
+		return new Line3(this.a, this.b);
+	}
+
+	map(f) {
+		return new Box3(f(this.a), f(this.b));
+	}
+}
+
+export { Vector3, Line3, Box3 };
