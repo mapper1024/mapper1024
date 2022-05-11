@@ -205,12 +205,50 @@ class MapBackend {
 		throw "getNodesInArea not implemented";
 	}
 
+	getEdgeBetween(nodeAId, nodeBId) {
+		nodeAId;
+		nodeBId;
+		throw "getEdgeBetween not implemented";
+	}
+
 	async * getAdjacentNodes(nodeRef, blendDistance) {
 		const center = await nodeRef.center();
 		const distance = Point.scalarMultiply(new Point(1, 1, 1), blendDistance);
 		for await (const otherNodeRef of this.getNodesInArea(Point.subtract(center, distance), Point.add(center, distance))) {
 			if(otherNodeRef.id !== nodeRef.id) {
 				yield otherNodeRef;
+			}
+		}
+	}
+
+	async * getConnectedNodes(nodeRef) {
+		for await (const dirEdgeRef of this.getNodeEdges(nodeRef.id)) {
+			yield await dirEdgeRef.getDirOtherNode();
+		}
+	}
+
+	async * getIntersectingEdges(edgeRef, blendDistance) {
+		const [cornerA, cornerB] = await edgeRef.getCorners();
+		const [centerA, centerB] = await asyncFrom(edgeRef.getNodes(), async nodeRef => await nodeRef.center());
+		const centerMin = Point.min(centerA, centerB);
+		const centerMax = Point.max(centerA, centerB);
+		const distance = Point.scalarMultiply(new Point(1, 1, 1), blendDistance);
+
+		const seen = {
+			[edgeRef.id]: true,
+		};
+
+		for await (const nodeRef of this.getNodesInArea(Point.subtract(centerMin, distance), Point.add(centerMax, distance))) {
+			for await (const dirEdgeRef of nodeRef.getEdges()) {
+				if(!seen[dirEdgeRef.id]) {
+					seen[dirEdgeRef.id] = true;
+
+					const [otherCornerA, otherCornerB] = await dirEdgeRef.getCorners();
+
+					if(Point.lineIntersects(cornerA, cornerB, otherCornerA, otherCornerB)) {
+						yield dirEdgeRef;
+					}
+				}
 			}
 		}
 	}

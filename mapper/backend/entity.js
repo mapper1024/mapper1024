@@ -1,3 +1,6 @@
+import { Point } from "../point.js";
+import { asyncFrom } from "../utils.js";
+
 class EntityRef {
 	constructor(id, backend) {
 		this.id = id;
@@ -72,6 +75,23 @@ class EdgeRef extends EntityRef {
 		return this.backend.getEdgeOtherNode(this.id, startId);
 	}
 
+	async getVector(startId) {
+		return Point.subtract(await (await this.getOtherNode(startId)).center(), await (await this.backend.getNodeRef(startId)).center());
+	}
+
+	async getCorners() {
+		return await asyncFrom(this.getNodes(), async nodeRef => nodeRef.center());
+	}
+
+	async distanceSquared() {
+		const [a, b] = await this.getCorners();
+		return Point.distanceSquared(a, b);
+	}
+
+	async distance() {
+		return Math.sqrt(await this.distanceSquared());
+	}
+
 	async remove() {
 		return this.backend.removeEdge(this.id);
 	}
@@ -85,6 +105,10 @@ class DirEdgeRef extends EdgeRef {
 
 	async getDirOtherNode() {
 		return this.getOtherNode(this.startId);
+	}
+
+	async getDirVector() {
+		return this.getVector(this.startId);
 	}
 }
 

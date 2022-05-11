@@ -61,6 +61,8 @@ class SQLiteMapBackend extends MapBackend {
 		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM edge WHERE nodeid = $nodeId");
 		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM edge WHERE edgeid = $edgeId");
 
+		this.s_getEdgeBetween = this.db.prepare("SELECT edge1.edgeid AS edgeid FROM edge edge1 INNER JOIN edge edge2 ON (edge1.edgeid = edge2.edgeid AND edge1.nodeid != edge2.nodeid) WHERE edge1.nodeid = $nodeAId AND edge2.nodeid = $nodeBId");
+
 		this.s_getNodesInArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid WHERE property.property = 'center' AND property.x >= $ax AND property.x <= $bx AND property.y >= $ay AND property.y <= $by AND property.z >= $az AND property.z <= $bz");
 
 		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
@@ -195,6 +197,11 @@ class SQLiteMapBackend extends MapBackend {
 			property: propertyName,
 			value: value,
 		});
+	}
+
+	async getEdgeBetween(nodeAId, nodeBId) {
+		const row = this.s_getEdgeBetween.get({nodeAId: nodeAId, nodeBId: nodeBId});
+		return (row === undefined) ? null : this.getEdgeRef(row.edgeid);
 	}
 
 	async * getNodesInArea(a, b) {

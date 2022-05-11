@@ -80,7 +80,7 @@ class RenderContext {
 
 			// For all edges connected to this node...
 			for await (const dirEdgeRef of this.mapper.getNodeEdges(nodeRef)) {
-				// ...that we have not yet draw.
+				// ...that we have not yet drawn.
 				if(seenEdges[dirEdgeRef.id] === undefined) {
 					seenEdges[dirEdgeRef.id] = true;
 
@@ -125,6 +125,7 @@ class Mapper {
 
 		this.options = {
 			blendDistance: 400,
+			cleanNormalDistance: 0.5,
 		};
 	}
 
@@ -153,8 +154,8 @@ class Mapper {
 
 	async connectNode(nodeRef, options) {
 		await this.connectNodeToParent(nodeRef);
-		await this.connectNodeToAdjacentNodes(nodeRef, options.blendDistance);
-		await this.cleanNodeConnectionsAround(nodeRef);
+		await this.connectNodeToAdjacentNodes(nodeRef, options);
+		await this.cleanNodeConnectionsAround(nodeRef, options);
 	}
 
 	async connectNodeToParent(nodeRef) {
@@ -162,15 +163,31 @@ class Mapper {
 		nodeRef;
 	}
 
-	async connectNodeToAdjacentNodes(nodeRef, blendDistance) {
-		for (const otherNodeRef of await asyncFrom(this.backend.getAdjacentNodes(nodeRef, blendDistance))) {
+	async connectNodeToAdjacentNodes(nodeRef, options) {
+		for (const otherNodeRef of await asyncFrom(this.backend.getAdjacentNodes(nodeRef, options.blendDistance))) {
 			await this.backend.createEdge(nodeRef.id, otherNodeRef.id);
 		}
 	}
 
-	async cleanNodeConnectionsAround(nodeRef) {
-		// TODO: Clean up edges
-		nodeRef;
+	async cleanNodeConnectionsAround(nodeRef, options) {
+		options;
+
+		const removed = {};
+
+		for (const dirEdgeRef of await asyncFrom(this.backend.getNodeEdges(nodeRef.id))) {
+			if(!removed[dirEdgeRef.id]) {
+				for (const intersectingEdgeRef of await asyncFrom(this.backend.getIntersectingEdges(dirEdgeRef, options.blendDistance))) {
+					if(await dirEdgeRef.distanceSquared() < await intersectingEdgeRef.distanceSquared()) {
+						intersectingEdgeRef.remove();
+						removed[intersectingEdgeRef.id] = true;
+					}
+					else {
+						dirEdgeRef.remove();
+						break;
+					}
+				}
+			}
+		}
 	}
 }
 
