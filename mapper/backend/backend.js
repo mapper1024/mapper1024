@@ -264,7 +264,7 @@ class MapBackend {
 				if(!seen[dirEdgeRef.id]) {
 					seen[dirEdgeRef.id] = true;
 
-					if(line.intersects(await dirEdgeRef.getLine())) {
+					if(line.intersects2(await dirEdgeRef.getLine())) {
 						yield dirEdgeRef;
 					}
 				}

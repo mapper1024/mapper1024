@@ -68,7 +68,7 @@ class Line3 {
 		return this.a.subtract(this.b).lengthSquared();
 	}
 
-	intersects(other) {
+	intersects2(other) {
 		const a = this.a;
 		const b = this.b;
 		const c = other.a;
