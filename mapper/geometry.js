@@ -65,7 +65,7 @@ class Line3 {
 	}
 
 	distanceSquared() {
-		return this.a.subtract(this.b).length();
+		return this.a.subtract(this.b).lengthSquared();
 	}
 
 	intersects(other) {

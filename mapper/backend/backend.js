@@ -199,33 +199,58 @@ class MapBackend {
 		return new DirEdgeRef(id, startId, this);
 	}
 
-	getNodesInArea(a, b) {
+	/** Get all nodes within a spatial box.
+	 * @param box {Box3} The box to find nodes within.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
+	getNodesInArea(box) {
 		a;
 		b;
 		throw "getNodesInArea not implemented";
 	}
 
+	/** Get the edge between two nodes, if it exists.
+	 * @param nodeAId {number} The ID of one of the nodes on the edge to find.
+	 * @param nodeBId {number} The ID of the other node on the edge to find.
+	 * @returns {EdgeRef}
+	 */
 	getEdgeBetween(nodeAId, nodeBId) {
 		nodeAId;
 		nodeBId;
 		throw "getEdgeBetween not implemented";
 	}
 
-	async * getAdjacentNodes(nodeRef, blendDistance) {
-		const center = await nodeRef.center();
-		for await (const otherNodeRef of this.getNodesInArea(Box3.fromRadius(center, blendDistance))) {
+	/** Get all nearby nodes within a specified blend distance of the specified node.
+	 * Has a default implementation based on #getNodesInArea().
+	 * @param nodeRef {NodeRef} The node that is the spatial center of the search.
+	 * @param blendDistance {number} How far out to look for nodes? (Necessary to avoid searching the entire map.)
+	 * @returns {AsyncIterable.<NodeRef>} All the discovered nodes. Does not include the original node.
+	 */
+	async * getNearbyNodes(nodeRef, blendDistance) {
+		for await (const otherNodeRef of this.getNodesInArea(Box3.fromRadius(await nodeRef.center(), blendDistance))) {
 			if(otherNodeRef.id !== nodeRef.id) {
 				yield otherNodeRef;
 			}
 		}
 	}
 
+	/** Get all nodes connected to the specified node by one level of edges (that is, one edge).
+	 * Has a default implementation based on #getNodeEdges().
+	 * @param nodeRef {NodeRef} The node to search for connections on.
+	 * @returns {AsyncIterable.<NodeRef>} The connected nodes.
+	 */
 	async * getConnectedNodes(nodeRef) {
 		for await (const dirEdgeRef of this.getNodeEdges(nodeRef.id)) {
 			yield await dirEdgeRef.getDirOtherNode();
 		}
 	}
 
+	/** Get all edges within a specified blend distance that intersect with the given edge.
+	 * Has a default implementation based on #getNodesInArea() and #NodeRef.getEdges().
+	 * @param edgeRef {EdgeRef} The edge to search for intersections on.
+	 * @param blendDistance {number} How far out to search for intersections? (Necessary to avoid searching the entire map.)
+	 * @returns {AsyncIterable.<EdgeRef>} Each intersecting edge found.
+	 */
 	async * getIntersectingEdges(edgeRef, blendDistance) {
 		const line = await edgeRef.getLine();
 		const distance = Vector3.UNIT.multiplyScalar(blendDistance);

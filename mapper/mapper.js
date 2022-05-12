@@ -163,7 +163,7 @@ class Mapper {
 
 	async connectNode(nodeRef, options) {
 		await this.connectNodeToParent(nodeRef);
-		await this.connectNodeToAdjacentNodes(nodeRef, options);
+		await this.connectNodeToNearbyNodes(nodeRef, options);
 		await this.cleanNodeConnectionsAround(nodeRef, options);
 	}
 
@@ -172,8 +172,8 @@ class Mapper {
 		nodeRef;
 	}
 
-	async connectNodeToAdjacentNodes(nodeRef, options) {
-		for (const otherNodeRef of await asyncFrom(this.backend.getAdjacentNodes(nodeRef, options.blendDistance))) {
+	async connectNodeToNearbyNodes(nodeRef, options) {
+		for (const otherNodeRef of await asyncFrom(this.backend.getNearbyNodes(nodeRef, options.blendDistance))) {
 			await this.backend.createEdge(nodeRef.id, otherNodeRef.id);
 		}
 	}
