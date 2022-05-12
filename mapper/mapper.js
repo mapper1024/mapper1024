@@ -118,7 +118,6 @@ class RenderContext {
 
 /** Mapper interface
  * A connection to a database and mapper UI.
- * TODO: backend connection
  * Instantiate Mapper and then call the render() method to insert the UI into a div element.
  */
 class Mapper {
@@ -138,10 +137,18 @@ class Mapper {
 		};
 	}
 
+	/** Get all nodes inside a specified spatial box.
+	 * @param box {Box3}
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
 	async * getNodesInArea(box) {
 		yield* this.backend.getNodesInArea(box);
 	}
 
+	/** Get all edges attached to the specified node.
+	 * @param nodeRef {NodeRef}
+	 * @returns {AsyncIterable.<DirEdgeRef>} the edges coming from the specified node
+	 */
 	async * getNodeEdges(nodeRef) {
 		yield* this.backend.getNodeEdges(nodeRef.id);
 	}
