@@ -45,8 +45,8 @@ class SQLiteMapBackend extends MapBackend {
 		// Property access prepared statements.
 		this.s_gpn = this.db.prepare("SELECT v_number FROM property WHERE entityid = $entityId AND property = $property");
 		this.s_spn = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, v_number) VALUES ($entityId, $property, $value)");
-		this.s_gpp = this.db.prepare("SELECT x, y, z FROM property WHERE entityid = $entityId AND property = $property");
-		this.s_spp = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, x, y, z) VALUES ($entityId, $property, $x, $y, $z)");
+		this.s_gpv3 = this.db.prepare("SELECT x, y, z FROM property WHERE entityid = $entityId AND property = $property");
+		this.s_spv3 = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, x, y, z) VALUES ($entityId, $property, $x, $y, $z)");
 		this.s_gps = this.db.prepare("SELECT v_string FROM property WHERE entityid = $entityId AND property = $property");
 		this.s_sps = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, v_string) VALUES ($entityId, $property, $value)");
 
@@ -167,7 +167,7 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async getPVector3(entityId, propertyName) {
-		const row = this.s_gpp.get({
+		const row = this.s_gpv3.get({
 			entityId: entityId,
 			property: propertyName,
 		});
@@ -175,7 +175,7 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async setPVector3(entityId, propertyName, vector3) {
-		return this.s_spp.run({
+		return this.s_spv3.run({
 			entityId: entityId,
 			property: propertyName,
 			x: vector3.x,
