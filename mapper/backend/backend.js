@@ -204,8 +204,7 @@ class MapBackend {
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
 	getNodesInArea(box) {
-		a;
-		b;
+		box;
 		throw "getNodesInArea not implemented";
 	}
 
