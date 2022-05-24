@@ -1,6 +1,76 @@
 import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3 } from "./geometry.js";
-import { asyncFrom } from "./utils.js";
+import { asyncFrom, mod } from "./utils.js";
+
+class Brush {
+	constructor(context) {
+		this.context = context;
+
+		this.size = 0;
+		this.maxSize = 10;
+	}
+
+	getDescription() {
+		throw "description not implemented";
+	}
+
+	increment() {
+		throw "increment not implemented";
+	}
+
+	decrement() {
+		throw "decrement not implemented";
+	}
+
+	shrink() {
+		this.size = Math.max(0, this.size - 1);
+	}
+
+	enlarge() {
+		this.size = Math.min(this.maxSize, this.size + 1);
+	}
+
+	draw(where) {
+		where;
+		throw "draw not implemented";
+	}
+}
+
+class NodeBrush extends Brush {
+	constructor(context) {
+		super(context);
+
+		this.nodeTypeIndex = 1;
+		this.nodeTypes = ["water", "grass", "forest", "mountain", "road"];
+	}
+
+	getDescription() {
+		return `${this.getNodeType()} (size ${this.size})`;
+	}
+
+	getNodeType() {
+		return this.nodeTypes[this.nodeTypeIndex];
+	}
+
+	increment() {
+		this.nodeTypeIndex = this.nodeTypeIndex + 1;
+		this.wrapIndex();
+	}
+
+	decrement() {
+		this.nodeTypeIndex = this.nodeTypeIndex - 1;
+		this.wrapIndex();
+	}
+
+	wrapIndex() {
+		const len = this.nodeTypes.length;
+		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
+	}
+
+	draw(where) {
+		this.context.mapper.insertNode(this.context.canvasPointToMap(where));
+	}
+}
 
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
@@ -15,9 +85,14 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.pressedKeys = {};
+
+		this.brush = new NodeBrush(this);
+
 		// The UI is just a canvas.
 		// We will keep its size filling the parent element.
 		this.canvas = document.createElement("canvas");
+		this.canvas.tabIndex = 1;
 		this.parent.appendChild(this.canvas);
 
 		// The canvas has no extra size.
@@ -27,8 +102,39 @@ class RenderContext {
 
 		this.mapper.hooks.add("update", () => this.redraw());
 
-		this.canvas.addEventListener("click", async (event) => {
-			await this.mapper.insertNode(this.canvasPointToMap(new Vector3(event.x, event.y)));
+		this.canvas.addEventListener("click", (event) => {
+			this.brush.draw(new Vector3(event.x, event.y));
+		});
+
+		this.canvas.addEventListener("keydown", (event) => {
+			this.pressedKeys[event.code] = true;
+		});
+
+		this.canvas.addEventListener("keyup", (event) => {
+			this.pressedKeys[event.code] = false;
+		});
+
+		this.canvas.addEventListener("wheel", (event) => {
+			event.preventDefault();
+
+			if(this.isKeyDown("KeyB")) {
+				if(event.deltaY < 0) {
+					this.brush.increment();
+				}
+				else {
+					this.brush.decrement();
+				}
+			}
+			else if(this.isKeyDown("KeyS")) {
+				if(event.deltaY < 0) {
+					this.brush.enlarge();
+				}
+				else {
+					this.brush.shrink();
+				}
+			}
+
+			this.redraw();
 		});
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
@@ -36,6 +142,18 @@ class RenderContext {
 		this.parentObserver.observe(this.parent);
 
 		this.recalculateSize();
+	}
+
+	focus() {
+		this.canvas.focus();
+	}
+
+	isKeyDown(key) {
+		return !!this.pressedKeys[key];
+	}
+
+	getBrush() {
+		return this.brush;
 	}
 
 	canvasPointToMap(v) {
@@ -70,8 +188,12 @@ class RenderContext {
 		var c = this.canvas.getContext("2d");
 		c.beginPath();
 		c.rect(0, 0, this.canvas.width, this.canvas.height);
-		c.fillStyle = "blue";
+		c.fillStyle = "black";
 		c.fill();
+
+		c.font = "24px serif";
+		c.fillStyle = "white";
+		c.fillText(this.brush.getDescription(), 24, 24);
 
 		const seenEdges = {};
 
