@@ -6,12 +6,16 @@ class Brush {
 	constructor(context) {
 		this.context = context;
 
-		this.size = 0;
+		this.size = 1;
 		this.maxSize = 10;
 	}
 
 	getDescription() {
 		throw "description not implemented";
+	}
+
+	getRadius() {
+		return this.size * 16;
 	}
 
 	increment() {
@@ -23,7 +27,7 @@ class Brush {
 	}
 
 	shrink() {
-		this.size = Math.max(0, this.size - 1);
+		this.size = Math.max(1, this.size - 1);
 	}
 
 	enlarge() {
@@ -41,7 +45,7 @@ class NodeBrush extends Brush {
 		super(context);
 
 		this.nodeTypeIndex = 1;
-		this.nodeTypes = ["water", "grass", "forest", "mountain", "road"];
+		this.nodeTypes = ["water", "grass", "forest", "mountain"];
 	}
 
 	getDescription() {
@@ -68,7 +72,9 @@ class NodeBrush extends Brush {
 	}
 
 	draw(where) {
-		this.context.mapper.insertNode(this.context.canvasPointToMap(where));
+		this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
+			type: this.getNodeType(),
+		});
 	}
 }
 
@@ -86,6 +92,7 @@ class RenderContext {
 		this.mapper = mapper;
 
 		this.pressedKeys = {};
+		this.mousePosition = Vector3.ZERO;
 
 		this.brush = new NodeBrush(this);
 
@@ -103,7 +110,12 @@ class RenderContext {
 		this.mapper.hooks.add("update", () => this.redraw());
 
 		this.canvas.addEventListener("click", (event) => {
-			this.brush.draw(new Vector3(event.x, event.y));
+			this.brush.draw(new Vector3(event.x, event.y, 0));
+		});
+
+		this.canvas.addEventListener("mousemove", (event) => {
+			this.mousePosition = new Vector3(event.x, event.y, 0);
+			this.redraw();
 		});
 
 		this.canvas.addEventListener("keydown", (event) => {
@@ -165,7 +177,7 @@ class RenderContext {
 	}
 
 	screenSize() {
-		return new Vector3(this.canvas.width, this.canvas.height);
+		return new Vector3(this.canvas.width, this.canvas.height, 0);
 	}
 
 	screenBox() {
@@ -191,9 +203,13 @@ class RenderContext {
 		c.fillStyle = "black";
 		c.fill();
 
-		c.font = "24px serif";
+		c.font = "24px sans";
 		c.fillStyle = "white";
 		c.fillText(this.brush.getDescription(), 24, 24);
+
+		// Debug help
+		c.fillText("Click to place terrain; ctrl+click to delete terrain.", 24, (24 + 4) * 2);
+		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
 
 		const seenEdges = {};
 
@@ -221,10 +237,17 @@ class RenderContext {
 					c.beginPath();
 					c.moveTo(center.x, center.y);
 					c.lineTo(otherCenter.x, otherCenter.y);
+					c.strokeStyle = "yellow";
 					c.stroke();
 				}
 			}
 		}
+
+		// Draw brush
+		c.beginPath();
+		c.arc(this.mousePosition.x, this.mousePosition.y, this.brush.getRadius(), 0, 2 * Math.PI, false);
+		c.strokeStyle = "white";
+		c.stroke();
 	}
 
 	async * visibleNodes() {
@@ -283,9 +306,10 @@ class Mapper {
 		return new RenderContext(element, this);
 	}
 
-	async insertNode(point) {
+	async insertNode(point, options) {
 		const nodeRef = await this.backend.createNode();
 		await nodeRef.setCenter(point);
+		await nodeRef.setPString("type", options.type);
 		await this.connectNode(nodeRef, this.options);
 		this.hooks.call("insertNode", nodeRef);
 	}
