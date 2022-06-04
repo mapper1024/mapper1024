@@ -5,6 +5,10 @@ class Vector3 {
 		this.z = z;
 	}
 
+	toString() {
+		return this.x.toString() + "," + this.y.toString() + "," + this.z.toString();
+	}
+
 	add(other) {
 		return new Vector3(this.x + other.x, this.y + other.y, this.z + other.z);
 	}
@@ -40,6 +44,10 @@ class Vector3 {
 
 	static max(a, b) {
 		return new Vector3(Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z));
+	}
+
+	round() {
+		return new Vector3(Math.floor(this.x + 0.5), Math.floor(this.y + 0.5), Math.floor(this.z + 0.5));
 	}
 }
 
@@ -95,6 +103,10 @@ class Box3 {
 	static fromRadius(center, radius) {
 		const radiusVector = Vector3.UNIT.multiplyScalar(radius);
 		return new Box3(center.subtract(radiusVector), center.add(radiusVector));
+	}
+
+	scale(scalar) {
+		return new Box3(this.a.multiplyScalar(scalar), this.b.multiplyScalar(scalar));
 	}
 
 	line() {

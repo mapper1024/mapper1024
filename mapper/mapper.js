@@ -74,6 +74,7 @@ class NodeBrush extends Brush {
 	draw(where) {
 		this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
 			type: this.getNodeType(),
+			radius: this.getRadius(),
 		});
 	}
 }
@@ -91,6 +92,9 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.TILE_SIZE = 32;
+		this.tiles = {};
+
 		this.pressedKeys = {};
 		this.mousePosition = Vector3.ZERO;
 
@@ -107,7 +111,7 @@ class RenderContext {
 		this.canvas.style.margin = "0";
 		this.canvas.style.border = "0";
 
-		this.mapper.hooks.add("update", () => this.redraw());
+		this.mapper.hooks.add("update", () => this.recalculateTiles());
 
 		this.canvas.addEventListener("click", (event) => {
 			this.brush.draw(new Vector3(event.x, event.y, 0));
@@ -195,6 +199,46 @@ class RenderContext {
 		this.redraw();
 	}
 
+	async recalculateTiles() {
+		const tiles = {};
+
+		for await (const nodeRef of this.visibleNodes()) {
+			const center = await nodeRef.center();
+			const centerTile = center.divideScalar(this.TILE_SIZE).round();
+			const type = await nodeRef.getPString("type");
+			const radius = await nodeRef.getPNumber("radius");
+			const radiusTile = Math.ceil(radius / this.TILE_SIZE);
+
+			for(let x = centerTile.x - radiusTile; x <= centerTile.x + radiusTile; x++) {
+				if(tiles[x] === undefined) {
+					tiles[x] = {};
+				}
+				const tilesX = tiles[x];
+				for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
+					if(tilesX[y] === undefined) {
+						tilesX[y] = {
+							point: new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0),
+							closestNodeRef: null,
+							closestType: null,
+							closestDistance: Infinity,
+						};
+					}
+
+					const tile = tilesX[y];
+					const distance = tile.point.subtract(center).length();
+					if(distance <= radius && distance < tile.closestDistance) {
+						tile.closestNodeRef = nodeRef;
+						tile.closestType = type;
+						tile.closestDistance = distance;
+					}
+				}
+			}
+		}
+
+		this.tiles = tiles;
+		await this.redraw();
+	}
+
 	/** Completely redraw the displayed UI. */
 	async redraw() {
 		var c = this.canvas.getContext("2d");
@@ -203,42 +247,25 @@ class RenderContext {
 		c.fillStyle = "black";
 		c.fill();
 
-		c.font = "24px sans";
-		c.fillStyle = "white";
-		c.fillText(this.brush.getDescription(), 24, 24);
-
-		// Debug help
-		c.fillText("Click to place terrain; ctrl+click to delete terrain.", 24, (24 + 4) * 2);
-		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
-
 		const seenEdges = {};
 
-		// For all visible nodes.
-		for await (const nodeRef of this.visibleNodes()) {
-			// Node central point.
-			const center = this.mapPointToCanvas(await nodeRef.center());
+		const colors = {
+			water: "darkblue",
+			grass: "lightgreen",
+			mountain: "gray",
+			forest: "darkgreen",
+		};
 
-			// Draw node.
-			c.beginPath();
-			c.arc(center.x, center.y, 16, 0, 2 * Math.PI, false);
-			c.fillStyle = "green";
-			c.fill();
+		const tiles = this.tiles;
 
-			// For all edges connected to this node...
-			for await (const dirEdgeRef of this.mapper.getNodeEdges(nodeRef)) {
-				// ...that we have not yet drawn.
-				if(seenEdges[dirEdgeRef.id] === undefined) {
-					seenEdges[dirEdgeRef.id] = true;
+		for (const x in tiles) {
+			const tilesX = tiles[x];
+			for (const y in tilesX) {
+				const tile = tilesX[y];
 
-					// Draw edge to the other node.
-					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
-					const otherCenter = this.mapPointToCanvas(await otherNodeRef.center());
-
-					c.beginPath();
-					c.moveTo(center.x, center.y);
-					c.lineTo(otherCenter.x, otherCenter.y);
-					c.strokeStyle = "yellow";
-					c.stroke();
+				if(tile.closestNodeRef !== null) {
+					c.fillStyle = colors[tile.closestType];
+					c.fillRect(tile.point.x, tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
 				}
 			}
 		}
@@ -248,6 +275,14 @@ class RenderContext {
 		c.arc(this.mousePosition.x, this.mousePosition.y, this.brush.getRadius(), 0, 2 * Math.PI, false);
 		c.strokeStyle = "white";
 		c.stroke();
+
+		c.font = "24px sans";
+		c.fillStyle = "white";
+		c.fillText(this.brush.getDescription(), 24, 24);
+
+		// Debug help
+		c.fillText("Click to place terrain; ctrl+click to delete terrain.", 24, (24 + 4) * 2);
+		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
 	}
 
 	async * visibleNodes() {
@@ -273,6 +308,7 @@ class Mapper {
 		this.backend = backend;
 		this.hooks = new HookContainer();
 
+		this.backend.hooks.add("load", () => this.hooks.call("update"));
 		this.hooks.add("updateNode", () => this.hooks.call("update"));
 		this.hooks.add("insertNode", (nodeRef) => this.hooks.call("updateNode", nodeRef));
 
@@ -310,6 +346,7 @@ class Mapper {
 		const nodeRef = await this.backend.createNode();
 		await nodeRef.setCenter(point);
 		await nodeRef.setPString("type", options.type);
+		await nodeRef.setPNumber("radius", options.radius);
 		await this.connectNode(nodeRef, this.options);
 		this.hooks.call("insertNode", nodeRef);
 	}
