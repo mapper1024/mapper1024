@@ -34,9 +34,12 @@ class Brush {
 		this.size = Math.min(this.maxSize, this.size + 1);
 	}
 
-	draw(where) {
+	async triggerPrimary(where) {
 		where;
-		throw "draw not implemented";
+	}
+
+	async triggerAlternate(where) {
+		where;
 	}
 }
 
@@ -71,11 +74,23 @@ class NodeBrush extends Brush {
 		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
 	}
 
-	draw(where) {
-		this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
+	async triggerPrimary(where) {
+		await this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
 			type: this.getNodeType(),
 			radius: this.getRadius(),
 		});
+	}
+
+	async triggerAlternate(where) {
+		const toRemove = [];
+
+		for await (const nodeRef of this.context.visibleNodes()) {
+			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(where).length() <= this.getRadius()) {
+				toRemove.push(nodeRef);
+			}
+		}
+
+		this.context.mapper.removeNodes(toRemove);
 	}
 }
 
@@ -113,8 +128,14 @@ class RenderContext {
 
 		this.mapper.hooks.add("update", () => this.recalculateTiles());
 
-		this.canvas.addEventListener("click", (event) => {
-			this.brush.draw(new Vector3(event.x, event.y, 0));
+		this.canvas.addEventListener("mousedown", async (event) => {
+			const where = new Vector3(event.x, event.y, 0);
+			if(event.button === 0) {
+				await this.brush.triggerPrimary(where);
+			}
+			else if(event.button === 2) {
+				await this.brush.triggerAlternate(where);
+			}
 		});
 
 		this.canvas.addEventListener("mousemove", (event) => {
@@ -177,7 +198,7 @@ class RenderContext {
 	}
 
 	mapPointToCanvas(v) {
-		return new Vector3(v.x, v.y);
+		return new Vector3(v.x, v.y, 0);
 	}
 
 	screenSize() {
@@ -292,7 +313,7 @@ class RenderContext {
 		c.fillText(this.brush.getDescription(), 24, 24);
 
 		// Debug help
-		c.fillText("Click to place terrain; ctrl+click to delete terrain.", 24, (24 + 4) * 2);
+		c.fillText("Left click to place terrain; right click to delete terrain.", 24, (24 + 4) * 2);
 		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
 	}
 
@@ -360,6 +381,13 @@ class Mapper {
 		await nodeRef.setPNumber("radius", options.radius);
 		await this.connectNode(nodeRef, this.options);
 		this.hooks.call("insertNode", nodeRef);
+	}
+
+	async removeNodes(nodeRefs) {
+		for(const nodeRef of nodeRefs) {
+			await nodeRef.remove();
+		}
+		this.hooks.call("update");
 	}
 
 	async connectNode(nodeRef, options) {
