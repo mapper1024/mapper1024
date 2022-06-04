@@ -216,8 +216,11 @@ class RenderContext {
 				const tilesX = tiles[x];
 				for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
 					if(tilesX[y] === undefined) {
+						const corner = new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0);
+
 						tilesX[y] = {
-							point: new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0),
+							point: corner,
+							center: corner.add(new Vector3(this.TILE_SIZE / 2, this.TILE_SIZE / 2, 0)),
 							closestNodeRef: null,
 							closestType: null,
 							closestDistance: Infinity,
@@ -225,7 +228,7 @@ class RenderContext {
 					}
 
 					const tile = tilesX[y];
-					const distance = tile.point.subtract(center).length();
+					const distance = tile.center.subtract(center).length();
 					if(distance <= radius && distance < tile.closestDistance) {
 						tile.closestNodeRef = nodeRef;
 						tile.closestType = type;
