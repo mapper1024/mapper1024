@@ -229,7 +229,7 @@ class RenderContext {
 
 					const tile = tilesX[y];
 					const distance = tile.center.subtract(center).length();
-					if(distance <= radius && distance < tile.closestDistance) {
+					if(distance <= radius + this.TILE_SIZE / 2 && distance < tile.closestDistance) {
 						tile.closestNodeRef = nodeRef;
 						tile.closestType = type;
 						tile.closestDistance = distance;
@@ -250,8 +250,6 @@ class RenderContext {
 		c.fillStyle = "black";
 		c.fill();
 
-		const seenEdges = {};
-
 		const colors = {
 			water: "darkblue",
 			grass: "lightgreen",
@@ -271,6 +269,16 @@ class RenderContext {
 					c.fillRect(tile.point.x, tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
 				}
 			}
+		}
+
+		for await (const nodeRef of this.visibleNodes()) {
+			const center = await nodeRef.center();
+			const canvasCenter = this.mapPointToCanvas(center);
+
+			c.fillStyle = "white";
+			c.beginPath();
+			c.arc(canvasCenter.x, canvasCenter.y, 4, 0, 2 * Math.PI, false);
+			c.fill();
 		}
 
 		// Draw brush
