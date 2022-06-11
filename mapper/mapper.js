@@ -111,7 +111,11 @@ class RenderContext {
 		this.tiles = {};
 
 		this.pressedKeys = {};
+		this.pressedMouseButtons = {};
+		this.oldMousePosition = Vector3.ZERO;
 		this.mousePosition = Vector3.ZERO;
+
+		this.scrollOffset = Vector3.ZERO;
 
 		this.brush = new NodeBrush(this);
 
@@ -129,17 +133,31 @@ class RenderContext {
 		this.mapper.hooks.add("update", () => this.recalculateTiles());
 
 		this.canvas.addEventListener("mousedown", async (event) => {
+			this.pressedMouseButtons[event.button] = {
+				where: new Vector3(event.x, event.y, 0),
+			};
+		});
+
+		this.canvas.addEventListener("mouseup", async (event) => {
 			const where = new Vector3(event.x, event.y, 0);
+
 			if(event.button === 0) {
-				await this.brush.triggerPrimary(where);
+				if(this.isKeyDown("KeyD")) {
+					await this.brush.triggerAlternate(where);
+				} else {
+					await this.brush.triggerPrimary(where);
+				}
 			}
-			else if(event.button === 2) {
-				await this.brush.triggerAlternate(where);
-			}
+
+			this.pressedMouseButtons[event.button] = false;
 		});
 
 		this.canvas.addEventListener("mousemove", (event) => {
+			this.oldMousePosition = this.mousePosition;
 			this.mousePosition = new Vector3(event.x, event.y, 0);
+			if(this.isMouseButtonDown(2)) {
+				this.scrollOffset = this.scrollOffset.add(this.mousePosition.subtract(this.oldMousePosition));
+			}
 			this.redraw();
 		});
 
@@ -189,16 +207,20 @@ class RenderContext {
 		return !!this.pressedKeys[key];
 	}
 
+	isMouseButtonDown(button) {
+		return !!this.pressedMouseButtons[button];
+	}
+
 	getBrush() {
 		return this.brush;
 	}
 
 	canvasPointToMap(v) {
-		return new Vector3(v.x, v.y, 0);
+		return new Vector3(v.x, v.y, 0).add(this.scrollOffset);
 	}
 
 	mapPointToCanvas(v) {
-		return new Vector3(v.x, v.y, 0);
+		return new Vector3(v.x, v.y, 0).subtract(this.scrollOffset);
 	}
 
 	screenSize() {
@@ -287,7 +309,8 @@ class RenderContext {
 
 				if(tile.closestNodeRef !== null) {
 					c.fillStyle = colors[tile.closestType];
-					c.fillRect(tile.point.x, tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
+					const point = tile.point.subtract(this.scrollOffset);
+					c.fillRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
 				}
 			}
 		}
@@ -313,12 +336,13 @@ class RenderContext {
 		c.fillText(this.brush.getDescription(), 24, 24);
 
 		// Debug help
-		c.fillText("Left click to place terrain; right click to delete terrain.", 24, (24 + 4) * 2);
+		c.fillText("Left click to place terrain; hold D to delete while clicking.", 24, (24 + 4) * 2);
 		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
+		c.fillText("Right click to move map.", 24, (24 + 4) * 4);
 	}
 
 	async * visibleNodes() {
-		yield* this.mapper.getNodesInArea(this.screenBox().map(this.canvasPointToMap));
+		yield* this.mapper.getNodesInArea(this.screenBox().map((v) => this.canvasPointToMap(v)));
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
