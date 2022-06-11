@@ -133,9 +133,7 @@ class RenderContext {
 		this.mapper.hooks.add("update", () => this.recalculateTiles());
 
 		this.canvas.addEventListener("mousedown", async (event) => {
-			this.pressedMouseButtons[event.button] = {
-				where: new Vector3(event.x, event.y, 0),
-			};
+			this.pressedMouseButtons[event.button] = true;
 		});
 
 		this.canvas.addEventListener("mouseup", async (event) => {
@@ -155,10 +153,17 @@ class RenderContext {
 		this.canvas.addEventListener("mousemove", (event) => {
 			this.oldMousePosition = this.mousePosition;
 			this.mousePosition = new Vector3(event.x, event.y, 0);
+
 			if(this.isMouseButtonDown(2)) {
 				this.scrollOffset = this.scrollOffset.add(this.mousePosition.subtract(this.oldMousePosition));
 			}
+
 			this.redraw();
+		});
+
+		this.canvas.addEventListener("mouseout", (event) => {
+			event;
+			this.cancelMouseButtonPresses();
 		});
 
 		this.canvas.addEventListener("keydown", (event) => {
@@ -209,6 +214,10 @@ class RenderContext {
 
 	isMouseButtonDown(button) {
 		return !!this.pressedMouseButtons[button];
+	}
+
+	cancelMouseButtonPresses() {
+		this.pressedMouseButtons = {};
 	}
 
 	getBrush() {
