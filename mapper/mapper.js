@@ -7,7 +7,7 @@ class Brush {
 		this.context = context;
 
 		this.size = 1;
-		this.maxSize = 10;
+		this.maxSize = 25;
 	}
 
 	getDescription() {
@@ -253,6 +253,7 @@ class RenderContext {
 
 	async recalculateTiles() {
 		const tiles = {};
+		const actualTiles = [];
 
 		for await (const nodeRef of this.visibleNodes()) {
 			const center = await nodeRef.center();
@@ -273,21 +274,90 @@ class RenderContext {
 						tilesX[y] = {
 							point: corner,
 							center: corner.add(new Vector3(this.TILE_SIZE / 2, this.TILE_SIZE / 2, 0)),
+							adjacentNodeRefs: [],
+							adjacentNodeTypes: new Set(),
+							adjacentNodeTypePowers: {},
+							adjacentCoreNodeTypes: new Set(),
+							edgeBorder: true,
+							hasEdgeBorder: false,
+							typeBorder: false,
+							border: false,
+							core: false,
 							closestNodeRef: null,
 							closestType: null,
 							closestDistance: Infinity,
 						};
+
+						actualTiles.push(tilesX[y]);
 					}
 
 					const tile = tilesX[y];
 					const distance = tile.center.subtract(center).length();
-					if(distance <= radius + this.TILE_SIZE / 2 && distance < tile.closestDistance) {
-						tile.closestNodeRef = nodeRef;
-						tile.closestType = type;
-						tile.closestDistance = distance;
+
+					if(distance <= radius + this.TILE_SIZE / 2) {
+						tile.adjacentNodeRefs.push(nodeRef);
+						tile.adjacentNodeTypes.add(type);
+
+						if(distance < tile.closestDistance) {
+							const core = distance <= radius / 2;
+							tile.core = tile.core || core;
+							if(core) {
+								tile.adjacentCoreNodeTypes.add(type);
+							}
+							tile.edgeBorder = tile.edgeBorder && distance + this.TILE_SIZE / 2 >= radius;
+							tile.typeBorder = tile.typeBorder || tile.adjacentNodeTypes.size > 1;
+							tile.border = tile.edgeBorder || tile.typeBorder;
+							tile.closestNodeRef = nodeRef;
+							tile.closestType = type;
+							tile.closestDistance = distance;
+							tile.closestRadius = radius;
+						}
 					}
 				}
 			}
+		}
+
+		const colors = {
+			water: "darkblue",
+			grass: "lightgreen",
+			mountain: "gray",
+			forest: "darkgreen",
+		};
+
+		const tileCanvas = document.createElement("canvas");
+		const c = tileCanvas.getContext("2d");
+
+		for(const tile of actualTiles) {
+			if(tile.border) {
+				let possibleColors = [colors[tile.closestType]];
+
+				for(const adjacentType of tile.adjacentCoreNodeTypes) {
+					possibleColors.push(colors[adjacentType]);
+				}
+
+				if(tile.edgeBorder) {
+					possibleColors.push("black");
+				}
+
+				if(tile.typeBorder && !tile.core) {
+					for(const adjacentType of tile.adjacentNodeTypes) {
+						possibleColors.push(colors[adjacentType]);
+					}
+				}
+
+				for(let px = 0; px < this.TILE_SIZE; px += 4) {
+					for(let py = 0; py < this.TILE_SIZE; py += 4) {
+						c.fillStyle = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+						c.fillRect(px, py, 4, 4);
+					}
+				}
+			}
+			else {
+				c.fillStyle = colors[tile.closestType];
+				c.fillRect(0, 0, this.TILE_SIZE, this.TILE_SIZE);
+			}
+
+			tile.imageData = c.getImageData(0, 0, this.TILE_SIZE, this.TILE_SIZE);
 		}
 
 		this.tiles = tiles;
@@ -302,13 +372,6 @@ class RenderContext {
 		c.fillStyle = "black";
 		c.fill();
 
-		const colors = {
-			water: "darkblue",
-			grass: "lightgreen",
-			mountain: "gray",
-			forest: "darkgreen",
-		};
-
 		const tiles = this.tiles;
 
 		for (const x in tiles) {
@@ -317,9 +380,9 @@ class RenderContext {
 				const tile = tilesX[y];
 
 				if(tile.closestNodeRef !== null) {
-					c.fillStyle = colors[tile.closestType];
 					const point = tile.point.subtract(this.scrollOffset);
-					c.fillRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
+
+					c.putImageData(tile.imageData, point.x, point.y);
 				}
 			}
 		}
