@@ -14,9 +14,9 @@ describe("HookContainer", function() {
 		hooks.add("test", f);
 
 		expect(counter).to.equal(0);
-		hooks.call("test", 4);
+		await hooks.call("test", 4);
 		expect(counter).to.equal(4);
-		hooks.call("test", 3);
+		await hooks.call("test", 3);
 		expect(counter).to.equal(7);
 	});
 
@@ -37,11 +37,11 @@ describe("HookContainer", function() {
 		hooks.add("test2", fA);
 		hooks.add("test2", fB);
 
-		hooks.call("test", 2);
+		await hooks.call("test", 2);
 		expect(counterA).to.equal(2);
 		expect(counterB).to.equal(0);
 
-		hooks.call("test2", 3);
+		await hooks.call("test2", 3);
 		expect(counterA).to.equal(5);
 		expect(counterB).to.equal(3);
 	});
@@ -61,14 +61,14 @@ describe("HookContainer", function() {
 		hooks.add("test", fA);
 		hooks.add("test", fB);
 
-		hooks.call("test", 2);
+		await hooks.call("test", 2);
 		expect(counter).to.equal(4);
 
-		hooks.call("test", 3);
+		await hooks.call("test", 3);
 		expect(counter).to.equal(10);
 
 		hooks.remove("test", fB);
-		hooks.call("test", 4);
+		await hooks.call("test", 4);
 		expect(counter).to.equal(14);
 	});
 });
