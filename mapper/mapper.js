@@ -2,8 +2,6 @@ import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3 } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
 
-const Chance = require("chance");
-
 class Brush {
 	constructor(context) {
 		this.context = context;
@@ -108,8 +106,6 @@ class RenderContext {
 	constructor(parent, mapper) {
 		this.parent = parent;
 		this.mapper = mapper;
-
-		this.randomSeed = Math.random();
 
 		this.TILE_SIZE = 32;
 		this.tiles = {};
@@ -365,7 +361,6 @@ class RenderContext {
 							closestNodeRef: null,
 							closestType: null,
 							closestDistance: Infinity,
-							random: new Chance(this.randomSeed, x, y),
 						};
 					}
 
@@ -428,7 +423,7 @@ class RenderContext {
 
 				for(let px = 0; px < this.TILE_SIZE; px += 4) {
 					for(let py = 0; py < this.TILE_SIZE; py += 4) {
-						c.fillStyle = possibleColors[Math.floor(tile.random.random() * possibleColors.length)];
+						c.fillStyle = possibleColors[Math.floor(Math.random() * possibleColors.length)];
 						c.fillRect(px, py, 4, 4);
 					}
 				}
