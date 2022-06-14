@@ -41,6 +41,7 @@
 	},
 	"dependencies": {
 		"better-sqlite3": "^7.4.5",
+		"chance": "^1.1.8",
 		"tmp": "^0.2.1"
 	}
 }

@@ -104,7 +104,7 @@ class SQLiteMapBackend extends MapBackend {
 		});
 
 		this.loaded = true;
-		this.hooks.call("loaded");
+		await this.hooks.call("loaded");
 	}
 
 	baseCreateEntity(type) {

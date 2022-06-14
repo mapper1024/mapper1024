@@ -2,12 +2,14 @@ import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3 } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
 
+const Chance = require("chance");
+
 class Brush {
 	constructor(context) {
 		this.context = context;
 
 		this.size = 1;
-		this.maxSize = 25;
+		this.maxSize = 10;
 	}
 
 	getDescription() {
@@ -107,8 +109,12 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.randomSeed = Math.random();
+
 		this.TILE_SIZE = 32;
 		this.tiles = {};
+		this.drawnNodeIds = new Set();
+		this.nodeIdToTiles = {};
 
 		this.pressedKeys = {};
 		this.pressedMouseButtons = {};
@@ -130,7 +136,8 @@ class RenderContext {
 		this.canvas.style.margin = "0";
 		this.canvas.style.border = "0";
 
-		this.mapper.hooks.add("update", () => this.recalculateTiles());
+		this.mapper.hooks.add("updateNode", (nodeRef) => this.recalculateTilesNodeUpdate(nodeRef));
+		this.mapper.hooks.add("removeNodes", (nodeRefs) => this.recalculateTilesNodesRemove(nodeRefs));
 
 		this.canvas.addEventListener("mousedown", async (event) => {
 			this.pressedMouseButtons[event.button] = true;
@@ -156,9 +163,11 @@ class RenderContext {
 
 			if(this.isMouseButtonDown(2)) {
 				this.scrollOffset = this.scrollOffset.add(this.mousePosition.subtract(this.oldMousePosition));
+				this.recalculateTilesViewport();
 			}
-
-			this.redraw();
+			else {
+				this.redraw();
+			}
 		});
 
 		this.canvas.addEventListener("mouseout", (event) => {
@@ -251,11 +260,78 @@ class RenderContext {
 		this.redraw();
 	}
 
-	async recalculateTiles() {
-		const tiles = {};
+	async recalculateTilesViewport() {
+		return await this.recalculateTiles([], []);
+	}
+
+	async recalculateTilesNodeUpdate(nodeRef) {
+		return await this.recalculateTiles([nodeRef], []);
+	}
+
+	async recalculateTilesNodesRemove(nodeRefs) {
+		return await this.recalculateTiles([], nodeRefs);
+	}
+
+	async recalculateTiles(updatedNodeRefs, removedNodeRefs) {
 		const actualTiles = [];
 
-		for await (const nodeRef of this.visibleNodes()) {
+		const updatedNodeIds = new Set(updatedNodeRefs.map((nodeRef) => nodeRef.id));
+		const removedNodeIds = new Set(removedNodeRefs.map((nodeRef) => nodeRef.id));
+
+		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
+
+		for(const nodeId of this.drawnNodeIds) {
+			if(!visibleNodeIds.has(nodeId)) {
+				removedNodeIds.add(nodeId);
+			}
+		}
+
+		for(const nodeId of visibleNodeIds) {
+			if(!this.drawnNodeIds.has(nodeId)) {
+				updatedNodeIds.add(nodeId);
+			}
+		}
+
+		const recheckTiles = {};
+
+		for(const removedId of removedNodeIds) {
+			const tX = this.nodeIdToTiles[removedId];
+			for(const x in tX) {
+				if(recheckTiles[x] === undefined) {
+					recheckTiles[x] = {};
+				}
+				const rX = recheckTiles[x];
+				const tY = this.nodeIdToTiles[removedId][x];
+				for(const y in tY) {
+					rX[y] = tY[y];
+					delete this.tiles[x][y];
+				}
+			}
+			delete this.nodeIdToTiles[removedId];
+			this.drawnNodeIds.delete(removedId);
+		}
+
+		for(const x in recheckTiles) {
+			const rX = recheckTiles[x];
+			for(const y in rX) {
+				for(const nodeRef of rX[y].adjacentNodeRefs) {
+					updatedNodeIds.add(nodeRef.id);
+				}
+			}
+		}
+
+		for(const nodeId of removedNodeIds) {
+			updatedNodeIds.delete(nodeId);
+		}
+
+		for(const nodeId of updatedNodeIds) {
+			this.drawnNodeIds.add(nodeId);
+
+			const nodeRef = this.mapper.backend.getNodeRef(nodeId);
+			if(this.nodeIdToTiles[nodeRef.id] === undefined) {
+				this.nodeIdToTiles[nodeRef.id] = {};
+			}
+
 			const center = await nodeRef.center();
 			const centerTile = center.divideScalar(this.TILE_SIZE).round();
 			const type = await nodeRef.getPString("type");
@@ -263,10 +339,14 @@ class RenderContext {
 			const radiusTile = Math.ceil(radius / this.TILE_SIZE);
 
 			for(let x = centerTile.x - radiusTile; x <= centerTile.x + radiusTile; x++) {
-				if(tiles[x] === undefined) {
-					tiles[x] = {};
+				if(this.tiles[x] === undefined) {
+					this.tiles[x] = {};
 				}
-				const tilesX = tiles[x];
+				if(this.nodeIdToTiles[nodeRef.id][x] === undefined) {
+					this.nodeIdToTiles[nodeRef.id][x] = {};
+				}
+				const nodeIdToTileX = this.nodeIdToTiles[nodeRef.id][x];
+				const tilesX = this.tiles[x];
 				for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
 					if(tilesX[y] === undefined) {
 						const corner = new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0);
@@ -276,7 +356,6 @@ class RenderContext {
 							center: corner.add(new Vector3(this.TILE_SIZE / 2, this.TILE_SIZE / 2, 0)),
 							adjacentNodeRefs: [],
 							adjacentNodeTypes: new Set(),
-							adjacentNodeTypePowers: {},
 							adjacentCoreNodeTypes: new Set(),
 							edgeBorder: true,
 							hasEdgeBorder: false,
@@ -286,15 +365,17 @@ class RenderContext {
 							closestNodeRef: null,
 							closestType: null,
 							closestDistance: Infinity,
+							random: new Chance(this.randomSeed, x, y),
 						};
-
-						actualTiles.push(tilesX[y]);
 					}
 
 					const tile = tilesX[y];
 					const distance = tile.center.subtract(center).length();
 
 					if(distance <= radius + this.TILE_SIZE / 2) {
+						nodeIdToTileX[y] = tile;
+						actualTiles.push(tile);
+
 						tile.adjacentNodeRefs.push(nodeRef);
 						tile.adjacentNodeTypes.add(type);
 
@@ -324,10 +405,10 @@ class RenderContext {
 			forest: "darkgreen",
 		};
 
-		const tileCanvas = document.createElement("canvas");
-		const c = tileCanvas.getContext("2d");
-
 		for(const tile of actualTiles) {
+			tile.canvas = document.createElement("canvas");
+			const c = tile.canvas.getContext("2d");
+
 			if(tile.border) {
 				let possibleColors = [colors[tile.closestType]];
 
@@ -347,7 +428,7 @@ class RenderContext {
 
 				for(let px = 0; px < this.TILE_SIZE; px += 4) {
 					for(let py = 0; py < this.TILE_SIZE; py += 4) {
-						c.fillStyle = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+						c.fillStyle = possibleColors[Math.floor(tile.random.random() * possibleColors.length)];
 						c.fillRect(px, py, 4, 4);
 					}
 				}
@@ -356,11 +437,8 @@ class RenderContext {
 				c.fillStyle = colors[tile.closestType];
 				c.fillRect(0, 0, this.TILE_SIZE, this.TILE_SIZE);
 			}
-
-			tile.imageData = c.getImageData(0, 0, this.TILE_SIZE, this.TILE_SIZE);
 		}
 
-		this.tiles = tiles;
 		await this.redraw();
 	}
 
@@ -382,7 +460,7 @@ class RenderContext {
 				if(tile.closestNodeRef !== null) {
 					const point = tile.point.subtract(this.scrollOffset);
 
-					c.putImageData(tile.imageData, point.x, point.y);
+					c.drawImage(tile.canvas, point.x, point.y);
 				}
 			}
 		}
@@ -436,9 +514,10 @@ class Mapper {
 		this.backend = backend;
 		this.hooks = new HookContainer();
 
-		this.backend.hooks.add("load", () => this.hooks.call("update"));
-		this.hooks.add("updateNode", () => this.hooks.call("update"));
-		this.hooks.add("insertNode", (nodeRef) => this.hooks.call("updateNode", nodeRef));
+		this.backend.hooks.add("load", async () => await this.hooks.call("update"));
+		this.hooks.add("updateNode", async () => await this.hooks.call("update"));
+		this.hooks.add("insertNode", async (nodeRef) => await this.hooks.call("updateNode", nodeRef));
+		this.hooks.add("removeNodes", async () => await this.hooks.call("update"));
 
 		this.options = {
 			blendDistance: 400,
@@ -476,14 +555,14 @@ class Mapper {
 		await nodeRef.setPString("type", options.type);
 		await nodeRef.setPNumber("radius", options.radius);
 		await this.connectNode(nodeRef, this.options);
-		this.hooks.call("insertNode", nodeRef);
+		await this.hooks.call("insertNode", nodeRef);
 	}
 
 	async removeNodes(nodeRefs) {
+		await this.hooks.call("removeNodes", nodeRefs);
 		for(const nodeRef of nodeRefs) {
 			await nodeRef.remove();
 		}
-		this.hooks.call("update");
 	}
 
 	async connectNode(nodeRef, options) {

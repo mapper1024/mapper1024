@@ -33,10 +33,10 @@ class HookContainer {
 	 * @param hookName {string} The hook to call.
 	 * @param ...args Remaining arguments are passed to the hook functions.
 	 */
-	call(hookName, ...args) {
+	async call(hookName, ...args) {
 		if(hookName in this.hooks) {
 			for(const hookFunction of this.hooks[hookName]) {
-				hookFunction(...args);
+				await hookFunction(...args);
 			}
 		}
 	}
