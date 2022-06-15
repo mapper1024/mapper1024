@@ -108,7 +108,10 @@ class RenderContext {
 		this.mapper = mapper;
 
 		this.TILE_SIZE = 32;
+		this.MEGA_TILE_SIZE = 512;
+		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(this.MEGA_TILE_SIZE);
 		this.tiles = {};
+		this.megaTiles = {};
 		this.drawnNodeIds = new Set();
 		this.nodeIdToTiles = {};
 
@@ -277,7 +280,9 @@ class RenderContext {
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
 
 		for(const nodeId of this.drawnNodeIds) {
-			if(!visibleNodeIds.has(nodeId)) {
+			// Small chance to clean up a node that is no longer visible.
+			// Save performance by not clearing all off-screen nodes at once.
+			if(Math.random() < 0.01 && !visibleNodeIds.has(nodeId)) {
 				removedNodeIds.add(nodeId);
 			}
 		}
@@ -298,9 +303,26 @@ class RenderContext {
 				}
 				const rX = recheckTiles[x];
 				const tY = this.nodeIdToTiles[removedId][x];
+				const mtX = this.megaTiles[Math.floor(x / this.MEGA_TILE_SIZE * this.TILE_SIZE)];
 				for(const y in tY) {
 					rX[y] = tY[y];
 					delete this.tiles[x][y];
+					if(mtX !== undefined) {
+						const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+						const megaTile = mtX[megaTilePositionY];
+						if(megaTile !== undefined && !megaTile.cleared) {
+							megaTile.adjacentNodeIds.delete(removedId);
+							for(const nodeId of megaTile.adjacentNodeIds) {
+								updatedNodeIds.add(nodeId);
+							}
+							const c = megaTile.canvas.getContext("2d");
+							c.beginPath();
+							c.rect(0, 0, megaTile.canvas.width, megaTile.canvas.height);
+							c.fillStyle = "black";
+							c.fill();
+							megaTile.cleared = true;
+						}
+					}
 				}
 			}
 			delete this.nodeIdToTiles[removedId];
@@ -343,7 +365,31 @@ class RenderContext {
 				}
 				const nodeIdToTileX = this.nodeIdToTiles[nodeRef.id][x];
 				const tilesX = this.tiles[x];
+				const megaTilePositionX = Math.floor(x / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+
+				if(this.megaTiles[megaTilePositionX] === undefined) {
+					this.megaTiles[megaTilePositionX] = {};
+				}
+
+				const mtX = this.megaTiles[megaTilePositionX];
 				for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
+					const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+
+					if(mtX[megaTilePositionY] === undefined) {
+						const canvas = document.createElement("canvas");
+						canvas.width = this.MEGA_TILE_SIZE;
+						canvas.height = this.MEGA_TILE_SIZE;
+
+						mtX[megaTilePositionY] = {
+							point: new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(this.MEGA_TILE_SIZE),
+							adjacentNodeIds: new Set(),
+							canvas: canvas,
+						};
+					}
+
+					const megaTile = mtX[megaTilePositionY];
+					megaTile.cleared = false;
+
 					if(tilesX[y] === undefined) {
 						const corner = new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0);
 
@@ -361,6 +407,8 @@ class RenderContext {
 							closestNodeRef: null,
 							closestType: null,
 							closestDistance: Infinity,
+							megaTile: megaTile,
+							megaTileInternalPosition: corner.map((v) => mod(v, this.MEGA_TILE_SIZE)),
 						};
 					}
 
@@ -372,6 +420,7 @@ class RenderContext {
 						actualTiles.push(tile);
 
 						tile.adjacentNodeRefs.push(nodeRef);
+						megaTile.adjacentNodeIds.add(nodeRef.id);
 						tile.adjacentNodeTypes.add(type);
 
 						if(distance < tile.closestDistance) {
@@ -401,8 +450,7 @@ class RenderContext {
 		};
 
 		for(const tile of actualTiles) {
-			tile.canvas = document.createElement("canvas");
-			const c = tile.canvas.getContext("2d");
+			const c = tile.megaTile.canvas.getContext("2d");
 
 			if(tile.border) {
 				let possibleColors = [colors[tile.closestType]];
@@ -421,8 +469,8 @@ class RenderContext {
 					}
 				}
 
-				for(let px = 0; px < this.TILE_SIZE; px += 4) {
-					for(let py = 0; py < this.TILE_SIZE; py += 4) {
+				for(let px = tile.megaTileInternalPosition.x; px < tile.megaTileInternalPosition.x + this.TILE_SIZE; px += 4) {
+					for(let py = tile.megaTileInternalPosition.y; py < tile.megaTileInternalPosition.y + this.TILE_SIZE; py += 4) {
 						c.fillStyle = possibleColors[Math.floor(Math.random() * possibleColors.length)];
 						c.fillRect(px, py, 4, 4);
 					}
@@ -430,7 +478,7 @@ class RenderContext {
 			}
 			else {
 				c.fillStyle = colors[tile.closestType];
-				c.fillRect(0, 0, this.TILE_SIZE, this.TILE_SIZE);
+				c.fillRect(tile.megaTileInternalPosition.x, tile.megaTileInternalPosition.y, this.TILE_SIZE, this.TILE_SIZE);
 			}
 		}
 
@@ -439,24 +487,21 @@ class RenderContext {
 
 	/** Completely redraw the displayed UI. */
 	async redraw() {
-		var c = this.canvas.getContext("2d");
+		const c = this.canvas.getContext("2d");
 		c.beginPath();
 		c.rect(0, 0, this.canvas.width, this.canvas.height);
 		c.fillStyle = "black";
 		c.fill();
 
-		const tiles = this.tiles;
+		const tiles = this.megaTiles;
 
 		for (const x in tiles) {
 			const tilesX = tiles[x];
 			for (const y in tilesX) {
 				const tile = tilesX[y];
+				const point = tile.point.subtract(this.scrollOffset);
 
-				if(tile.closestNodeRef !== null) {
-					const point = tile.point.subtract(this.scrollOffset);
-
-					c.drawImage(tile.canvas, point.x, point.y);
-				}
+				c.drawImage(tile.canvas, point.x, point.y);
 			}
 		}
 
@@ -487,7 +532,9 @@ class RenderContext {
 	}
 
 	async * visibleNodes() {
-		yield* this.mapper.getNodesInArea(this.screenBox().map((v) => this.canvasPointToMap(v)));
+		const screenBox = this.screenBox();
+		const stretchBox = new Box3(screenBox.a.subtract(this.OFF_SCREEN_BUFFER_STRETCH), screenBox.b.add(this.OFF_SCREEN_BUFFER_STRETCH));
+		yield* this.mapper.getNodesInArea(stretchBox.map((v) => this.canvasPointToMap(v)));
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
@@ -549,7 +596,8 @@ class Mapper {
 		await nodeRef.setCenter(point);
 		await nodeRef.setPString("type", options.type);
 		await nodeRef.setPNumber("radius", options.radius);
-		await this.connectNode(nodeRef, this.options);
+		// TODO: connect nodes
+		//await this.connectNode(nodeRef, this.options);
 		await this.hooks.call("insertNode", nodeRef);
 	}
 

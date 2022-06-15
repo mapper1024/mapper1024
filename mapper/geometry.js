@@ -47,7 +47,11 @@ class Vector3 {
 	}
 
 	round() {
-		return new Vector3(Math.floor(this.x + 0.5), Math.floor(this.y + 0.5), Math.floor(this.z + 0.5));
+		return this.map((a) => Math.floor(a + 0.5));
+	}
+
+	map(f) {
+		return new Vector3(f(this.x), f(this.y), f(this.z));
 	}
 }
 
