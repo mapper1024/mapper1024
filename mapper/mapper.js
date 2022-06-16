@@ -115,6 +115,8 @@ class RenderContext {
 		this.drawnNodeIds = new Set();
 		this.nodeIdToTiles = {};
 
+		this.backgroundColor = "#997";
+
 		this.pressedKeys = {};
 		this.pressedMouseButtons = {};
 		this.oldMousePosition = Vector3.ZERO;
@@ -318,7 +320,7 @@ class RenderContext {
 							const c = megaTile.canvas.getContext("2d");
 							c.beginPath();
 							c.rect(0, 0, megaTile.canvas.width, megaTile.canvas.height);
-							c.fillStyle = "black";
+							c.fillStyle = this.backgroundColor;
 							c.fill();
 							megaTile.cleared = true;
 						}
@@ -464,7 +466,7 @@ class RenderContext {
 				}
 
 				if(tile.edgeBorder) {
-					possibleColors.push("black");
+					possibleColors.push(this.backgroundColor);
 				}
 
 				if(tile.typeBorder && !tile.core) {
@@ -494,7 +496,7 @@ class RenderContext {
 		const c = this.canvas.getContext("2d");
 		c.beginPath();
 		c.rect(0, 0, this.canvas.width, this.canvas.height);
-		c.fillStyle = "black";
+		c.fillStyle = this.backgroundColor;
 		c.fill();
 
 		const tiles = this.megaTiles;
