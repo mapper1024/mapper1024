@@ -1,5 +1,6 @@
 import { Vector3, Box3 } from "../geometry.js";
 import { EntityRef, NodeRef, EdgeRef, DirEdgeRef } from "./entity.js";
+import { HookContainer } from "../hook_container.js";
 import { asyncFrom } from "../utils.js";
 
 /** Abstract mapper backend, i.e. what map is being presented.
@@ -14,6 +15,11 @@ import { asyncFrom } from "../utils.js";
  * "edge" - an entity connecting two adjacent nodes.
  */
 class MapBackend {
+	constructor() {
+		this.loaded = false;
+		this.hooks = new HookContainer();
+	}
+
 	/** Get a number property on an entity.
 	 * Has a default implementation based on string properties.
 	 * @returns {number}

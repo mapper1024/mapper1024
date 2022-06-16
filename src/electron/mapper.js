@@ -5,10 +5,10 @@ import { fillWithSimpleMap } from "../../test_datasets/simple_map.js";
 const map = new SQLiteMapBackend(":memory:");
 const mapper = new Mapper(map);
 
-(async function() {
+window.addEventListener("DOMContentLoaded", async () => {
 	await map.load();
 
 	await fillWithSimpleMap(map);
 
-	mapper.render(document.getElementById("mapper"));
-})();
+	mapper.render(document.getElementById("mapper")).focus();
+});

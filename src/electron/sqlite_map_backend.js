@@ -102,6 +102,9 @@ class SQLiteMapBackend extends MapBackend {
 			this.s_createConnection.run({edgeId: id, nodeId: nodeBId});
 			return id;
 		});
+
+		this.loaded = true;
+		await this.hooks.call("loaded");
 	}
 
 	baseCreateEntity(type) {
