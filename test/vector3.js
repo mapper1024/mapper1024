@@ -57,4 +57,14 @@ describe("Vector3", function() {
 		expect(Vector3.max(a, b)).to.deep.equal(new Vector3(50, 20, 30));
 		expect(Vector3.min(a, b)).to.deep.equal(new Vector3(10, 5, 0));
 	});
+
+	it("should round", function() {
+		const a = new Vector3(0.5, 12.6, -1.5);
+		expect(a.round()).to.deep.equal(new Vector3(1, 13, -1));
+	});
+
+	it("should be mappable", function() {
+		const a = new Vector3(14, 28, -42);
+		expect(a.map((v) => v / 7)).to.deep.equal(new Vector3(2, 4, -6));
+	});
 });
