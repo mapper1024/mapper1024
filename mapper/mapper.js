@@ -7,7 +7,7 @@ class Brush {
 		this.context = context;
 
 		this.size = 1;
-		this.maxSize = 25;
+		this.maxSize = 10;
 	}
 
 	getDescription() {
@@ -15,7 +15,7 @@ class Brush {
 	}
 
 	getRadius() {
-		return this.size * 16;
+		return this.size * 32;
 	}
 
 	increment() {
@@ -94,6 +94,41 @@ class NodeBrush extends Brush {
 	}
 }
 
+class MouseDragEvent {
+	constructor(context, startPoint) {
+		this.context = context;
+		this.startPoint = startPoint;
+		this.at = startPoint;
+	}
+
+	next(nextPoint) {
+		this.at = nextPoint;
+	}
+
+	end(endPoint) {
+		this.endPoint = endPoint;
+	}
+}
+
+class DrawEvent extends MouseDragEvent {
+	end(endPoint) {
+		if(event.button === 0) {
+			if(this.context.isKeyDown("KeyD")) {
+				this.context.brush.triggerAlternate(endPoint);
+			} else {
+				this.context.brush.triggerPrimary(endPoint);
+			}
+		}
+	}
+};
+
+class PanEvent extends MouseDragEvent {
+	next(nextPoint) {
+		this.context.scrollOffset = this.context.scrollOffset.add(this.at.subtract(nextPoint));
+		super.next(nextPoint);
+	}
+};
+
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
  * See Mapper.render() for instantiation.
@@ -107,6 +142,8 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.wantRedraw = true;
+
 		this.TILE_SIZE = 32;
 		this.MEGA_TILE_SIZE = 512;
 		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(this.MEGA_TILE_SIZE);
@@ -118,7 +155,7 @@ class RenderContext {
 		this.backgroundColor = "#997";
 
 		this.pressedKeys = {};
-		this.pressedMouseButtons = {};
+		this.mouseDragEvents = {};
 		this.oldMousePosition = Vector3.ZERO;
 		this.mousePosition = Vector3.ZERO;
 
@@ -141,34 +178,32 @@ class RenderContext {
 		this.mapper.hooks.add("removeNodes", (nodeRefs) => this.recalculateTilesNodesRemove(nodeRefs));
 
 		this.canvas.addEventListener("mousedown", async (event) => {
-			this.pressedMouseButtons[event.button] = true;
+			const where = new Vector3(event.x, event.y, 0);
+
+			if(event.button === 0) {
+				this.mouseDragEvents[event.button] = new DrawEvent(this, where);
+			}
+			else if(event.button === 2){
+				this.mouseDragEvents[event.button] = new PanEvent(this, where);
+			}
 		});
 
 		this.canvas.addEventListener("mouseup", async (event) => {
 			const where = new Vector3(event.x, event.y, 0);
 
-			if(event.button === 0) {
-				if(this.isKeyDown("KeyD")) {
-					await this.brush.triggerAlternate(where);
-				} else {
-					await this.brush.triggerPrimary(where);
-				}
-			}
-
-			this.pressedMouseButtons[event.button] = false;
+			this.cancelMouseButtonPress(event.button, where);
 		});
 
 		this.canvas.addEventListener("mousemove", (event) => {
 			this.oldMousePosition = this.mousePosition;
 			this.mousePosition = new Vector3(event.x, event.y, 0);
 
-			if(this.isMouseButtonDown(2)) {
-				this.scrollOffset = this.scrollOffset.add(this.mousePosition.subtract(this.oldMousePosition));
-				this.recalculateTilesViewport();
+			for(const button in this.mouseDragEvents) {
+				const mouseDragEvent = this.mouseDragEvents[button];
+				mouseDragEvent.next(this.mousePosition);
 			}
-			else {
-				this.redraw();
-			}
+
+			this.requestRedraw();
 		});
 
 		this.canvas.addEventListener("mouseout", (event) => {
@@ -212,6 +247,20 @@ class RenderContext {
 		this.parentObserver.observe(this.parent);
 
 		this.recalculateSize();
+
+		setTimeout(this.redrawLoop.bind(this), 10);
+	}
+
+	async redrawLoop() {
+		if(this.wantRedraw) {
+			this.wantRedraw = false;
+			await this.redraw();
+		}
+		setTimeout(this.redrawLoop.bind(this), 10);
+	}
+
+	requestRedraw() {
+		this.wantRedraw = true;
 	}
 
 	focus() {
@@ -226,8 +275,17 @@ class RenderContext {
 		return !!this.pressedMouseButtons[button];
 	}
 
-	cancelMouseButtonPresses() {
-		this.pressedMouseButtons = {};
+	cancelMouseButtonPress(button, where) {
+		if(this.mouseDragEvents[button] !== undefined) {
+			this.mouseDragEvents[button].end(where);
+			delete this.mouseDragEvents[button];
+		}
+	}
+
+	cancelMouseButtonPresses(where) {
+		for(const button in this.pressedMouseButtons) {
+			this.cancelMouseButtonPress(button, where);
+		}
 	}
 
 	getBrush() {
@@ -488,7 +546,7 @@ class RenderContext {
 			}
 		}
 
-		await this.redraw();
+		this.requestRedraw();
 	}
 
 	/** Completely redraw the displayed UI. */
