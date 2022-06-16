@@ -7,7 +7,7 @@ class Brush {
 		this.context = context;
 
 		this.size = 1;
-		this.maxSize = 10;
+		this.maxSize = 25;
 	}
 
 	getDescription() {
@@ -346,6 +346,10 @@ class RenderContext {
 			this.drawnNodeIds.add(nodeId);
 
 			const nodeRef = this.mapper.backend.getNodeRef(nodeId);
+			if(!nodeRef.exists()) {
+				continue;
+			}
+
 			if(this.nodeIdToTiles[nodeRef.id] === undefined) {
 				this.nodeIdToTiles[nodeRef.id] = {};
 			}
