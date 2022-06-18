@@ -1,5 +1,5 @@
 import { HookContainer } from "./hook_container.js";
-import { Vector3, Box3 } from "./geometry.js";
+import { Vector3, Box3, Line3 } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
 
 class Brush {
@@ -74,8 +74,8 @@ class NodeBrush extends Brush {
 		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
 	}
 
-	async triggerPrimary(where) {
-		await this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
+	async triggerPrimary(path) {
+		await this.context.mapper.insertNode(path.lastVertex(), {
 			type: this.getNodeType(),
 			radius: this.getRadius(),
 		});
@@ -94,29 +94,96 @@ class NodeBrush extends Brush {
 	}
 }
 
-class MouseDragEvent {
-	constructor(context, startPoint) {
-		this.context = context;
-		this.startPoint = startPoint;
-		this.at = startPoint;
+class Path {
+	constructor(startPoint) {
+		this.lines = [];
+		this.origin = startPoint;
+		this.at = Vector3.ZERO;
+	}
+
+	mapOrigin(f) {
+		const path = new Path(f(this.origin));
+		path.lines = this.lines;
+		path.at = this.at;
+		return path;
+	}
+
+	mapLines(f) {
+		const path = new Path(this.origin);
+		path.lines = this.lines.map((line) => line.map(f));
+		path.at = f(this.at);
 	}
 
 	next(nextPoint) {
-		this.at = nextPoint;
+		const nextRelativePoint = nextPoint.subtract(this.origin);
+		if(this.at.subtract(nextRelativePoint).lengthSquared() > 0) {
+			this.lines.push(new Line3(this.at, nextRelativePoint));
+			this.at = nextRelativePoint;
+		}
 	}
 
-	end(endPoint) {
-		this.endPoint = endPoint;
+	lastLine() {
+		return this.lines[this.lines.length - 1] ?? Line3.ZERO;
+	}
+
+	lastVertex() {
+		return this.lastLine().b.add(this.origin);
+	}
+
+	pop() {
+		return this.lines.pop() ?? Line3.ZERO;
+	}
+
+	push(line) {
+		return this.lines.push(line);
+	}
+
+	* vertices() {
+		yield this.at.add(this.origin);
+		for(const line of this.lines) {
+			yield line.b.add(this.origin);
+		}
+	}
+
+	getCenter() {
+		const vertices = Array.from(this.vertices());
+		let sum = Vector3.ZERO;
+		for(const vertex of vertices) {
+			sum = sum.add(vertex);
+		}
+		return sum.divideScalar(vertices.length);
 	}
 }
 
-class DrawEvent extends MouseDragEvent {
+class MouseDragEvent {
+	constructor(context, startPoint) {
+		this.context = context;
+		this.path = new Path(startPoint);
+	}
+
+	next(nextPoint) {
+		this.path.next(nextPoint);
+	}
+
 	end(endPoint) {
+		this.path.next(endPoint);
+	}
+
+	cancel() {}
+}
+
+class DrawEvent extends MouseDragEvent {
+	next(nextPoint) {
+		super.next(nextPoint);
+	}
+	end(endPoint) {
+		super.end(endPoint);
+
 		if(event.button === 0) {
 			if(this.context.isKeyDown("KeyD")) {
-				this.context.brush.triggerAlternate(endPoint);
+				this.context.brush.triggerAlternate(this.path);
 			} else {
-				this.context.brush.triggerPrimary(endPoint);
+				this.context.brush.triggerPrimary(this.path);
 			}
 		}
 	}
@@ -124,8 +191,8 @@ class DrawEvent extends MouseDragEvent {
 
 class PanEvent extends MouseDragEvent {
 	next(nextPoint) {
-		this.context.scrollOffset = this.context.scrollOffset.add(this.at.subtract(nextPoint));
 		super.next(nextPoint);
+		this.context.scrollOffset = this.context.scrollOffset.subtract(this.path.lastLine().vector());
 	}
 };
 
@@ -191,7 +258,7 @@ class RenderContext {
 		this.canvas.addEventListener("mouseup", async (event) => {
 			const where = new Vector3(event.x, event.y, 0);
 
-			this.cancelMouseButtonPress(event.button, where);
+			this.endMouseButtonPress(event.button, where);
 		});
 
 		this.canvas.addEventListener("mousemove", (event) => {
@@ -272,19 +339,27 @@ class RenderContext {
 	}
 
 	isMouseButtonDown(button) {
-		return !!this.pressedMouseButtons[button];
+		return !!this.mouseDragEvents[button];
 	}
 
-	cancelMouseButtonPress(button, where) {
+	endMouseButtonPress(button, where) {
 		if(this.mouseDragEvents[button] !== undefined) {
 			this.mouseDragEvents[button].end(where);
 			delete this.mouseDragEvents[button];
 		}
 	}
 
-	cancelMouseButtonPresses(where) {
-		for(const button in this.pressedMouseButtons) {
-			this.cancelMouseButtonPress(button, where);
+	cancelMouseButtonPress(button) {
+		if(this.mouseDragEvents[button] !== undefined) {
+			this.mouseDragEvents[button].cancel();
+			delete this.mouseDragEvents[button];
+			this.requestRedraw();
+		}
+	}
+
+	cancelMouseButtonPresses() {
+		for(const button in this.mouseDragEvents) {
+			this.cancelMouseButtonPress(button);
 		}
 	}
 
@@ -577,6 +652,21 @@ class RenderContext {
 			c.beginPath();
 			c.arc(canvasCenter.x, canvasCenter.y, 4, 0, 2 * Math.PI, false);
 			c.fill();
+		}
+
+		c.strokeStyle = "white";
+
+		for(const button in this.mouseDragEvents) {
+			const mouseDragEvent = this.mouseDragEvents[button];
+			const path = mouseDragEvent.path;
+			for(const line of path.lines) {
+				c.beginPath();
+				const a = line.a.add(path.origin);
+				c.moveTo(a.x, a.y);
+				const b = line.b.add(path.origin);
+				c.lineTo(b.x, b.y);
+				c.stroke();
+			}
 		}
 
 		// Draw brush
