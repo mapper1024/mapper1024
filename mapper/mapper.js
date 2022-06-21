@@ -238,6 +238,10 @@ class RenderContext {
 
 		this.wantRedraw = true;
 
+		this.recalculateViewport = true;
+		this.recalculateUpdate = [];
+		this.recalculateRemoved = [];
+
 		this.TILE_SIZE = 32;
 		this.MEGA_TILE_SIZE = 512;
 		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(this.MEGA_TILE_SIZE);
@@ -343,6 +347,7 @@ class RenderContext {
 		this.recalculateSize();
 
 		setTimeout(this.redrawLoop.bind(this), 10);
+		setTimeout(this.recalculateLoop.bind(this), 10);
 	}
 
 	async redrawLoop() {
@@ -351,6 +356,14 @@ class RenderContext {
 			await this.redraw();
 		}
 		setTimeout(this.redrawLoop.bind(this), 10);
+	}
+
+	async recalculateLoop() {
+		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved > 0) {
+			this.recalculateViewport = false;
+			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length));
+		}
+		setTimeout(this.recalculateLoop.bind(this), 10);
 	}
 
 	requestRedraw() {
@@ -421,16 +434,16 @@ class RenderContext {
 		this.redraw();
 	}
 
-	async recalculateTilesViewport() {
-		return await this.recalculateTiles([], []);
+	recalculateTilesViewport() {
+		this.recalculateViewport = true;
 	}
 
-	async recalculateTilesNodeUpdate(nodeRef) {
-		return await this.recalculateTiles([nodeRef], []);
+	recalculateTilesNodeUpdate(nodeRef) {
+		this.recalculateUpdate.push(nodeRef);
 	}
 
-	async recalculateTilesNodesRemove(nodeRefs) {
-		return await this.recalculateTiles([], nodeRefs);
+	recalculateTilesNodesRemove(nodeRefs) {
+		this.recalculateRemoved.push(...nodeRefs);
 	}
 
 	async recalculateTiles(updatedNodeRefs, removedNodeRefs) {
