@@ -75,17 +75,44 @@ class NodeBrush extends Brush {
 	}
 
 	async triggerPrimary(path) {
-		await this.context.mapper.insertNode(path.lastVertex(), {
+		const pathOnMap = path.mapOrigin((origin) => origin.add(this.context.scrollOffset));
+
+		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
 			type: this.getNodeType(),
-			radius: this.getRadius(),
+			radius: 0,
 		});
+
+		const masterNodeRefCenter = await masterNodeRef.center();
+
+		const vertices = Array.from(pathOnMap.vertices()).sort((a, b) => a.subtract(masterNodeRefCenter).lengthSquared() - b.subtract(masterNodeRefCenter).lengthSquared());
+
+		const placedVertices = [];
+
+		const radiusSquared = this.getRadius() ** 2;
+
+		placeEachVertex: for(const vertex of vertices) {
+			for(const placedVertex of placedVertices) {
+				if(placedVertex.subtract(vertex).lengthSquared() < radiusSquared / 2) {
+					continue placeEachVertex;
+				}
+			}
+			const radius = this.getRadius();
+			if(radius > 0) {
+				await this.context.mapper.insertNode(vertex, {
+					type: this.getNodeType(),
+					radius: radius,
+					parent: masterNodeRef,
+				});
+				placedVertices.push(vertex);
+			}
+		}
 	}
 
 	async triggerAlternate(where) {
 		const toRemove = [];
 
 		for await (const nodeRef of this.context.visibleNodes()) {
-			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(where).length() <= this.getRadius()) {
+			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(where.lastVertex()).length() <= this.getRadius()) {
 				toRemove.push(nodeRef);
 			}
 		}
@@ -481,9 +508,6 @@ class RenderContext {
 			this.drawnNodeIds.add(nodeId);
 
 			const nodeRef = this.mapper.backend.getNodeRef(nodeId);
-			if(!nodeRef.exists()) {
-				continue;
-			}
 
 			if(this.nodeIdToTiles[nodeRef.id] === undefined) {
 				this.nodeIdToTiles[nodeRef.id] = {};
@@ -493,88 +517,90 @@ class RenderContext {
 			const centerTile = center.divideScalar(this.TILE_SIZE).round();
 			const type = await nodeRef.getPString("type");
 			const radius = await nodeRef.getPNumber("radius");
-			const radiusTile = Math.ceil(radius / this.TILE_SIZE);
+			if(radius > 0) {
+				const radiusTile = Math.ceil(radius / this.TILE_SIZE);
 
-			for(let x = centerTile.x - radiusTile; x <= centerTile.x + radiusTile; x++) {
-				if(this.tiles[x] === undefined) {
-					this.tiles[x] = {};
-				}
-				if(this.nodeIdToTiles[nodeRef.id][x] === undefined) {
-					this.nodeIdToTiles[nodeRef.id][x] = {};
-				}
-				const nodeIdToTileX = this.nodeIdToTiles[nodeRef.id][x];
-				const tilesX = this.tiles[x];
-				const megaTilePositionX = Math.floor(x / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+				for(let x = centerTile.x - radiusTile; x <= centerTile.x + radiusTile; x++) {
+					if(this.tiles[x] === undefined) {
+						this.tiles[x] = {};
+					}
+					if(this.nodeIdToTiles[nodeRef.id][x] === undefined) {
+						this.nodeIdToTiles[nodeRef.id][x] = {};
+					}
+					const nodeIdToTileX = this.nodeIdToTiles[nodeRef.id][x];
+					const tilesX = this.tiles[x];
+					const megaTilePositionX = Math.floor(x / this.MEGA_TILE_SIZE * this.TILE_SIZE);
 
-				if(this.megaTiles[megaTilePositionX] === undefined) {
-					this.megaTiles[megaTilePositionX] = {};
-				}
-
-				const mtX = this.megaTiles[megaTilePositionX];
-				for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
-					const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
-
-					if(mtX[megaTilePositionY] === undefined) {
-						const canvas = document.createElement("canvas");
-						canvas.width = this.MEGA_TILE_SIZE;
-						canvas.height = this.MEGA_TILE_SIZE;
-
-						mtX[megaTilePositionY] = {
-							point: new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(this.MEGA_TILE_SIZE),
-							adjacentNodeIds: new Set(),
-							canvas: canvas,
-						};
+					if(this.megaTiles[megaTilePositionX] === undefined) {
+						this.megaTiles[megaTilePositionX] = {};
 					}
 
-					const megaTile = mtX[megaTilePositionY];
-					megaTile.cleared = false;
+					const mtX = this.megaTiles[megaTilePositionX];
+					for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
+						const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
 
-					if(tilesX[y] === undefined) {
-						const corner = new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0);
+						if(mtX[megaTilePositionY] === undefined) {
+							const canvas = document.createElement("canvas");
+							canvas.width = this.MEGA_TILE_SIZE;
+							canvas.height = this.MEGA_TILE_SIZE;
 
-						tilesX[y] = {
-							point: corner,
-							center: corner.add(new Vector3(this.TILE_SIZE / 2, this.TILE_SIZE / 2, 0)),
-							adjacentNodeRefs: [],
-							adjacentNodeTypes: new Set(),
-							adjacentCoreNodeTypes: new Set(),
-							edgeBorder: true,
-							hasEdgeBorder: false,
-							typeBorder: false,
-							border: false,
-							core: false,
-							closestNodeRef: null,
-							closestType: null,
-							closestDistance: Infinity,
-							megaTile: megaTile,
-							megaTileInternalPosition: corner.map((v) => mod(v, this.MEGA_TILE_SIZE)),
-						};
-					}
+							mtX[megaTilePositionY] = {
+								point: new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(this.MEGA_TILE_SIZE),
+								adjacentNodeIds: new Set(),
+								canvas: canvas,
+							};
+						}
 
-					const tile = tilesX[y];
-					const distance = tile.center.subtract(center).length();
+						const megaTile = mtX[megaTilePositionY];
+						megaTile.cleared = false;
 
-					if(distance <= radius + this.TILE_SIZE / 2) {
-						nodeIdToTileX[y] = tile;
-						actualTiles.push(tile);
+						if(tilesX[y] === undefined) {
+							const corner = new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0);
 
-						tile.adjacentNodeRefs.push(nodeRef);
-						megaTile.adjacentNodeIds.add(nodeRef.id);
-						tile.adjacentNodeTypes.add(type);
+							tilesX[y] = {
+								point: corner,
+								center: corner.add(new Vector3(this.TILE_SIZE / 2, this.TILE_SIZE / 2, 0)),
+								adjacentNodeRefs: [],
+								adjacentNodeTypes: new Set(),
+								adjacentCoreNodeTypes: new Set(),
+								edgeBorder: true,
+								hasEdgeBorder: false,
+								typeBorder: false,
+								border: false,
+								core: false,
+								closestNodeRef: null,
+								closestType: null,
+								closestDistance: Infinity,
+								megaTile: megaTile,
+								megaTileInternalPosition: corner.map((v) => mod(v, this.MEGA_TILE_SIZE)),
+							};
+						}
 
-						if(distance < tile.closestDistance) {
-							const core = distance <= radius / 2;
-							tile.core = tile.core || core;
-							if(core) {
-								tile.adjacentCoreNodeTypes.add(type);
+						const tile = tilesX[y];
+						const distance = tile.center.subtract(center).length();
+
+						if(distance <= radius + this.TILE_SIZE / 2) {
+							nodeIdToTileX[y] = tile;
+							actualTiles.push(tile);
+
+							tile.adjacentNodeRefs.push(nodeRef);
+							megaTile.adjacentNodeIds.add(nodeRef.id);
+							tile.adjacentNodeTypes.add(type);
+
+							if(distance < tile.closestDistance) {
+								const core = distance <= radius / 2;
+								tile.core = tile.core || core;
+								if(core) {
+									tile.adjacentCoreNodeTypes.add(type);
+								}
+								tile.edgeBorder = tile.edgeBorder && distance + this.TILE_SIZE / 2 >= radius;
+								tile.typeBorder = tile.typeBorder || tile.adjacentNodeTypes.size > 1;
+								tile.border = tile.edgeBorder || tile.typeBorder;
+								tile.closestNodeRef = nodeRef;
+								tile.closestType = type;
+								tile.closestDistance = distance;
+								tile.closestRadius = radius;
 							}
-							tile.edgeBorder = tile.edgeBorder && distance + this.TILE_SIZE / 2 >= radius;
-							tile.typeBorder = tile.typeBorder || tile.adjacentNodeTypes.size > 1;
-							tile.border = tile.edgeBorder || tile.typeBorder;
-							tile.closestNodeRef = nodeRef;
-							tile.closestType = type;
-							tile.closestDistance = distance;
-							tile.closestRadius = radius;
 						}
 					}
 				}
@@ -746,18 +772,28 @@ class Mapper {
 	}
 
 	async insertNode(point, options) {
-		const nodeRef = await this.backend.createNode();
+		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null);
 		await nodeRef.setCenter(point);
 		await nodeRef.setPString("type", options.type);
 		await nodeRef.setPNumber("radius", options.radius);
 		// TODO: connect nodes
 		//await this.connectNode(nodeRef, this.options);
 		await this.hooks.call("insertNode", nodeRef);
+		return nodeRef;
 	}
 
 	async removeNodes(nodeRefs) {
-		await this.hooks.call("removeNodes", nodeRefs);
+		let nodeIds = new Set(nodeRefs.map((nodeRef) => nodeRef.id));
 		for(const nodeRef of nodeRefs) {
+			for await (const childNodeRef of nodeRef.getAllDescendants()) {
+				nodeIds.add(childNodeRef.id);
+			}
+		}
+
+		const nodeRefsWithChildren = Array.from(nodeIds, (nodeId) => this.backend.getNodeRef(nodeId));
+
+		await this.hooks.call("removeNodes", nodeRefsWithChildren);
+		for(const nodeRef of nodeRefsWithChildren) {
 			await nodeRef.remove();
 		}
 	}

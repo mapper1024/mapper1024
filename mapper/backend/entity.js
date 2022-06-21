@@ -69,6 +69,13 @@ class NodeRef extends EntityRef {
 		yield* this.backend.getNodeChildren(this.id);
 	}
 
+	async * getAllDescendants() {
+		for (const child of await asyncFrom(this.getChildren())) {
+			yield child;
+			yield* child.getAllDescendants();
+		}
+	}
+
 	/** Set the "center" property of this node.
 	 * @param v {Vector3}
 	 */
