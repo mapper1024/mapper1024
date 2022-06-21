@@ -75,7 +75,7 @@ class NodeBrush extends Brush {
 	}
 
 	async triggerPrimary(path) {
-		const pathOnMap = path.mapOrigin((origin) => origin.add(this.context.scrollOffset));
+		const pathOnMap = path.mapOrigin((origin) => origin.add(this.context.scrollOffset)).withBisectedLines(this.getRadius());
 
 		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
 			type: this.getNodeType(),
@@ -141,6 +141,29 @@ class Path {
 		path.at = f(this.at);
 	}
 
+	withBisectedLines(radius) {
+		const path = new Path(this.origin);
+
+		function addBisectedLine(line) {
+			if(line.distance() >= radius) {
+				const middle = line.a.add(line.b).divideScalar(2);
+				const lineA = new Line3(line.a, middle);
+				const lineB = new Line3(middle, line.b);
+				addBisectedLine(lineA, lineB);
+			}
+			else {
+				path.lines.push(line);
+			}
+		}
+
+		for(const line of this.lines) {
+			addBisectedLine(line);
+		}
+
+		path.at = this.at;
+		return path;
+	}
+
 	next(nextPoint) {
 		const nextRelativePoint = nextPoint.subtract(this.origin);
 		if(this.at.subtract(nextRelativePoint).lengthSquared() > 0) {
@@ -196,13 +219,16 @@ class MouseDragEvent {
 		this.path.next(endPoint);
 	}
 
-	cancel() {}
+	cancel() {
+		return true;
+	}
 }
 
 class DrawEvent extends MouseDragEvent {
 	next(nextPoint) {
 		super.next(nextPoint);
 	}
+
 	end(endPoint) {
 		super.end(endPoint);
 
@@ -214,14 +240,18 @@ class DrawEvent extends MouseDragEvent {
 			}
 		}
 	}
-};
+
+	cancel() {
+		return false;
+	}
+}
 
 class PanEvent extends MouseDragEvent {
 	next(nextPoint) {
 		super.next(nextPoint);
 		this.context.scrollOffset = this.context.scrollOffset.subtract(this.path.lastLine().vector());
 	}
-};
+}
 
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
@@ -276,13 +306,15 @@ class RenderContext {
 		this.mapper.hooks.add("removeNodes", (nodeRefs) => this.recalculateTilesNodesRemove(nodeRefs));
 
 		this.canvas.addEventListener("mousedown", async (event) => {
-			const where = new Vector3(event.x, event.y, 0);
+			if(this.mouseDragEvents[event.button] === undefined) {
+				const where = new Vector3(event.x, event.y, 0);
 
-			if(event.button === 0) {
-				this.mouseDragEvents[event.button] = new DrawEvent(this, where);
-			}
-			else if(event.button === 2){
-				this.mouseDragEvents[event.button] = new PanEvent(this, where);
+				if(event.button === 0) {
+					this.mouseDragEvents[event.button] = new DrawEvent(this, where);
+				}
+				else if(event.button === 2) {
+					this.mouseDragEvents[event.button] = new PanEvent(this, where);
+				}
 			}
 		});
 
@@ -391,9 +423,10 @@ class RenderContext {
 
 	cancelMouseButtonPress(button) {
 		if(this.mouseDragEvents[button] !== undefined) {
-			this.mouseDragEvents[button].cancel();
-			delete this.mouseDragEvents[button];
-			this.requestRedraw();
+			if(this.mouseDragEvents[button].cancel()) {
+				delete this.mouseDragEvents[button];
+				this.requestRedraw();
+			}
 		}
 	}
 
