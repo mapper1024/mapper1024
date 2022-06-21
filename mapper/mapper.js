@@ -359,7 +359,7 @@ class RenderContext {
 	}
 
 	async recalculateLoop() {
-		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved > 0) {
+		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0) {
 			this.recalculateViewport = false;
 			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length));
 		}
@@ -485,17 +485,19 @@ class RenderContext {
 					if(mtX !== undefined) {
 						const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
 						const megaTile = mtX[megaTilePositionY];
-						if(megaTile !== undefined && !megaTile.cleared) {
+						if(megaTile !== undefined) {
 							megaTile.adjacentNodeIds.delete(removedId);
-							for(const nodeId of megaTile.adjacentNodeIds) {
-								updatedNodeIds.add(nodeId);
+							if(!megaTile.cleared) {
+								for(const nodeId of megaTile.adjacentNodeIds) {
+									updatedNodeIds.add(nodeId);
+								}
+								const c = megaTile.canvas.getContext("2d");
+								c.beginPath();
+								c.rect(0, 0, megaTile.canvas.width, megaTile.canvas.height);
+								c.fillStyle = this.backgroundColor;
+								c.fill();
+								megaTile.cleared = true;
 							}
-							const c = megaTile.canvas.getContext("2d");
-							c.beginPath();
-							c.rect(0, 0, megaTile.canvas.width, megaTile.canvas.height);
-							c.fillStyle = this.backgroundColor;
-							c.fill();
-							megaTile.cleared = true;
 						}
 					}
 				}
