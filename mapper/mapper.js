@@ -79,7 +79,7 @@ class NodeBrush extends Brush {
 
 		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
 			type: this.getNodeType(),
-			radius: 0,
+			radius: pathOnMap.getRadius(),
 		});
 
 		const masterNodeRefCenter = await masterNodeRef.center();
@@ -202,6 +202,17 @@ class Path {
 			sum = sum.add(vertex);
 		}
 		return sum.divideScalar(vertices.length);
+	}
+
+	getRadius() {
+		const center = this.getCenter();
+		let furthest = this.getCenter();
+		for(const vertex of this.vertices()) {
+			if(vertex.subtract(center).lengthSquared() >= furthest.subtract(center).lengthSquared()) {
+				furthest = vertex;
+			}
+		}
+		return furthest.subtract(center).length();
 	}
 }
 
