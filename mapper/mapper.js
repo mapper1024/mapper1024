@@ -396,6 +396,10 @@ class RenderContext {
 
 		this.canvas.addEventListener("keydown", (event) => {
 			this.pressedKeys[event.code] = true;
+			if(event.code === "Space") {
+				this.selection = this.hoverSelection;
+				this.requestRedraw();
+			}
 		});
 
 		this.canvas.addEventListener("keyup", (event) => {
@@ -815,7 +819,7 @@ class RenderContext {
 			const center = await nodeRef.center();
 			const canvasCenter = this.mapPointToCanvas(center);
 
-			c.fillStyle = "white";
+			c.fillStyle = this.selection.hasNodeRef(nodeRef) ? "red" : "white";
 			c.beginPath();
 			c.arc(canvasCenter.x, canvasCenter.y, this.hoverSelection.hasNodeRef(nodeRef) ? 8 : 4, 0, 2 * Math.PI, false);
 			c.fill();
@@ -849,7 +853,7 @@ class RenderContext {
 		// Debug help
 		c.fillText("Left click to place terrain; hold D to delete while clicking.", 24, (24 + 4) * 2);
 		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
-		c.fillText("Right click to move map.", 24, (24 + 4) * 4);
+		c.fillText("Right click to move map. Press SPACE to change selection.", 24, (24 + 4) * 4);
 	}
 
 	async * visibleNodes() {
