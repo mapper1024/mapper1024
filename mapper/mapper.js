@@ -79,7 +79,7 @@ class NodeBrush extends Brush {
 
 		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
 			type: this.getNodeType(),
-			radius: pathOnMap.getRadius(),
+			radius: 0,
 		});
 
 		const masterNodeRefCenter = await masterNodeRef.center();
@@ -118,6 +118,40 @@ class NodeBrush extends Brush {
 		}
 
 		this.context.mapper.removeNodes(toRemove);
+	}
+}
+
+class NullSelection {
+	update() {}
+
+	hasNodeRef() {
+		return false;
+	}
+}
+
+class Selection extends NullSelection {
+	constructor(nodeRef) {
+		super();
+		this.origin = nodeRef;
+		this.selectedNodeIds = new Set([this.origin.id]);
+	}
+
+	async update() {
+		const selectedNodeIds = new Set([this.origin.id]);
+		for await (const nodeRef of this.origin.getAllDescendants()) {
+			selectedNodeIds.add(nodeRef.id);
+		}
+		this.selectedNodeIds = selectedNodeIds;
+	}
+
+	static async fromNodeRef(nodeRef) {
+		const selection = new this(nodeRef);
+		await selection.update();
+		return selection;
+	}
+
+	hasNodeRef(nodeRef) {
+		return this.selectedNodeIds.has(nodeRef.id);
 	}
 }
 
@@ -283,6 +317,9 @@ class RenderContext {
 		this.recalculateUpdate = [];
 		this.recalculateRemoved = [];
 
+		this.wantRecheckSelection = true;
+		this.wantUpdateSelection = true;
+
 		this.TILE_SIZE = 32;
 		this.MEGA_TILE_SIZE = 512;
 		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(this.MEGA_TILE_SIZE);
@@ -302,6 +339,9 @@ class RenderContext {
 
 		this.brush = new NodeBrush(this);
 
+		this.hoverSelection = new NullSelection();
+		this.selection = new NullSelection();
+
 		// The UI is just a canvas.
 		// We will keep its size filling the parent element.
 		this.canvas = document.createElement("canvas");
@@ -315,6 +355,7 @@ class RenderContext {
 
 		this.mapper.hooks.add("updateNode", (nodeRef) => this.recalculateTilesNodeUpdate(nodeRef));
 		this.mapper.hooks.add("removeNodes", (nodeRefs) => this.recalculateTilesNodesRemove(nodeRefs));
+		this.mapper.hooks.add("update", this.requestUpdateSelection.bind(this));
 
 		this.canvas.addEventListener("mousedown", async (event) => {
 			if(this.mouseDragEvents[event.button] === undefined) {
@@ -344,6 +385,7 @@ class RenderContext {
 				mouseDragEvent.next(this.mousePosition);
 			}
 
+			this.requestRecheckSelection();
 			this.requestRedraw();
 		});
 
@@ -391,6 +433,7 @@ class RenderContext {
 
 		setTimeout(this.redrawLoop.bind(this), 10);
 		setTimeout(this.recalculateLoop.bind(this), 10);
+		setTimeout(this.recalculateSelection.bind(this), 10);
 	}
 
 	async redrawLoop() {
@@ -401,12 +444,51 @@ class RenderContext {
 		setTimeout(this.redrawLoop.bind(this), 10);
 	}
 
+	async recalculateSelection() {
+		if(this.wantRecheckSelection) {
+			this.wantRecheckSelection = false;
+			const mousePosition = this.mousePosition;
+			let closestNodeRef = null;
+			let closestDistanceSquared = null;
+			for await (const nodeRef of this.visibleNodes()) {
+				const center = this.mapPointToCanvas(await nodeRef.center());
+				const distanceSquared = center.subtract(mousePosition).lengthSquared();
+				if(distanceSquared < this.brush.getRadius() ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
+					closestNodeRef = nodeRef;
+					closestDistanceSquared = distanceSquared;
+				}
+			}
+			if(closestNodeRef) {
+				this.hoverSelection = new Selection(closestNodeRef);
+				await this.hoverSelection.update();
+			}
+			else {
+				this.hoverSelection = new NullSelection();
+			}
+		}
+		if(this.wantUpdateSelection) {
+			this.wantUpdateSelection = false;
+			await this.hoverSelection.update();
+			await this.selection.update();
+			this.requestRedraw();
+		}
+		setTimeout(this.recalculateSelection.bind(this), 10);
+	}
+
 	async recalculateLoop() {
 		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0) {
 			this.recalculateViewport = false;
 			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length));
 		}
 		setTimeout(this.recalculateLoop.bind(this), 10);
+	}
+
+	requestRecheckSelection() {
+		this.wantRecheckSelection = true;
+	}
+
+	requestUpdateSelection() {
+		this.wantRecheckSelection = true;
 	}
 
 	requestRedraw() {
@@ -735,7 +817,7 @@ class RenderContext {
 
 			c.fillStyle = "white";
 			c.beginPath();
-			c.arc(canvasCenter.x, canvasCenter.y, 4, 0, 2 * Math.PI, false);
+			c.arc(canvasCenter.x, canvasCenter.y, this.hoverSelection.hasNodeRef(nodeRef) ? 8 : 4, 0, 2 * Math.PI, false);
 			c.fill();
 		}
 
