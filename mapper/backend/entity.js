@@ -76,6 +76,13 @@ class NodeRef extends EntityRef {
 		}
 	}
 
+	async * getSelfAndAllDescendants() {
+		yield this;
+		for (const child of await asyncFrom(this.getChildren())) {
+			yield* child.getSelfAndAllDescendants();
+		}
+	}
+
 	/** Set the "center" property of this node.
 	 * @param v {Vector3}
 	 */

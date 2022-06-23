@@ -124,8 +124,18 @@ class NodeBrush extends Brush {
 class NullSelection {
 	update() {}
 
-	hasNodeRef() {
+	hasNodeRef(nodeRef) {
+		nodeRef;
 		return false;
+	}
+
+	hasBase(nodeRef) {
+		nodeRef;
+		return false;
+	}
+
+	getOrigin() {
+		return null;
 	}
 }
 
@@ -136,22 +146,22 @@ class Selection extends NullSelection {
 		this.selectedNodeIds = new Set([this.origin.id]);
 	}
 
-	async update() {
-		const selectedNodeIds = new Set([this.origin.id]);
-		for await (const nodeRef of this.origin.getAllDescendants()) {
-			selectedNodeIds.add(nodeRef.id);
-		}
-		this.selectedNodeIds = selectedNodeIds;
-	}
-
 	static async fromNodeRef(nodeRef) {
 		const selection = new this(nodeRef);
 		await selection.update();
 		return selection;
 	}
 
+	async update() {
+		this.selectedNodeIds = new Set(await asyncFrom(this.origin.getSelfAndAllDescendants(), (nodeRef) => nodeRef.id));
+	}
+
 	hasNodeRef(nodeRef) {
 		return this.selectedNodeIds.has(nodeRef.id);
+	}
+
+	getOrigin() {
+		return this.origin;
 	}
 }
 
@@ -183,7 +193,8 @@ class Path {
 				const middle = line.a.add(line.b).divideScalar(2);
 				const lineA = new Line3(line.a, middle);
 				const lineB = new Line3(middle, line.b);
-				addBisectedLine(lineA, lineB);
+				addBisectedLine(lineA);
+				addBisectedLine(lineB);
 			}
 			else {
 				path.lines.push(line);
@@ -264,16 +275,10 @@ class MouseDragEvent {
 		this.path.next(endPoint);
 	}
 
-	cancel() {
-		return true;
-	}
+	cancel() {}
 }
 
 class DrawEvent extends MouseDragEvent {
-	next(nextPoint) {
-		super.next(nextPoint);
-	}
-
 	end(endPoint) {
 		super.end(endPoint);
 
@@ -285,9 +290,38 @@ class DrawEvent extends MouseDragEvent {
 			}
 		}
 	}
+}
+
+class DragEvent extends MouseDragEvent {
+	constructor(context, startPoint, nodeRef) {
+		super(context, startPoint);
+
+		this.nodeRef = nodeRef;
+		this.nodeRefOrigin = nodeRef.center();
+	}
+
+	next(nextPoint) {
+		super.next(nextPoint);
+
+		this.translateNodeRef();
+	}
+
+	end(endPoint) {
+		super.end(endPoint);
+
+		this.translateNodeRef();
+	}
+
+	async translateNodeRef() {
+		await this.context.mapper.translateNode(this.nodeRef, this.path.lastVertex().subtract(this.context.mapPointToCanvas(await this.nodeRef.center())));
+	}
+
+	async restoreNodeRef() {
+		await this.context.mapper.translateNode(this.nodeRef, (await this.nodeRefOrigin).subtract(await this.nodeRef.center()));
+	}
 
 	cancel() {
-		return false;
+		this.restoreNodeRef();
 	}
 }
 
@@ -316,6 +350,7 @@ class RenderContext {
 		this.recalculateViewport = true;
 		this.recalculateUpdate = [];
 		this.recalculateRemoved = [];
+		this.recalculateTranslated = [];
 
 		this.wantRecheckSelection = true;
 		this.wantUpdateSelection = true;
@@ -355,6 +390,7 @@ class RenderContext {
 
 		this.mapper.hooks.add("updateNode", (nodeRef) => this.recalculateTilesNodeUpdate(nodeRef));
 		this.mapper.hooks.add("removeNodes", (nodeRefs) => this.recalculateTilesNodesRemove(nodeRefs));
+		this.mapper.hooks.add("translateNodes", (nodeRefs) => this.recalculateTilesNodesTranslate(nodeRefs));
 		this.mapper.hooks.add("update", this.requestUpdateSelection.bind(this));
 
 		this.canvas.addEventListener("mousedown", async (event) => {
@@ -362,10 +398,20 @@ class RenderContext {
 				const where = new Vector3(event.x, event.y, 0);
 
 				if(event.button === 0) {
-					this.mouseDragEvents[event.button] = new DrawEvent(this, where);
+					if(this.selection.getOrigin()) {
+						this.mouseDragEvents[event.button] = new DragEvent(this, where, this.selection.getOrigin());
+					}
+					else {
+						this.mouseDragEvents[event.button] = new DrawEvent(this, where);
+					}
 				}
 				else if(event.button === 2) {
-					this.mouseDragEvents[event.button] = new PanEvent(this, where);
+					if(this.mouseDragEvents[0] !== undefined) {
+						this.cancelMouseButtonPress(0);
+					}
+					else {
+						this.mouseDragEvents[event.button] = new PanEvent(this, where);
+					}
 				}
 			}
 		});
@@ -397,7 +443,12 @@ class RenderContext {
 		this.canvas.addEventListener("keydown", (event) => {
 			this.pressedKeys[event.code] = true;
 			if(event.code === "Space") {
-				this.selection = this.hoverSelection;
+				if(this.selection.getOrigin() && this.hoverSelection.getOrigin() && this.selection.getOrigin().id === this.hoverSelection.getOrigin().id) {
+					this.selection = new NullSelection();
+				}
+				else {
+					this.selection = this.hoverSelection;
+				}
 				this.requestRedraw();
 			}
 		});
@@ -480,9 +531,9 @@ class RenderContext {
 	}
 
 	async recalculateLoop() {
-		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0) {
+		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0) {
 			this.recalculateViewport = false;
-			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length));
+			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
 		}
 		setTimeout(this.recalculateLoop.bind(this), 10);
 	}
@@ -520,10 +571,9 @@ class RenderContext {
 
 	cancelMouseButtonPress(button) {
 		if(this.mouseDragEvents[button] !== undefined) {
-			if(this.mouseDragEvents[button].cancel()) {
-				delete this.mouseDragEvents[button];
-				this.requestRedraw();
-			}
+			this.mouseDragEvents[button].cancel();
+			delete this.mouseDragEvents[button];
+			this.requestRedraw();
 		}
 	}
 
@@ -576,11 +626,16 @@ class RenderContext {
 		this.recalculateRemoved.push(...nodeRefs);
 	}
 
-	async recalculateTiles(updatedNodeRefs, removedNodeRefs) {
+	recalculateTilesNodesTranslate(nodeRefs) {
+		this.recalculateTranslated.push(...nodeRefs);
+	}
+
+	async recalculateTiles(updatedNodeRefs, removedNodeRefs, translatedNodeRefs) {
 		const actualTiles = [];
 
-		const updatedNodeIds = new Set(updatedNodeRefs.map((nodeRef) => nodeRef.id));
+		const updatedNodeIds = new Set([...updatedNodeRefs, ...translatedNodeRefs].map((nodeRef) => nodeRef.id));
 		const removedNodeIds = new Set(removedNodeRefs.map((nodeRef) => nodeRef.id));
+		const translatedNodeIds = new Set(translatedNodeRefs.map((nodeRef) => nodeRef.id));
 
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
 
@@ -600,7 +655,7 @@ class RenderContext {
 
 		const recheckTiles = {};
 
-		for(const removedId of removedNodeIds) {
+		for(const removedId of new Set([...removedNodeIds, ...translatedNodeIds])) {
 			const tX = this.nodeIdToTiles[removedId];
 			for(const x in tX) {
 				if(recheckTiles[x] === undefined) {
@@ -819,10 +874,16 @@ class RenderContext {
 			const center = await nodeRef.center();
 			const canvasCenter = this.mapPointToCanvas(center);
 
-			c.fillStyle = this.selection.hasNodeRef(nodeRef) ? "red" : "white";
-			c.beginPath();
-			c.arc(canvasCenter.x, canvasCenter.y, this.hoverSelection.hasNodeRef(nodeRef) ? 8 : 4, 0, 2 * Math.PI, false);
-			c.fill();
+			const inSelection = this.selection.hasNodeRef(nodeRef);
+			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
+			const closeEnough = canvasCenter.subtract(this.mousePosition).lengthSquared() < this.brush.getRadius() ** 2;
+
+			if(inSelection || inHoverSelection || closeEnough) {
+				c.fillStyle = inSelection ? "red" : "white";
+				c.beginPath();
+				c.arc(canvasCenter.x, canvasCenter.y, inHoverSelection ? 8 : 4, 0, 2 * Math.PI, false);
+				c.fill();
+			}
 		}
 
 		c.strokeStyle = "white";
@@ -885,6 +946,7 @@ class Mapper {
 		this.hooks.add("updateNode", async () => await this.hooks.call("update"));
 		this.hooks.add("insertNode", async (nodeRef) => await this.hooks.call("updateNode", nodeRef));
 		this.hooks.add("removeNodes", async () => await this.hooks.call("update"));
+		this.hooks.add("translateNodes", async () => await this.hooks.call("update"));
 
 		this.options = {
 			blendDistance: 400,
@@ -925,6 +987,14 @@ class Mapper {
 		//await this.connectNode(nodeRef, this.options);
 		await this.hooks.call("insertNode", nodeRef);
 		return nodeRef;
+	}
+
+	async translateNode(originNodeRef, offset) {
+		const nodeRefs = await asyncFrom(originNodeRef.getSelfAndAllDescendants());
+		for(const nodeRef of nodeRefs) {
+			await nodeRef.setCenter((await nodeRef.center()).add(offset));
+		}
+		await this.hooks.call("translateNodes", nodeRefs);
 	}
 
 	async removeNodes(nodeRefs) {
