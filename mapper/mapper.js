@@ -8,6 +8,10 @@ class Action {
 		this.options = options;
 	}
 
+	empty() {
+		return true;
+	}
+
 	async perform() {}
 }
 
@@ -56,6 +60,10 @@ class DrawPathAction extends Action {
 			nodeRefs: placedNodes,
 		});
 	}
+
+	empty() {
+		return false;
+	}
 }
 
 class RemoveAction extends Action {
@@ -63,12 +71,20 @@ class RemoveAction extends Action {
 		const affectedNodeRefs = await this.context.mapper.removeNodes(this.options.nodeRefs);
 		return new UnremoveAction(this.context, {nodeRefs: affectedNodeRefs});
 	}
+
+	empty() {
+		return this.options.nodeRefs.length === 0;
+	}
 }
 
 class UnremoveAction extends Action {
 	async perform() {
 		await this.context.mapper.unremoveNodes(this.options.nodeRefs);
 		return new RemoveAction(this.context, {nodeRefs: this.options.nodeRefs});
+	}
+
+	empty() {
+		return this.options.nodeRefs.length === 0;
 	}
 }
 
@@ -79,6 +95,10 @@ class TranslateAction extends Action {
 			nodeRef: this.options.nodeRef,
 			offset: this.options.offset.multiplyScalar(-1),
 		});
+	}
+
+	empty() {
+		return false;
 	}
 }
 
@@ -93,6 +113,15 @@ class BulkAction extends Action {
 		return new BulkAction(this.context, {
 			actions: actions,
 		});
+	}
+
+	empty() {
+		for(const action of this.options.actions) {
+			if(!action.empty()) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
 
@@ -112,13 +141,9 @@ class Brush {
 		return this.size * 32;
 	}
 
-	increment() {
-		throw "increment not implemented";
-	}
+	increment() {}
 
-	decrement() {
-		throw "decrement not implemented";
-	}
+	decrement() {}
 
 	shrink() {
 		this.size = Math.max(1, this.size - 1);
@@ -128,16 +153,32 @@ class Brush {
 		this.size = Math.min(this.maxSize, this.size + 1);
 	}
 
-	async triggerPrimary(where) {
-		where;
-	}
-
-	async triggerAlternate(where) {
+	async trigger(where) {
 		where;
 	}
 }
 
+class DeleteBrush extends Brush {
+	getDescription() {
+		return `Delete (size ${this.size})`;
+	}
+
+	async trigger(path) {
+		const toRemove = [];
+
+		for await (const nodeRef of this.context.visibleNodes()) {
+			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(path.lastVertex()).length() <= this.getRadius()) {
+				toRemove.push(nodeRef);
+			}
+		}
+
+		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: toRemove}));
+	}
+}
+
 class NodeBrush extends Brush {
+	fakePieceByPiece = true;
+
 	constructor(context) {
 		super(context);
 
@@ -168,25 +209,13 @@ class NodeBrush extends Brush {
 		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
 	}
 
-	async triggerPrimary(path, real) {
+	async trigger(path) {
 		return await this.context.performAction(new DrawPathAction(this.context, {
 			path: path,
 			radius: this.getRadius(),
 			nodeType: this.getNodeType(),
 			scrollOffset: this.context.scrollOffset,
-		}), real);
-	}
-
-	async triggerAlternate(where, real) {
-		const toRemove = [];
-
-		for await (const nodeRef of this.context.visibleNodes()) {
-			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(where.lastVertex()).length() <= this.getRadius()) {
-				toRemove.push(nodeRef);
-			}
-		}
-
-		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: toRemove}), true);
+		}));
 	}
 }
 
@@ -361,31 +390,36 @@ class DrawEvent extends MouseDragEvent {
 		this.undoActions = [];
 	}
 
+	getUndoAction() {
+		return new BulkAction(this.context, {
+			actions: this.undoActions.splice(0, this.undoActions.length).reverse(),
+		});
+	}
+
 	async next(nextPoint) {
 		super.next(nextPoint);
 
-		this.undoActions.push(await this.trigger(this.path.asMostRecent(), false));
+		this.undoActions.push(await this.trigger(this.path.asMostRecent()));
 	}
 
 	async end(endPoint) {
 		super.end(endPoint);
 
-		await this.trigger(this.path, true);
-		await this.clear();
+		if(this.context.brush.fakePieceByPiece) {
+			await this.clear();
+		}
+
+		this.undoActions.push(await this.trigger(this.path));
+
+		this.context.pushUndo(this.getUndoAction());
 	}
 
 	async clear() {
-		return await this.context.performAction(new BulkAction(this.context, {
-			actions: this.undoActions.splice(0, this.undoActions.length).reverse(),
-		}), false);
+		return await this.context.performAction(this.getUndoAction(), false);
 	}
 
 	async trigger(path, real) {
-		if(this.context.isKeyDown("d")) {
-			return await this.context.brush.triggerAlternate(path, real);
-		} else {
-			return await this.context.brush.triggerPrimary(path, real);
-		}
+		return await this.context.brush.trigger(path, real);
 	}
 
 	cancel() {
@@ -421,7 +455,7 @@ class DragEvent extends MouseDragEvent {
 	async end(endPoint) {
 		this.next(endPoint);
 
-		this.context.undoStack.push(this.getUndoAction());
+		this.context.pushUndo(this.getUndoAction());
 	}
 
 	cancel() {
@@ -567,8 +601,14 @@ class RenderContext {
 			else if(event.key === "y") {
 				const redo = this.redoStack.pop();
 				if(redo !== undefined) {
-					this.undoStack.push(await this.performAction(redo, false));
+					this.pushUndo(await this.performAction(redo, false));
 				}
+			}
+			else if(event.key === "d") {
+				this.changeBrush(new DeleteBrush(this));
+			}
+			else if(event.key === "t") {
+				this.changeBrush(new NodeBrush(this));
 			}
 		});
 
@@ -608,6 +648,11 @@ class RenderContext {
 		setTimeout(this.redrawLoop.bind(this), 10);
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
+	}
+
+	changeBrush(brush) {
+		this.brush = brush;
+		this.requestRedraw();
 	}
 
 	async redrawLoop() {
@@ -660,10 +705,16 @@ class RenderContext {
 	async performAction(action, addToUndoStack) {
 		const undo = await action.perform();
 		if(addToUndoStack) {
-			this.undoStack.push(undo);
+			this.pushUndo(undo);
 			this.redoStack = [];
 		}
 		return undo;
+	}
+
+	pushUndo(action) {
+		if(!action.empty()) {
+			this.undoStack.push(action);
+		}
 	}
 
 	requestRecheckSelection() {
@@ -1027,9 +1078,9 @@ class RenderContext {
 		c.fillText(this.brush.getDescription(), 18, 18);
 
 		// Debug help
-		c.fillText("Left click to place terrain; hold D to delete while clicking.", 18, (18 + 4) * 2);
+		c.fillText("Left click to place terrain; change brush mode with (D)elete, R(eplace), or T(errain).", 18, (18 + 4) * 2);
 		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 18, (18 + 4) * 3);
-		c.fillText("Right click to move map. Press SPACE to change selection. Ctrl+Z is undo, Ctrl+Y is redo.", 18, (18 + 4) * 4);
+		c.fillText("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.", 18, (18 + 4) * 4);
 	}
 
 	async * visibleNodes() {
