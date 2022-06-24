@@ -73,7 +73,13 @@ class UnremoveAction extends Action {
 }
 
 class TranslateAction extends Action {
-
+	async perform() {
+		await this.context.mapper.translateNode(this.options.nodeRef, this.options.offset);
+		return new TranslateAction(this.context, {
+			nodeRef: this.options.nodeRef,
+			offset: this.options.offset.multiplyScalar(-1),
+		});
+	}
 }
 
 class BulkAction extends Action {
@@ -393,30 +399,33 @@ class DragEvent extends MouseDragEvent {
 
 		this.nodeRef = nodeRef;
 		this.nodeRefOrigin = nodeRef.center();
+
+		this.undoActions = [];
 	}
 
-	next(nextPoint) {
+	getUndoAction() {
+		return new BulkAction(this.context, {
+			actions: this.undoActions.splice(0, this.undoActions.length).reverse(),
+		});
+	}
+
+	async next(nextPoint) {
 		super.next(nextPoint);
 
-		this.translateNodeRef();
+		this.undoActions.push(await this.context.performAction(new TranslateAction(this.context, {
+			nodeRef: this.nodeRef,
+			offset: this.path.lastLine().vector(),
+		}), false));
 	}
 
-	end(endPoint) {
-		super.end(endPoint);
+	async end(endPoint) {
+		this.next(endPoint);
 
-		this.translateNodeRef();
-	}
-
-	async translateNodeRef() {
-		await this.context.mapper.translateNode(this.nodeRef, this.path.lastVertex().subtract(this.context.mapPointToCanvas(await this.nodeRef.center())));
-	}
-
-	async restoreNodeRef() {
-		await this.context.mapper.translateNode(this.nodeRef, (await this.nodeRefOrigin).subtract(await this.nodeRef.center()));
+		this.context.undoStack.push(this.getUndoAction());
 	}
 
 	cancel() {
-		this.restoreNodeRef();
+		this.context.performAction(this.getUndoAction(), false);
 	}
 }
 
