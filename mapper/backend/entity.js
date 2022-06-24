@@ -16,6 +16,10 @@ class EntityRef {
 		return this.backend.entityExists(this.id);
 	}
 
+	async valid() {
+		return this.backend.entityValid(this.id);
+	}
+
 	/** Get a number property. */
 	async getPNumber(propertyName) {
 		return this.backend.getPNumber(this.id, propertyName);
@@ -49,6 +53,10 @@ class EntityRef {
 	/** Remove this entity from the database. */
 	async remove() {
 		return this.backend.removeEntity(this.id);
+	}
+
+	async unremove() {
+		return this.backend.unremoveEntity(this.id);
 	}
 }
 

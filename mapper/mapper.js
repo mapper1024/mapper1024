@@ -2,6 +2,94 @@ import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3, Line3 } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
 
+class Action {
+	constructor(context, options) {
+		this.context = context;
+		this.options = options;
+	}
+
+	async perform() {}
+}
+
+class NullAction extends Action {}
+
+class DrawPathAction extends Action {
+	async perform() {
+		const path = this.options.path;
+		const scrollOffset = this.options.scrollOffset;
+
+		const pathOnMap = path.mapOrigin((origin) => origin.add(this.context.scrollOffset)).withBisectedLines(this.options.radius);
+
+		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
+			type: this.options.nodeType,
+			radius: 0,
+		});
+
+		const placedNodes = [masterNodeRef];
+
+		const masterNodeRefCenter = await masterNodeRef.center();
+
+		const vertices = Array.from(pathOnMap.vertices()).sort((a, b) => a.subtract(masterNodeRefCenter).lengthSquared() - b.subtract(masterNodeRefCenter).lengthSquared());
+
+		const placedVertices = [];
+
+		const radiusSquared = (this.options.radius / 2) ** 2;
+
+		placeEachVertex: for(const vertex of vertices) {
+			for(const placedVertex of placedVertices) {
+				if(placedVertex.subtract(vertex).lengthSquared() < radiusSquared) {
+					continue placeEachVertex;
+				}
+			}
+			const radius = this.options.radius;
+			if(radius > 0) {
+				placedNodes.push(await this.context.mapper.insertNode(vertex, {
+					type: this.options.nodeType,
+					radius: radius,
+					parent: masterNodeRef,
+				}));
+				placedVertices.push(vertex);
+			}
+		}
+
+		return new RemoveAction(this.context, {
+			nodeRefs: placedNodes,
+		});
+	}
+}
+
+class RemoveAction extends Action {
+	async perform() {
+		const affectedNodeRefs = await this.context.mapper.removeNodes(this.options.nodeRefs);
+		return new UnremoveAction(this.context, {nodeRefs: affectedNodeRefs});
+	}
+}
+
+class UnremoveAction extends Action {
+	async perform() {
+		await this.context.mapper.unremoveNodes(this.options.nodeRefs);
+		return new RemoveAction(this.context, {nodeRefs: this.options.nodeRefs});
+	}
+}
+
+class TranslateAction extends Action {
+
+}
+
+class BulkAction extends Action {
+	async perform() {
+		const actions = [];
+
+		for(const action of this.options.actions.reverse()) {
+			actions.push(await this.context.performAction(action, false));
+		}
+
+		return new BulkAction(this.context, {
+			actions: actions,
+		});
+	}
+}
+
 class Brush {
 	constructor(context) {
 		this.context = context;
@@ -74,41 +162,16 @@ class NodeBrush extends Brush {
 		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
 	}
 
-	async triggerPrimary(path) {
-		const pathOnMap = path.mapOrigin((origin) => origin.add(this.context.scrollOffset)).withBisectedLines(this.getRadius());
-
-		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
-			type: this.getNodeType(),
-			radius: 0,
-		});
-
-		const masterNodeRefCenter = await masterNodeRef.center();
-
-		const vertices = Array.from(pathOnMap.vertices()).sort((a, b) => a.subtract(masterNodeRefCenter).lengthSquared() - b.subtract(masterNodeRefCenter).lengthSquared());
-
-		const placedVertices = [];
-
-		const radiusSquared = this.getRadius() ** 2;
-
-		placeEachVertex: for(const vertex of vertices) {
-			for(const placedVertex of placedVertices) {
-				if(placedVertex.subtract(vertex).lengthSquared() < radiusSquared / 2) {
-					continue placeEachVertex;
-				}
-			}
-			const radius = this.getRadius();
-			if(radius > 0) {
-				await this.context.mapper.insertNode(vertex, {
-					type: this.getNodeType(),
-					radius: radius,
-					parent: masterNodeRef,
-				});
-				placedVertices.push(vertex);
-			}
-		}
+	async triggerPrimary(path, real) {
+		return await this.context.performAction(new DrawPathAction(this.context, {
+			path: path,
+			radius: this.getRadius(),
+			nodeType: this.getNodeType(),
+			scrollOffset: this.context.scrollOffset,
+		}), real);
 	}
 
-	async triggerAlternate(where) {
+	async triggerAlternate(where, real) {
 		const toRemove = [];
 
 		for await (const nodeRef of this.context.visibleNodes()) {
@@ -117,7 +180,7 @@ class NodeBrush extends Brush {
 			}
 		}
 
-		this.context.mapper.removeNodes(toRemove);
+		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: toRemove}), true);
 	}
 }
 
@@ -259,6 +322,13 @@ class Path {
 		}
 		return furthest.subtract(center).length();
 	}
+
+	asMostRecent() {
+		const lastLine = this.lastLine();
+		const path = new Path(this.origin.add(lastLine.a));
+		path.next(this.origin.add(lastLine.b));
+		return path;
+	}
 }
 
 class MouseDragEvent {
@@ -279,16 +349,41 @@ class MouseDragEvent {
 }
 
 class DrawEvent extends MouseDragEvent {
-	end(endPoint) {
+	constructor(context, startPoint) {
+		super(context, startPoint);
+
+		this.undoActions = [];
+	}
+
+	async next(nextPoint) {
+		super.next(nextPoint);
+
+		this.undoActions.push(await this.trigger(this.path.asMostRecent(), false));
+	}
+
+	async end(endPoint) {
 		super.end(endPoint);
 
-		if(event.button === 0) {
-			if(this.context.isKeyDown("KeyD")) {
-				this.context.brush.triggerAlternate(this.path);
-			} else {
-				this.context.brush.triggerPrimary(this.path);
-			}
+		await this.trigger(this.path, true);
+		await this.clear();
+	}
+
+	async clear() {
+		return await this.context.performAction(new BulkAction(this.context, {
+			actions: this.undoActions.splice(0, this.undoActions.length).reverse(),
+		}), false);
+	}
+
+	async trigger(path, real) {
+		if(this.context.isKeyDown("d")) {
+			return await this.context.brush.triggerAlternate(path, real);
+		} else {
+			return await this.context.brush.triggerPrimary(path, real);
 		}
+	}
+
+	cancel() {
+		this.end(this.path.lastVertex());
 	}
 }
 
@@ -354,6 +449,9 @@ class RenderContext {
 
 		this.wantRecheckSelection = true;
 		this.wantUpdateSelection = true;
+
+		this.undoStack = [];
+		this.redoStack = [];
 
 		this.TILE_SIZE = 32;
 		this.MEGA_TILE_SIZE = 512;
@@ -440,9 +538,9 @@ class RenderContext {
 			this.cancelMouseButtonPresses();
 		});
 
-		this.canvas.addEventListener("keydown", (event) => {
-			this.pressedKeys[event.code] = true;
-			if(event.code === "Space") {
+		this.canvas.addEventListener("keydown", async (event) => {
+			this.pressedKeys[event.key] = true;
+			if(event.key === " ") {
 				if(this.selection.getOrigin() && this.hoverSelection.getOrigin() && this.selection.getOrigin().id === this.hoverSelection.getOrigin().id) {
 					this.selection = new NullSelection();
 				}
@@ -451,16 +549,28 @@ class RenderContext {
 				}
 				this.requestRedraw();
 			}
+			else if(event.key === "z") {
+				const undo = this.undoStack.pop();
+				if(undo !== undefined) {
+					this.redoStack.push(await this.performAction(undo, false));
+				}
+			}
+			else if(event.key === "y") {
+				const redo = this.redoStack.pop();
+				if(redo !== undefined) {
+					this.undoStack.push(await this.performAction(redo, false));
+				}
+			}
 		});
 
 		this.canvas.addEventListener("keyup", (event) => {
-			this.pressedKeys[event.code] = false;
+			this.pressedKeys[event.key] = false;
 		});
 
 		this.canvas.addEventListener("wheel", (event) => {
 			event.preventDefault();
 
-			if(this.isKeyDown("KeyB")) {
+			if(this.isKeyDown("b")) {
 				if(event.deltaY < 0) {
 					this.brush.increment();
 				}
@@ -468,7 +578,7 @@ class RenderContext {
 					this.brush.decrement();
 				}
 			}
-			else if(this.isKeyDown("KeyS")) {
+			else if(this.isKeyDown("s")) {
 				if(event.deltaY < 0) {
 					this.brush.enlarge();
 				}
@@ -536,6 +646,15 @@ class RenderContext {
 			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
 		}
 		setTimeout(this.recalculateLoop.bind(this), 10);
+	}
+
+	async performAction(action, addToUndoStack) {
+		const undo = await action.perform();
+		if(addToUndoStack) {
+			this.undoStack.push(undo);
+			this.redoStack = [];
+		}
+		return undo;
 	}
 
 	requestRecheckSelection() {
@@ -870,6 +989,8 @@ class RenderContext {
 			}
 		}
 
+		const dragging = Object.keys(this.mouseDragEvents).length;
+
 		for await (const nodeRef of this.visibleNodes()) {
 			const center = await nodeRef.center();
 			const canvasCenter = this.mapPointToCanvas(center);
@@ -878,26 +999,11 @@ class RenderContext {
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
 			const closeEnough = canvasCenter.subtract(this.mousePosition).lengthSquared() < this.brush.getRadius() ** 2;
 
-			if(inSelection || inHoverSelection || closeEnough) {
+			if(inSelection || inHoverSelection || (!dragging && closeEnough)) {
 				c.fillStyle = inSelection ? "red" : "white";
 				c.beginPath();
 				c.arc(canvasCenter.x, canvasCenter.y, inHoverSelection ? 8 : 4, 0, 2 * Math.PI, false);
 				c.fill();
-			}
-		}
-
-		c.strokeStyle = "white";
-
-		for(const button in this.mouseDragEvents) {
-			const mouseDragEvent = this.mouseDragEvents[button];
-			const path = mouseDragEvent.path;
-			for(const line of path.lines) {
-				c.beginPath();
-				const a = line.a.add(path.origin);
-				c.moveTo(a.x, a.y);
-				const b = line.b.add(path.origin);
-				c.lineTo(b.x, b.y);
-				c.stroke();
 			}
 		}
 
@@ -907,14 +1013,14 @@ class RenderContext {
 		c.strokeStyle = "white";
 		c.stroke();
 
-		c.font = "24px sans";
+		c.font = "18px sans";
 		c.fillStyle = "white";
-		c.fillText(this.brush.getDescription(), 24, 24);
+		c.fillText(this.brush.getDescription(), 18, 18);
 
 		// Debug help
-		c.fillText("Left click to place terrain; hold D to delete while clicking.", 24, (24 + 4) * 2);
-		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 24, (24 + 4) * 3);
-		c.fillText("Right click to move map. Press SPACE to change selection.", 24, (24 + 4) * 4);
+		c.fillText("Left click to place terrain; hold D to delete while clicking.", 18, (18 + 4) * 2);
+		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 18, (18 + 4) * 3);
+		c.fillText("Right click to move map. Press SPACE to change selection. Ctrl+Z is undo, Ctrl+Y is redo.", 18, (18 + 4) * 4);
 	}
 
 	async * visibleNodes() {
@@ -1010,6 +1116,15 @@ class Mapper {
 		await this.hooks.call("removeNodes", nodeRefsWithChildren);
 		for(const nodeRef of nodeRefsWithChildren) {
 			await nodeRef.remove();
+		}
+
+		return nodeRefsWithChildren;
+	}
+
+	async unremoveNodes(nodeRefs) {
+		for(const nodeRef of nodeRefs) {
+			await nodeRef.unremove();
+			await this.hooks.call("insertNode", nodeRef);
 		}
 	}
 
