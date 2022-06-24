@@ -15,14 +15,12 @@ class Action {
 	async perform() {}
 }
 
-class NullAction extends Action {}
-
 class DrawPathAction extends Action {
 	async perform() {
 		const path = this.options.path;
 		const scrollOffset = this.options.scrollOffset;
 
-		const pathOnMap = path.mapOrigin((origin) => origin.add(this.context.scrollOffset)).withBisectedLines(this.options.radius);
+		const pathOnMap = path.mapOrigin((origin) => origin.add(scrollOffset)).withBisectedLines(this.options.radius);
 
 		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
 			type: this.options.nodeType,
@@ -177,8 +175,6 @@ class DeleteBrush extends Brush {
 }
 
 class NodeBrush extends Brush {
-	fakePieceByPiece = true;
-
 	constructor(context) {
 		super(context);
 
@@ -405,7 +401,7 @@ class DrawEvent extends MouseDragEvent {
 	async end(endPoint) {
 		super.end(endPoint);
 
-		if(this.context.brush.fakePieceByPiece) {
+		if(this.context.brush instanceof NodeBrush) {
 			await this.clear();
 		}
 
@@ -1078,7 +1074,7 @@ class RenderContext {
 		c.fillText(this.brush.getDescription(), 18, 18);
 
 		// Debug help
-		c.fillText("Left click to place terrain; change brush mode with (D)elete, R(eplace), or T(errain).", 18, (18 + 4) * 2);
+		c.fillText("Left click to place terrain; change brush mode with  (T)errain, (R)eplace, or (D)elete.", 18, (18 + 4) * 2);
 		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 18, (18 + 4) * 3);
 		c.fillText("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.", 18, (18 + 4) * 4);
 	}
