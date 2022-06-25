@@ -183,7 +183,7 @@ class NodeBrush extends Brush {
 	}
 
 	getDescription() {
-		return `${this.getNodeType()} (size ${this.size})`;
+		return `Place ${this.getNodeType()} (size ${this.size})`;
 	}
 
 	getNodeType() {
@@ -215,47 +215,83 @@ class NodeBrush extends Brush {
 	}
 }
 
-class NullSelection {
-	update() {}
-
-	hasNodeRef(nodeRef) {
-		nodeRef;
-		return false;
+class Selection {
+	constructor(context, nodeIds) {
+		this.context = context;
+		this.originIds = new Set(nodeIds);
+		this.parentNodeIds = new Set();
+		this.selectedNodeIds = new Set(this.originIds);
+		this.childNodeIds = new Set();
 	}
 
-	hasBase(nodeRef) {
-		nodeRef;
-		return false;
-	}
-
-	getOrigin() {
-		return null;
-	}
-}
-
-class Selection extends NullSelection {
-	constructor(nodeRef) {
-		super();
-		this.origin = nodeRef;
-		this.selectedNodeIds = new Set([this.origin.id]);
-	}
-
-	static async fromNodeRef(nodeRef) {
-		const selection = new this(nodeRef);
+	static async fromNodeIds(context, nodeIds) {
+		const selection = new Selection(context, nodeIds);
 		await selection.update();
 		return selection;
 	}
 
+	static async fromNodeRefs(context, nodeRefs) {
+		return await Selection.fromNodeIds(context, nodeRefs.map((nodeRef) => nodeRef.id));
+	}
+
+	async joinWith(other) {
+		return Selection.fromNodeRefs(this.context, [...this.getOrigins(), ...other.getOrigins()]);
+	}
+
 	async update() {
-		this.selectedNodeIds = new Set(await asyncFrom(this.origin.getSelfAndAllDescendants(), (nodeRef) => nodeRef.id));
+		const selectedNodeIds = new Set(this.originIds);
+		const parentNodeIds = new Set();
+		const childNodeIds = new Set();
+
+		for(const nodeRef of this.getOrigins()) {
+			for await (const childNodeRef of nodeRef.getAllDescendants()) {
+				selectedNodeIds.add(childNodeRef.id);
+				childNodeIds.add(childNodeRef.id);
+			}
+
+			const parent = await nodeRef.getParent();
+			if(parent) {
+				selectedNodeIds.add(parent.id);
+				parentNodeIds.add(parent.id);
+			}
+		}
+
+		this.parentNodeIds = parentNodeIds;
+		this.selectedNodeIds = selectedNodeIds;
+		this.childNodeIds = childNodeIds;
 	}
 
 	hasNodeRef(nodeRef) {
 		return this.selectedNodeIds.has(nodeRef.id);
 	}
 
-	getOrigin() {
-		return this.origin;
+	nodeRefIsOrigin(nodeRef) {
+		return this.originIds.has(nodeRef.id);
+	}
+
+	nodeRefIsParent(nodeRef) {
+		return this.parentNodeIds.has(nodeRef.id);
+	}
+
+	nodeRefIsChild(nodeRef) {
+		return this.childNodeIds.has(nodeRef.id);
+	}
+
+	getOrigins() {
+		return Array.from(this.originIds.values()).map((id) => this.context.mapper.backend.getNodeRef(id));
+	}
+
+	exists() {
+		return this.originIds.size > 0;
+	}
+
+	contains(other) {
+		for(const nodeId of other.selectedNodeIds) {
+			if(!this.selectedNodeIds.has(nodeId)) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
 
@@ -424,11 +460,10 @@ class DrawEvent extends MouseDragEvent {
 }
 
 class DragEvent extends MouseDragEvent {
-	constructor(context, startPoint, nodeRef) {
+	constructor(context, startPoint, nodeRefs) {
 		super(context, startPoint);
 
-		this.nodeRef = nodeRef;
-		this.nodeRefOrigin = nodeRef.center();
+		this.nodeRefs = nodeRefs;
 
 		this.undoActions = [];
 	}
@@ -442,10 +477,12 @@ class DragEvent extends MouseDragEvent {
 	async next(nextPoint) {
 		super.next(nextPoint);
 
-		this.undoActions.push(await this.context.performAction(new TranslateAction(this.context, {
-			nodeRef: this.nodeRef,
-			offset: this.path.lastLine().vector(),
-		}), false));
+		for(const nodeRef of this.nodeRefs) {
+			this.undoActions.push(await this.context.performAction(new TranslateAction(this.context, {
+				nodeRef: nodeRef,
+				offset: this.path.lastLine().vector(),
+			}), false));
+		}
 	}
 
 	async end(endPoint) {
@@ -511,8 +548,8 @@ class RenderContext {
 
 		this.brush = new NodeBrush(this);
 
-		this.hoverSelection = new NullSelection();
-		this.selection = new NullSelection();
+		this.hoverSelection = new Selection(this, []);
+		this.selection = new Selection(this, []);
 
 		// The UI is just a canvas.
 		// We will keep its size filling the parent element.
@@ -535,10 +572,26 @@ class RenderContext {
 				const where = new Vector3(event.x, event.y, 0);
 
 				if(event.button === 0) {
-					if(this.selection.getOrigin()) {
-						this.mouseDragEvents[event.button] = new DragEvent(this, where, this.selection.getOrigin());
+					if(!this.hoveringOverSelection()) {
+						if(this.hoverSelection.exists()) {
+							if(this.isKeyDown("Control")) {
+								this.selection = await this.selection.joinWith(this.hoverSelection);
+							} else if(this.isKeyDown("Shift")) {
+								this.selection = await Selection.fromNodeIds(this, this.hoverSelection.parentNodeIds);
+							} else {
+								this.selection = this.hoverSelection;
+							}
+						}
+						else {
+							this.selection = new Selection(this, []);
+						}
+					}
+
+					if(this.hoveringOverSelection()) {
+						this.mouseDragEvents[event.button] = new DragEvent(this, where, this.selection.getOrigins());
 					}
 					else {
+						this.selection = new Selection(this, []);
 						this.mouseDragEvents[event.button] = new DrawEvent(this, where);
 					}
 				}
@@ -579,16 +632,7 @@ class RenderContext {
 
 		this.canvas.addEventListener("keydown", async (event) => {
 			this.pressedKeys[event.key] = true;
-			if(event.key === " ") {
-				if(this.selection.getOrigin() && this.hoverSelection.getOrigin() && this.selection.getOrigin().id === this.hoverSelection.getOrigin().id) {
-					this.selection = new NullSelection();
-				}
-				else {
-					this.selection = this.hoverSelection;
-				}
-				this.requestRedraw();
-			}
-			else if(event.key === "z") {
+			if(event.key === "z") {
 				const undo = this.undoStack.pop();
 				if(undo !== undefined) {
 					this.redoStack.push(await this.performAction(undo, false));
@@ -668,17 +712,16 @@ class RenderContext {
 			for await (const nodeRef of this.visibleNodes()) {
 				const center = this.mapPointToCanvas(await nodeRef.center());
 				const distanceSquared = center.subtract(mousePosition).lengthSquared();
-				if(distanceSquared < this.brush.getRadius() ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
+				if(distanceSquared < (await nodeRef.getPNumber("radius")) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
 					closestNodeRef = nodeRef;
 					closestDistanceSquared = distanceSquared;
 				}
 			}
 			if(closestNodeRef) {
-				this.hoverSelection = new Selection(closestNodeRef);
-				await this.hoverSelection.update();
+				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
 			else {
-				this.hoverSelection = new NullSelection();
+				this.hoverSelection = new Selection(this, []);
 			}
 		}
 		if(this.wantUpdateSelection) {
@@ -705,6 +748,10 @@ class RenderContext {
 			this.redoStack = [];
 		}
 		return undo;
+	}
+
+	hoveringOverSelection() {
+		return this.selection.exists() && this.hoverSelection.exists() && this.selection.contains(this.hoverSelection);
 	}
 
 	pushUndo(action) {
@@ -1045,23 +1092,37 @@ class RenderContext {
 			}
 		}
 
-		const dragging = Object.keys(this.mouseDragEvents).length;
+		c.globalAlpha = 0.5;
+
+		const didTiles = {};
 
 		for await (const nodeRef of this.visibleNodes()) {
-			const center = await nodeRef.center();
-			const canvasCenter = this.mapPointToCanvas(center);
-
 			const inSelection = this.selection.hasNodeRef(nodeRef);
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
-			const closeEnough = canvasCenter.subtract(this.mousePosition).lengthSquared() < this.brush.getRadius() ** 2;
 
-			if(inSelection || inHoverSelection || (!dragging && closeEnough)) {
-				c.fillStyle = inSelection ? "red" : "white";
-				c.beginPath();
-				c.arc(canvasCenter.x, canvasCenter.y, inHoverSelection ? 8 : 4, 0, 2 * Math.PI, false);
-				c.fill();
+			if(inSelection || inHoverSelection) {
+				const nodeTiles = this.nodeIdToTiles[nodeRef.id];
+				if(nodeTiles !== undefined) {
+					for(const x in nodeTiles) {
+						const tX = nodeTiles[x];
+						if(didTiles[x] === undefined) {
+							didTiles[x] = new Set();
+						}
+						const dTX = didTiles[x];
+						for(const y in tX) {
+							if(!dTX.has(y)) {
+								dTX.add(y);
+								const tile = tX[y];
+								c.fillStyle = "white";
+								c.fillRect(tile.point.x, tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
+							}
+						}
+					}
+				}
 			}
 		}
+
+		c.globalAlpha = 1;
 
 		// Draw brush
 		c.beginPath();
@@ -1071,12 +1132,21 @@ class RenderContext {
 
 		c.font = "18px sans";
 		c.fillStyle = "white";
-		c.fillText(this.brush.getDescription(), 18, 18);
+
+		let infoLineY = 18;
+		function infoLine(l) {
+			c.fillText(l, 18, infoLineY);
+			infoLineY += 24;
+		}
+
+		infoLine(`Brush: ${this.brush.getDescription()}`);
 
 		// Debug help
-		c.fillText("Left click to place terrain; change brush mode with  (T)errain, (R)eplace, or (D)elete.", 18, (18 + 4) * 2);
-		c.fillText("Hold B while scrolling to change brush type; hold S while scrolling to change brush size", 18, (18 + 4) * 3);
-		c.fillText("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.", 18, (18 + 4) * 4);
+		infoLine("Left click to place terrain; change brush mode with (T)errain, (R)eplace, or (D)elete.");
+		if(this.brush instanceof NodeBrush) {
+			infoLine("Hold B while scrolling to change brush type; hold S while scrolling to change brush size");
+		}
+		infoLine("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.");
 	}
 
 	async * visibleNodes() {
