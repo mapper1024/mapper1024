@@ -22,45 +22,67 @@ class DrawPathAction extends Action {
 
 		const pathOnMap = path.mapOrigin((origin) => origin.add(scrollOffset)).withBisectedLines(this.options.radius);
 
-		const masterNodeRef = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
-			type: this.options.nodeType,
-			radius: 0,
-		});
+		const placedNodes = [];
 
-		const placedNodes = [masterNodeRef];
+		if(!this.options.parent) {
+			this.options.parent = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
+				type: this.options.nodeType,
+				radius: 0,
+			});
 
-		const masterNodeRefCenter = await masterNodeRef.center();
+			placedNodes.push(this.options.parent);
+		}
 
-		const vertices = Array.from(pathOnMap.vertices()).sort((a, b) => a.subtract(masterNodeRefCenter).lengthSquared() - b.subtract(masterNodeRefCenter).lengthSquared());
+		const pathCenter = pathOnMap.getCenter();
+
+		const vertices = Array.from(pathOnMap.vertices()).sort((a, b) => a.subtract(pathCenter).lengthSquared() - b.subtract(pathCenter).lengthSquared());
 
 		const placedVertices = [];
 
-		const radiusSquared = (this.options.radius / 2) ** 2;
+		const radius = this.options.radius;
 
 		placeEachVertex: for(const vertex of vertices) {
 			for(const placedVertex of placedVertices) {
-				if(placedVertex.subtract(vertex).lengthSquared() < radiusSquared) {
+				if(placedVertex.point.subtract(vertex).length() < (radius + placedVertex.radius) / 4) {
 					continue placeEachVertex;
 				}
 			}
-			const radius = this.options.radius;
+
 			if(radius > 0) {
 				placedNodes.push(await this.context.mapper.insertNode(vertex, {
 					type: this.options.nodeType,
 					radius: radius,
-					parent: masterNodeRef,
+					parent: this.options.parent,
 				}));
-				placedVertices.push(vertex);
+				placedVertices.push({
+					point: vertex,
+					radius: radius,
+				});
 			}
 		}
 
-		return new RemoveAction(this.context, {
+		const removeAction = new RemoveAction(this.context, {
 			nodeRefs: placedNodes,
 		});
+
+		if(this.options.fullCalculation) {
+			return new BulkAction(this.context, {
+				actions: [removeAction, new NodeCleanupAction(this.context, {nodeRef: this.options.parent})],
+			});
+		}
+		else {
+			return removeAction;
+		}
 	}
 
 	empty() {
 		return false;
+	}
+}
+
+class NodeCleanupAction extends Action {
+	async perform() {
+
 	}
 }
 
@@ -151,7 +173,12 @@ class Brush {
 		this.size = Math.min(this.maxSize, this.size + 1);
 	}
 
-	async trigger(where) {
+	async trigger(where, mouseDragEvent) {
+		where;
+		mouseDragEvent;
+	}
+
+	async activate(where) {
 		where;
 	}
 }
@@ -174,7 +201,7 @@ class DeleteBrush extends Brush {
 	}
 }
 
-class NodeBrush extends Brush {
+class NodeAddBrush extends Brush {
 	constructor(context) {
 		super(context);
 
@@ -205,13 +232,64 @@ class NodeBrush extends Brush {
 		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
 	}
 
-	async trigger(path) {
-		return await this.context.performAction(new DrawPathAction(this.context, {
+	async trigger(path, mouseDragEvent) {
+		const drawPathActionOptions = {
 			path: path,
 			radius: this.getRadius(),
 			nodeType: this.getNodeType(),
 			scrollOffset: this.context.scrollOffset,
-		}));
+			fullCalculation: mouseDragEvent.done,
+			parent: await mouseDragEvent.getSelectionParent(),
+		};
+
+		return await this.context.performAction(new DrawPathAction(this.context, drawPathActionOptions));
+	}
+
+	async activate(where) {
+		return new DrawEvent(this.context, where);
+	}
+}
+
+class NodeSelectBrush extends Brush {
+	constructor(context) {
+		super(context);
+	}
+
+	getDescription() {
+		return `Select/Move`;
+	}
+
+	async activate(where) {
+		if(!this.context.hoveringOverSelection()) {
+			if(this.context.hoverSelection.exists()) {
+				let newSelection = null;
+
+				if(this.context.isKeyDown("Shift")) {
+					newSelection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
+				} else {
+					newSelection = this.context.hoverSelection;
+				}
+
+				if(newSelection !== null) {
+					if(this.context.isKeyDown("Control")) {
+						this.context.selection = await this.context.selection.joinWith(newSelection);
+					}
+					else {
+						this.context.selection = newSelection;
+					}
+				}
+			}
+			else {
+				this.context.selection = new Selection(this.context, []);
+			}
+		}
+
+		if(this.context.hoveringOverSelection()) {
+			return new DragEvent(this.context, where, this.context.selection.getOrigins());
+		}
+		else {
+			this.context.selection = new Selection(this, []);
+		}
 	}
 }
 
@@ -222,6 +300,7 @@ class Selection {
 		this.parentNodeIds = new Set();
 		this.selectedNodeIds = new Set(this.originIds);
 		this.childNodeIds = new Set();
+		this.siblingNodeIds = new Set();
 	}
 
 	static async fromNodeIds(context, nodeIds) {
@@ -242,6 +321,7 @@ class Selection {
 		const selectedNodeIds = new Set(this.originIds);
 		const parentNodeIds = new Set();
 		const childNodeIds = new Set();
+		const siblingNodeIds = new Set();
 
 		for(const nodeRef of this.getOrigins()) {
 			for await (const childNodeRef of nodeRef.getAllDescendants()) {
@@ -253,12 +333,21 @@ class Selection {
 			if(parent) {
 				selectedNodeIds.add(parent.id);
 				parentNodeIds.add(parent.id);
+				for await (const siblingNodeRef of parent.getAllDescendants()) {
+					siblingNodeIds.add(siblingNodeRef.id);
+					selectedNodeIds.add(siblingNodeRef.id);
+				}
 			}
 		}
+
+		this.originIds.forEach((id) => siblingNodeIds.delete(id));
+		parentNodeIds.forEach((id) => siblingNodeIds.delete(id));
+		childNodeIds.forEach((id) => siblingNodeIds.delete(id));
 
 		this.parentNodeIds = parentNodeIds;
 		this.selectedNodeIds = selectedNodeIds;
 		this.childNodeIds = childNodeIds;
+		this.siblingNodeIds = siblingNodeIds;
 	}
 
 	hasNodeRef(nodeRef) {
@@ -275,6 +364,10 @@ class Selection {
 
 	nodeRefIsChild(nodeRef) {
 		return this.childNodeIds.has(nodeRef.id);
+	}
+
+	nodeRefIsSibling(nodeRef) {
+		return this.siblingNodeIds.has(nodeRef.id);
 	}
 
 	getOrigins() {
@@ -402,6 +495,8 @@ class MouseDragEvent {
 	constructor(context, startPoint) {
 		this.context = context;
 		this.path = new Path(startPoint);
+		this.done = false;
+		this.hoverSelection = this.context.hoverSelection;
 	}
 
 	next(nextPoint) {
@@ -410,9 +505,27 @@ class MouseDragEvent {
 
 	end(endPoint) {
 		this.path.next(endPoint);
+		this.done = true;
 	}
 
 	cancel() {}
+
+	async getSelectionParent() {
+		if(this.hoverSelection.exists()) {
+			for(const origin of this.hoverSelection.getOrigins()) {
+				const parent = await origin.getParent();
+				const children = await asyncFrom(origin.getChildren());
+				if(parent && children.length === 0) {
+					return parent;
+				}
+				else {
+					return origin;
+				}
+			}
+		}
+
+		return null;
+	}
 }
 
 class DrawEvent extends MouseDragEvent {
@@ -437,9 +550,7 @@ class DrawEvent extends MouseDragEvent {
 	async end(endPoint) {
 		super.end(endPoint);
 
-		if(this.context.brush instanceof NodeBrush) {
-			await this.clear();
-		}
+		await this.clear();
 
 		this.undoActions.push(await this.trigger(this.path));
 
@@ -450,8 +561,8 @@ class DrawEvent extends MouseDragEvent {
 		return await this.context.performAction(this.getUndoAction(), false);
 	}
 
-	async trigger(path, real) {
-		return await this.context.brush.trigger(path, real);
+	async trigger(path) {
+		return await this.context.brush.trigger(path, this);
 	}
 
 	cancel() {
@@ -546,7 +657,7 @@ class RenderContext {
 
 		this.scrollOffset = Vector3.ZERO;
 
-		this.brush = new NodeBrush(this);
+		this.brush = new NodeAddBrush(this);
 
 		this.hoverSelection = new Selection(this, []);
 		this.selection = new Selection(this, []);
@@ -572,27 +683,9 @@ class RenderContext {
 				const where = new Vector3(event.x, event.y, 0);
 
 				if(event.button === 0) {
-					if(!this.hoveringOverSelection()) {
-						if(this.hoverSelection.exists()) {
-							if(this.isKeyDown("Control")) {
-								this.selection = await this.selection.joinWith(this.hoverSelection);
-							} else if(this.isKeyDown("Shift")) {
-								this.selection = await Selection.fromNodeIds(this, this.hoverSelection.parentNodeIds);
-							} else {
-								this.selection = this.hoverSelection;
-							}
-						}
-						else {
-							this.selection = new Selection(this, []);
-						}
-					}
-
-					if(this.hoveringOverSelection()) {
-						this.mouseDragEvents[event.button] = new DragEvent(this, where, this.selection.getOrigins());
-					}
-					else {
-						this.selection = new Selection(this, []);
-						this.mouseDragEvents[event.button] = new DrawEvent(this, where);
+					const dragEvent = await this.brush.activate(where);
+					if(dragEvent) {
+						this.mouseDragEvents[event.button] = dragEvent;
 					}
 				}
 				else if(event.button === 2) {
@@ -647,8 +740,11 @@ class RenderContext {
 			else if(event.key === "d") {
 				this.changeBrush(new DeleteBrush(this));
 			}
-			else if(event.key === "t") {
-				this.changeBrush(new NodeBrush(this));
+			else if(event.key === "a") {
+				this.changeBrush(new NodeAddBrush(this));
+			}
+			else if(event.key === "s") {
+				this.changeBrush(new NodeSelectBrush(this));
 			}
 		});
 
@@ -659,7 +755,7 @@ class RenderContext {
 		this.canvas.addEventListener("wheel", (event) => {
 			event.preventDefault();
 
-			if(this.isKeyDown("b")) {
+			if(this.isKeyDown("q")) {
 				if(event.deltaY < 0) {
 					this.brush.increment();
 				}
@@ -667,7 +763,7 @@ class RenderContext {
 					this.brush.decrement();
 				}
 			}
-			else if(this.isKeyDown("s")) {
+			else if(this.isKeyDown("w")) {
 				if(event.deltaY < 0) {
 					this.brush.enlarge();
 				}
@@ -1092,33 +1188,56 @@ class RenderContext {
 			}
 		}
 
-		c.globalAlpha = 0.5;
-
-		const didTiles = {};
+		const toDraw = {};
 
 		for await (const nodeRef of this.visibleNodes()) {
 			const inSelection = this.selection.hasNodeRef(nodeRef);
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
+			const sibling = this.hoverSelection.nodeRefIsSibling(nodeRef) || this.selection.nodeRefIsSibling(nodeRef);
+			const notSibling = (inSelection && !this.selection.nodeRefIsSibling(nodeRef)) || (inHoverSelection && !this.hoverSelection.nodeRefIsSibling(nodeRef));
+			const alpha = (sibling && !notSibling) ? 0.2 : 0.5;
 
 			if(inSelection || inHoverSelection) {
 				const nodeTiles = this.nodeIdToTiles[nodeRef.id];
 				if(nodeTiles !== undefined) {
 					for(const x in nodeTiles) {
 						const tX = nodeTiles[x];
-						if(didTiles[x] === undefined) {
-							didTiles[x] = new Set();
+						if(toDraw[x] === undefined) {
+							toDraw[x] = new Set();
 						}
-						const dTX = didTiles[x];
+						const tDX = toDraw[x];
 						for(const y in tX) {
-							if(!dTX.has(y)) {
-								dTX.add(y);
-								const tile = tX[y];
-								c.fillStyle = "white";
-								c.fillRect(tile.point.x, tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
+							if(tDX[y] === undefined) {
+								tDX[y] = {
+									tile: tX[y],
+									alpha: alpha,
+								};
+							}
+							else {
+								tDX[y].alpha = Math.max(tDX[y].alpha, alpha);
 							}
 						}
 					}
 				}
+			}
+
+			c.globalAlpha = 1;
+
+			const center = this.mapPointToCanvas(await nodeRef.center());
+
+			c.beginPath();
+			c.arc(center.x, center.y, 5, 0, 2 * Math.PI, false);
+			c.fillStyle = "white";
+			c.fill();
+		}
+
+		for(const x in toDraw) {
+			const tX = toDraw[x];
+			for(const y in tX) {
+				const t = tX[y];
+				c.globalAlpha = t.alpha;
+				c.fillStyle = "white";
+				c.fillRect(t.tile.point.x, t.tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
 			}
 		}
 
@@ -1142,9 +1261,14 @@ class RenderContext {
 		infoLine(`Brush: ${this.brush.getDescription()}`);
 
 		// Debug help
-		infoLine("Left click to place terrain; change brush mode with (T)errain, (R)eplace, or (D)elete.");
-		if(this.brush instanceof NodeBrush) {
-			infoLine("Hold B while scrolling to change brush type; hold S while scrolling to change brush size");
+		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete.");
+		if(this.brush instanceof NodeAddBrush) {
+			infoLine("Click to add terrain");
+			infoLine("Hold Q while scrolling to change brush type; hold W while scrolling to change brush size.");
+		}
+		else if(this.brush instanceof NodeSelectBrush) {
+			infoLine("Click to select, drag to move.");
+			infoLine("Hold Shift to select an entire object, hold Control to add to an existing selection.");
 		}
 		infoLine("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.");
 	}
