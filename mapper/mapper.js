@@ -54,6 +54,7 @@ class DrawPathAction extends Action {
 					radius: radius,
 					parent: this.options.parent,
 				}));
+
 				placedVertices.push({
 					point: vertex,
 					radius: radius,
@@ -67,7 +68,7 @@ class DrawPathAction extends Action {
 
 		if(this.options.fullCalculation) {
 			return new BulkAction(this.context, {
-				actions: [removeAction, new NodeCleanupAction(this.context, {nodeRef: this.options.parent})],
+				actions: [removeAction, await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false)],
 			});
 		}
 		else {
@@ -82,7 +83,43 @@ class DrawPathAction extends Action {
 
 class NodeCleanupAction extends Action {
 	async perform() {
+		const toRemove = new Set();
 
+		const vertices = (await asyncFrom(this.getAllVertices())).sort((a, b) => a.radius - b.radius);
+
+		for(const vertex of vertices) {
+			if(vertex.removable) {
+				for(const otherVertex of vertices) {
+					if(!toRemove.has(otherVertex.nodeRef.id) && otherVertex !== vertex && otherVertex.point.subtract(vertex.point).length() < (vertex.radius + otherVertex.radius) / 4) {
+						toRemove.add(vertex.nodeRef.id);
+					}
+				}
+			}
+		}
+
+		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: [...toRemove].map((id) => this.context.mapper.backend.getNodeRef(id))}));
+	}
+
+	async * getAllNodes() {
+		for await (const nodeRef of this.options.nodeRef.getSelfAndAllDescendants()) {
+			if(await nodeRef.getPString("type") === this.options.type) {
+				yield nodeRef;
+			}
+		}
+	}
+
+	async * getAllVertices() {
+		for await (const nodeRef of this.getAllNodes()) {
+			const radius = await nodeRef.getPNumber("radius");
+			if(radius > 0) {
+				yield {
+					nodeRef: nodeRef,
+					removable: !(await nodeRef.hasChildren()),
+					point: await nodeRef.center(),
+					radius: radius,
+				};
+			}
+		}
 	}
 }
 
@@ -514,8 +551,7 @@ class MouseDragEvent {
 		if(this.hoverSelection.exists()) {
 			for(const origin of this.hoverSelection.getOrigins()) {
 				const parent = await origin.getParent();
-				const children = await asyncFrom(origin.getChildren());
-				if(parent && children.length === 0) {
+				if(parent && !(await origin.hasChildren())) {
 					return parent;
 				}
 				else {

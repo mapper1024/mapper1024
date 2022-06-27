@@ -77,6 +77,10 @@ class NodeRef extends EntityRef {
 		yield* this.backend.getNodeChildren(this.id);
 	}
 
+	async hasChildren() {
+		return this.backend.nodeHasChildren(this.id);
+	}
+
 	async * getAllDescendants() {
 		for (const child of await asyncFrom(this.getChildren())) {
 			yield child;

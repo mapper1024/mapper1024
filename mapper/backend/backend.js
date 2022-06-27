@@ -102,6 +102,14 @@ class MapBackend {
 		throw "getNodeChildren not implemented";
 	}
 
+	/** Check if a node has any children.
+	 * Has a default implementation based on #getNodeChildren().
+	 * @returns {boolean}
+	 */
+	async nodeHasChildren(nodeId) {
+		return (await asyncFrom(this.getNodeChildren(nodeId))).length > 0;
+	}
+
 	/** Create a new edge between two nodes.
 	 * Order of node IDs does not matter.
 	 * @param nodeAId {number} The ID of one of the nodes on the edge.
