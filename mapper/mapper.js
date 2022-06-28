@@ -62,17 +62,18 @@ class DrawPathAction extends Action {
 			}
 		}
 
-		const removeAction = new RemoveAction(this.context, {
+		const undoAction = new RemoveAction(this.context, {
 			nodeRefs: placedNodes,
 		});
 
 		if(this.options.fullCalculation) {
+			const undoCleanupAction = await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false);
 			return new BulkAction(this.context, {
-				actions: [removeAction, await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false)],
+				actions: [undoCleanupAction, undoAction],
 			});
 		}
 		else {
-			return removeAction;
+			return undoAction;
 		}
 	}
 
@@ -276,8 +277,12 @@ class NodeAddBrush extends Brush {
 			nodeType: this.getNodeType(),
 			scrollOffset: this.context.scrollOffset,
 			fullCalculation: mouseDragEvent.done,
-			parent: await mouseDragEvent.getSelectionParent(),
 		};
+
+		const selectionParent = await mouseDragEvent.getSelectionParent();
+		if(selectionParent && await selectionParent.getPString("type") === this.getNodeType()) {
+			drawPathActionOptions.parent = selectionParent;
+		}
 
 		return await this.context.performAction(new DrawPathAction(this.context, drawPathActionOptions));
 	}
@@ -1258,13 +1263,6 @@ class RenderContext {
 			}
 
 			c.globalAlpha = 1;
-
-			const center = this.mapPointToCanvas(await nodeRef.center());
-
-			c.beginPath();
-			c.arc(center.x, center.y, 5, 0, 2 * Math.PI, false);
-			c.fillStyle = "white";
-			c.fill();
 		}
 
 		for(const x in toDraw) {
