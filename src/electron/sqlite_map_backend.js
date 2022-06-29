@@ -29,8 +29,9 @@ class SQLiteMapBackend extends MapBackend {
 		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
 		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
 
-		// Trigger to cascade invalidation of node's children.
-		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated AFTER UPDATE ON entity WHEN NEW.type = 'node' AND NEW.valid = 'false' BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT entityid FROM node WHERE parentid = NEW.entityid); END");
+		// Triggers to cascade invalidation
+		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_children AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT entityid FROM node WHERE parentid = NEW.entityid); END");
+		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_edges AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT edgeid FROM edge WHERE nodeid = NEW.entityid); END");
 
 		// Similar to nodes, a edge's corresponding entity will be deleted via trigger as soon as the edge is deleted.
 		this.db.prepare("CREATE TABLE IF NOT EXISTS edge (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
@@ -62,8 +63,8 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.s_getNodeParent = this.db.prepare("SELECT nodep.entityid AS parentid FROM node AS nodep INNER JOIN node AS nodec ON nodep.entityid = nodec.parentid INNER JOIN entity ON entity.entityid = nodep.entityid WHERE entity.valid = true AND nodec.entityid = $nodeId");
 		this.s_getNodeChildren = this.db.prepare("SELECT node.entityid FROM node INNER JOIN entity ON node.entityid = entity.entityid WHERE parentID = $nodeId AND entity.valid = true");
-		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM edge WHERE nodeid = $nodeId");
-		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM edge WHERE edgeid = $edgeId");
+		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM edge INNER JOIN entity ON entity.entityid = edge.edgeid WHERE nodeid = $nodeId AND entity.valid = true");
+		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM edge INNER JOIN entity ON nodeid = entity.entityid WHERE edgeid = $edgeId AND entity.valid = true");
 
 		this.s_getEdgeBetween = this.db.prepare("SELECT edge1.edgeid AS edgeid FROM edge edge1 INNER JOIN edge edge2 ON (edge1.edgeid = edge2.edgeid AND edge1.nodeid != edge2.nodeid) WHERE edge1.nodeid = $nodeAId AND edge2.nodeid = $nodeBId");
 

@@ -103,30 +103,30 @@ describe("SQLiteMapBackend", function() {
 		it("should have removable nodes", async function() {
 			await childB.remove();
 
-			expect(await root.exists(), "root").to.equal(true);
-			expect(await childA.exists(), "childA").to.equal(true);
-			expect(await childC.exists(), "childC").to.equal(true);
-			expect(await grandchildC.exists(), "grandchildC").to.equal(true);
+			expect(await root.valid(), "root").to.equal(true);
+			expect(await childA.valid(), "childA").to.equal(true);
+			expect(await childC.valid(), "childC").to.equal(true);
+			expect(await grandchildC.valid(), "grandchildC").to.equal(true);
 
-			expect(await childEdgeAC.exists(), "childEdgeAC").to.equal(true);
+			expect(await childEdgeAC.valid(), "childEdgeAC").to.equal(true);
 
-			expect(await childB.exists(), "childB").to.equal(false);
-			expect(await grandchildA.exists(), "grandchildA").to.equal(false);
-			expect(await grandchildB.exists(), "grandchildB").to.equal(false);
+			expect(await childB.valid(), "childB").to.equal(false);
+			expect(await grandchildA.valid(), "grandchildA").to.equal(false);
+			expect(await grandchildB.valid(), "grandchildB").to.equal(false);
 
-			expect(await childEdgeAB.exists(), "childEdgeAB").to.equal(false);
+			expect(await childEdgeAB.valid(), "childEdgeAB").to.equal(false);
 		});
 
 		it("should have removable edges", async function() {
 			await childEdgeAB.remove();
 
-			expect(await childEdgeAB.exists()).to.equal(false);
+			expect(await childEdgeAB.valid()).to.equal(false);
 
-			expect(await childEdgeAC.exists()).to.equal(true);
+			expect(await childEdgeAC.valid()).to.equal(true);
 
-			expect(await childA.exists()).to.equal(true);
-			expect(await childB.exists()).to.equal(true);
-			expect(await childC.exists()).to.equal(true);
+			expect(await childA.valid()).to.equal(true);
+			expect(await childB.valid()).to.equal(true);
+			expect(await childC.valid()).to.equal(true);
 
 			expect(await asyncFrom(childA.getEdges(), (edge) => edge.id)).to.include(childEdgeAC.id).but.not.to.include(childEdgeAB.id);
 			expect(await asyncFrom(childB.getEdges())).to.be.empty;
