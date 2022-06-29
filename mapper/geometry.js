@@ -64,6 +64,14 @@ class Line3 {
 		this.b = b;
 	}
 
+	map(f) {
+		return new Line3(f(this.a), f(this.b));
+	}
+
+	vector() {
+		return this.b.subtract(this.a);
+	}
+
 	fullMin() {
 		return Vector3.min(this.a, this.b);
 	}
@@ -97,6 +105,8 @@ class Line3 {
 		}
 	}
 }
+
+Line3.ZERO = new Line3(Vector3.ZERO, Vector3.ZERO);
 
 class Box3 {
 	constructor(a, b) {

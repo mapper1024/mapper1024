@@ -23,11 +23,14 @@ class SQLiteMapBackend extends MapBackend {
 		this.db.pragma("foreign_keys = ON");
 		this.db.pragma("recursive_triggers = ON");
 
-		this.db.prepare("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT)").run();
+		this.db.prepare("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT, valid BOOLEAN)").run();
 
-		// Node table and trigger to delete the corresponding entitty when a node is deleted.
+		// Node table and trigger to delete the corresponding entity when a node is deleted.
 		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
 		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
+
+		// Trigger to cascade invalidation of node's children.
+		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated AFTER UPDATE ON entity WHEN NEW.type = 'node' AND NEW.valid = 'false' BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT entityid FROM node WHERE parentid = NEW.entityid); END");
 
 		// Similar to nodes, a edge's corresponding entity will be deleted via trigger as soon as the edge is deleted.
 		this.db.prepare("CREATE TABLE IF NOT EXISTS edge (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
@@ -51,22 +54,25 @@ class SQLiteMapBackend extends MapBackend {
 		this.s_sps = this.db.prepare("INSERT OR REPLACE INTO property (entityid, property, v_string) VALUES ($entityId, $property, $value)");
 
 		this.s_entityExists = this.db.prepare("SELECT entityid FROM entity WHERE entityid = $entityId");
+		this.s_entityValid = this.db.prepare("SELECT entityid FROM entity WHERE entityid = $entityId AND valid = TRUE");
 
-		this.s_createEntity = this.db.prepare("INSERT INTO entity (type) VALUES ($type)");
+		this.s_createEntity = this.db.prepare("INSERT INTO entity (type, valid) VALUES ($type, TRUE)");
 		this.s_createNode = this.db.prepare("INSERT INTO node (entityid, parentId) VALUES ($entityId, $parentId)");
 		this.s_createConnection = this.db.prepare("INSERT INTO edge (edgeid, nodeid) VALUES ($edgeId, $nodeId)");
 
-		this.s_getNodeParent = this.db.prepare("SELECT parentId FROM node WHERE entityid = $nodeId");
-		this.s_getNodeChildren = this.db.prepare("SELECT entityid FROM node WHERE parentID = $nodeId");
+		this.s_getNodeParent = this.db.prepare("SELECT nodep.entityid AS parentid FROM node AS nodep INNER JOIN node AS nodec ON nodep.entityid = nodec.parentid INNER JOIN entity ON entity.entityid = nodep.entityid WHERE entity.valid = true AND nodec.entityid = $nodeId");
+		this.s_getNodeChildren = this.db.prepare("SELECT node.entityid FROM node INNER JOIN entity ON node.entityid = entity.entityid WHERE parentID = $nodeId AND entity.valid = true");
 		this.s_getNodeEdges = this.db.prepare("SELECT edgeid FROM edge WHERE nodeid = $nodeId");
 		this.s_getEdgeNodes = this.db.prepare("SELECT nodeid FROM edge WHERE edgeid = $edgeId");
 
 		this.s_getEdgeBetween = this.db.prepare("SELECT edge1.edgeid AS edgeid FROM edge edge1 INNER JOIN edge edge2 ON (edge1.edgeid = edge2.edgeid AND edge1.nodeid != edge2.nodeid) WHERE edge1.nodeid = $nodeAId AND edge2.nodeid = $nodeBId");
 
-		this.s_getNodesInArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid WHERE property.property = 'center' AND property.x >= $ax AND property.x <= $bx AND property.y >= $ay AND property.y <= $by AND property.z >= $az AND property.z <= $bz");
+		this.s_getNodesInArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid WHERE entity.valid = TRUE AND property.property = 'center' AND property.x >= $ax AND property.x <= $bx AND property.y >= $ay AND property.y <= $by AND property.z >= $az AND property.z <= $bz");
 
 		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
 		this.s_deleteEntity = this.db.prepare("DELETE FROM entity WHERE entityid = $entityId");
+		this.s_invalidateEntity = this.db.prepare("UPDATE entity SET valid = FALSE WHERE entityid = $entityId");
+		this.s_validateEntity = this.db.prepare("UPDATE entity SET valid = TRUE WHERE entityid = $entityId");
 
 		/* Find or create the global entity.
 		 * There can be only one.
@@ -115,6 +121,10 @@ class SQLiteMapBackend extends MapBackend {
 		return this.s_entityExists.get({entityId: entityId}) !== undefined;
 	}
 
+	async entityValid(entityId) {
+		return this.s_entityValid.get({entityId: entityId}) !== undefined;
+	}
+
 	async createEntity(type) {
 		return this.getEntityRef(this.baseCreateEntity(type));
 	}
@@ -129,7 +139,7 @@ class SQLiteMapBackend extends MapBackend {
 
 	async getNodeParent(nodeId) {
 		const row = this.s_getNodeParent.get({nodeId: nodeId});
-		return row.parentid ? this.getNodeRef(row.parentid) : null;
+		return (row && row.parentid) ? this.getNodeRef(row.parentid) : null;
 	}
 
 	async * getNodeChildren(nodeId) {
@@ -151,7 +161,11 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async removeEntity(entityId) {
-		this.s_deleteEntity.run({entityId: entityId});
+		this.s_invalidateEntity.run({entityId: entityId});
+	}
+
+	async unremoveEntity(entityId) {
+		this.s_validateEntity.run({entityId: entityId});
 	}
 
 	async getPNumber(entityId, propertyName) {

@@ -16,6 +16,10 @@ class EntityRef {
 		return this.backend.entityExists(this.id);
 	}
 
+	async valid() {
+		return this.backend.entityValid(this.id);
+	}
+
 	/** Get a number property. */
 	async getPNumber(propertyName) {
 		return this.backend.getPNumber(this.id, propertyName);
@@ -50,6 +54,10 @@ class EntityRef {
 	async remove() {
 		return this.backend.removeEntity(this.id);
 	}
+
+	async unremove() {
+		return this.backend.unremoveEntity(this.id);
+	}
 }
 
 /** Reference to a node entity.
@@ -67,6 +75,24 @@ class NodeRef extends EntityRef {
 	 */
 	async * getChildren() {
 		yield* this.backend.getNodeChildren(this.id);
+	}
+
+	async hasChildren() {
+		return this.backend.nodeHasChildren(this.id);
+	}
+
+	async * getAllDescendants() {
+		for (const child of await asyncFrom(this.getChildren())) {
+			yield child;
+			yield* child.getAllDescendants();
+		}
+	}
+
+	async * getSelfAndAllDescendants() {
+		yield this;
+		for (const child of await asyncFrom(this.getChildren())) {
+			yield* child.getSelfAndAllDescendants();
+		}
 	}
 
 	/** Set the "center" property of this node.
