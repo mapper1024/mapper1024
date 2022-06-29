@@ -1345,7 +1345,7 @@ class RenderContext {
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
 			const sibling = this.hoverSelection.nodeRefIsSibling(nodeRef) || this.selection.nodeRefIsSibling(nodeRef);
 			const notSibling = (inSelection && !this.selection.nodeRefIsSibling(nodeRef)) || (inHoverSelection && !this.hoverSelection.nodeRefIsSibling(nodeRef));
-			const alpha = (sibling && !notSibling) ? 0.2 : 0.5;
+			const alpha = (sibling && !notSibling) ? 0.2 : 1;
 
 			if(inSelection || inHoverSelection) {
 				const nodeTiles = this.nodeIdToTiles[nodeRef.id];
@@ -1380,8 +1380,8 @@ class RenderContext {
 				const t = tX[y];
 				const point = this.mapPointToCanvas(t.tile.point);
 				c.globalAlpha = t.alpha;
-				c.fillStyle = "white";
-				c.fillRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
+				c.strokeStyle = "white";
+				c.strokeRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
 			}
 		}
 
