@@ -98,7 +98,7 @@ class NodeCleanupAction extends Action {
 			}
 		}
 
-		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: [...toRemove].map((id) => this.context.mapper.backend.getNodeRef(id))}));
+		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: [...toRemove].map((id) => this.context.mapper.backend.getNodeRef(id))}), false);
 	}
 
 	async * getAllNodes() {
@@ -189,6 +189,7 @@ class Brush {
 
 		this.size = 1;
 		this.maxSize = 10;
+		this.lastSizeChange = performance.now();
 	}
 
 	getDescription() {
@@ -205,10 +206,27 @@ class Brush {
 
 	shrink() {
 		this.size = Math.max(1, this.size - 1);
+		this.lastSizeChange = performance.now();
 	}
 
 	enlarge() {
 		this.size = Math.min(this.maxSize, this.size + 1);
+		this.lastSizeChange = performance.now();
+	}
+
+	sizeRecentlyChanged() {
+		return performance.now() - this.lastSizeChange < 1000;
+	}
+
+	async drawAsCircle(context, position) {
+		context.beginPath();
+		context.arc(position.x, position.y, this.getRadius(), 0, 2 * Math.PI, false);
+		context.strokeStyle = "white";
+		context.stroke();
+	}
+
+	async draw(context, position) {
+		await this.drawAsCircle(context, position);
 	}
 
 	async trigger(where, mouseDragEvent) {
@@ -226,16 +244,56 @@ class DeleteBrush extends Brush {
 		return `Delete (size ${this.size})`;
 	}
 
-	async trigger(path) {
-		const toRemove = [];
+	async activate(where) {
+		return new CumulativeDrawEvent(this.context, where);
+	}
 
+	async * getNodesInBrush(brushPosition) {
 		for await (const nodeRef of this.context.visibleNodes()) {
-			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(path.lastVertex()).length() <= this.getRadius()) {
-				toRemove.push(nodeRef);
+			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(brushPosition).length() <= this.getRadius() && await nodeRef.getPNumber("radius") > 0) {
+				yield nodeRef;
 			}
 		}
+	}
 
-		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: toRemove}));
+	async draw(context, position) {
+		if(this.context.isKeyDown("Control") || this.sizeRecentlyChanged()) {
+			await this.drawAsCircle(context, position);
+		}
+	}
+
+	async triggerAtPosition(brushPosition) {
+		let toRemove;
+
+		if(this.context.isKeyDown("Control")) {
+			toRemove = await asyncFrom(this.getNodesInBrush(brushPosition));
+		}
+		else {
+			let selection;
+
+			if(this.context.isKeyDown("Shift")) {
+				selection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
+			}
+			else {
+				selection = this.context.hoverSelection;
+			}
+
+			toRemove = selection.getOrigins();
+		}
+
+		return new RemoveAction(this.context, {nodeRefs: toRemove});
+	}
+
+	async triggerOnPath(path) {
+		const actions = [];
+		for(const vertex of path.vertices()) {
+			actions.push(await this.triggerAtPosition(vertex));
+		}
+		return new BulkAction(this.context, {actions: actions});
+	}
+
+	async trigger(path) {
+		return await this.context.performAction(await this.triggerOnPath(path));
 	}
 }
 
@@ -298,7 +356,12 @@ class NodeSelectBrush extends Brush {
 	}
 
 	getDescription() {
-		return `Select/Move`;
+		return "Select/Move";
+	}
+
+	async draw(context, position) {
+		context;
+		position;
 	}
 
 	async activate(where) {
@@ -611,6 +674,42 @@ class DrawEvent extends MouseDragEvent {
 	}
 }
 
+class CumulativeDrawEvent extends MouseDragEvent {
+	constructor(context, startPoint) {
+		super(context, startPoint);
+
+		this.undoActions = [];
+	}
+
+	getUndoAction() {
+		return new BulkAction(this.context, {
+			actions: this.undoActions.splice(0, this.undoActions.length).reverse(),
+		});
+	}
+
+	async next(nextPoint) {
+		super.next(nextPoint);
+
+		this.undoActions.push(await this.trigger(this.path.asMostRecent()));
+	}
+
+	async end(endPoint) {
+		super.end(endPoint);
+
+		this.undoActions.push(await this.trigger(this.path.asMostRecent()));
+
+		this.context.pushUndo(this.getUndoAction());
+	}
+
+	async trigger(path) {
+		return await this.context.brush.trigger(path, this);
+	}
+
+	cancel() {
+		this.end(this.path.lastVertex());
+	}
+}
+
 class DragEvent extends MouseDragEvent {
 	constructor(context, startPoint, nodeRefs) {
 		super(context, startPoint);
@@ -775,7 +874,7 @@ class RenderContext {
 			else if(event.key === "y") {
 				const redo = this.redoStack.pop();
 				if(redo !== undefined) {
-					this.pushUndo(await this.performAction(redo, false));
+					this.pushUndo(await this.performAction(redo, false), true);
 				}
 			}
 			else if(event.key === "d") {
@@ -787,10 +886,12 @@ class RenderContext {
 			else if(event.key === "s") {
 				this.changeBrush(new NodeSelectBrush(this));
 			}
+			this.requestRedraw();
 		});
 
 		this.canvas.addEventListener("keyup", (event) => {
 			this.pressedKeys[event.key] = false;
+			this.requestRedraw();
 		});
 
 		this.canvas.addEventListener("wheel", (event) => {
@@ -843,17 +944,7 @@ class RenderContext {
 	async recalculateSelection() {
 		if(this.wantRecheckSelection) {
 			this.wantRecheckSelection = false;
-			const mousePosition = this.mousePosition;
-			let closestNodeRef = null;
-			let closestDistanceSquared = null;
-			for await (const nodeRef of this.visibleNodes()) {
-				const center = this.mapPointToCanvas(await nodeRef.center());
-				const distanceSquared = center.subtract(mousePosition).lengthSquared();
-				if(distanceSquared < (await nodeRef.getPNumber("radius")) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
-					closestNodeRef = nodeRef;
-					closestDistanceSquared = distanceSquared;
-				}
-			}
+			const closestNodeRef = await this.getClosestNodeRef(this.mousePosition);
 			if(closestNodeRef) {
 				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
@@ -870,6 +961,20 @@ class RenderContext {
 		setTimeout(this.recalculateSelection.bind(this), 10);
 	}
 
+	async getClosestNodeRef(canvasPosition) {
+		let closestNodeRef = null;
+		let closestDistanceSquared = null;
+		for await (const nodeRef of this.visibleNodes()) {
+			const center = this.mapPointToCanvas(await nodeRef.center());
+			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
+			if(distanceSquared < (await nodeRef.getPNumber("radius")) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
+				closestNodeRef = nodeRef;
+				closestDistanceSquared = distanceSquared;
+			}
+		}
+		return closestNodeRef;
+	}
+
 	async recalculateLoop() {
 		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0) {
 			this.recalculateViewport = false;
@@ -882,7 +987,6 @@ class RenderContext {
 		const undo = await action.perform();
 		if(addToUndoStack) {
 			this.pushUndo(undo);
-			this.redoStack = [];
 		}
 		return undo;
 	}
@@ -891,9 +995,12 @@ class RenderContext {
 		return this.selection.exists() && this.hoverSelection.exists() && this.selection.contains(this.hoverSelection);
 	}
 
-	pushUndo(action) {
+	pushUndo(action, fromRedo) {
 		if(!action.empty()) {
 			this.undoStack.push(action);
+			if(!fromRedo) {
+				this.redoStack = [];
+			}
 		}
 	}
 
@@ -1269,19 +1376,16 @@ class RenderContext {
 			const tX = toDraw[x];
 			for(const y in tX) {
 				const t = tX[y];
+				const point = this.mapPointToCanvas(t.tile.point);
 				c.globalAlpha = t.alpha;
 				c.fillStyle = "white";
-				c.fillRect(t.tile.point.x, t.tile.point.y, this.TILE_SIZE, this.TILE_SIZE);
+				c.fillRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
 			}
 		}
 
 		c.globalAlpha = 1;
 
-		// Draw brush
-		c.beginPath();
-		c.arc(this.mousePosition.x, this.mousePosition.y, this.brush.getRadius(), 0, 2 * Math.PI, false);
-		c.strokeStyle = "white";
-		c.stroke();
+		await this.brush.draw(this.canvas.getContext("2d"), this.mousePosition);
 
 		c.font = "18px sans";
 		c.fillStyle = "white";
@@ -1303,6 +1407,10 @@ class RenderContext {
 		else if(this.brush instanceof NodeSelectBrush) {
 			infoLine("Click to select, drag to move.");
 			infoLine("Hold Shift to select an entire object, hold Control to add to an existing selection.");
+		}
+		else if(this.brush instanceof DeleteBrush) {
+			infoLine("Click to delete. Hold Shift to delete an entire object.");
+			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
 		}
 		infoLine("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.");
 	}
