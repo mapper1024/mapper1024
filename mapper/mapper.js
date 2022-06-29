@@ -249,7 +249,7 @@ class DeleteBrush extends Brush {
 	}
 
 	async * getNodesInBrush(brushPosition) {
-		for await (const nodeRef of this.context.visibleNodes()) {
+		for await (const nodeRef of this.context.drawnNodes()) {
 			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(brushPosition).length() <= this.getRadius() && await nodeRef.getPNumber("radius") > 0) {
 				yield nodeRef;
 			}
@@ -758,6 +758,7 @@ class PanEvent extends MouseDragEvent {
 	next(nextPoint) {
 		super.next(nextPoint);
 		this.context.scrollOffset = this.context.scrollOffset.subtract(this.path.lastLine().vector());
+		this.context.recalculateTilesViewport();
 	}
 }
 
@@ -971,7 +972,7 @@ class RenderContext {
 	async getClosestNodeRef(canvasPosition) {
 		let closestNodeRef = null;
 		let closestDistanceSquared = null;
-		for await (const nodeRef of this.visibleNodes()) {
+		for await (const nodeRef of this.drawnNodes()) {
 			const center = this.mapPointToCanvas(await nodeRef.center());
 			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
 			if(distanceSquared < (await nodeRef.getPNumber("radius")) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
@@ -1113,9 +1114,7 @@ class RenderContext {
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
 
 		for(const nodeId of this.drawnNodeIds) {
-			// Small chance to clean up a node that is no longer visible.
-			// Save performance by not clearing all off-screen nodes at once.
-			if(Math.random() < 0.01 && !visibleNodeIds.has(nodeId)) {
+			if(!visibleNodeIds.has(nodeId)) {
 				removedNodeIds.add(nodeId);
 			}
 		}
@@ -1345,7 +1344,7 @@ class RenderContext {
 
 		const toDraw = {};
 
-		for await (const nodeRef of this.visibleNodes()) {
+		for await (const nodeRef of this.drawnNodes()) {
 			const inSelection = this.selection.hasNodeRef(nodeRef);
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
 			const sibling = this.hoverSelection.nodeRefIsSibling(nodeRef) || this.selection.nodeRefIsSibling(nodeRef);
@@ -1371,8 +1370,8 @@ class RenderContext {
 							else {
 								tDX[y].alpha = Math.max(tDX[y].alpha, alpha);
 							}
-							tDX[y].inSelection ||= inSelection;
-							tDX[y].inHoverSelection ||= inHoverSelection;
+							tDX[y].inSelection = tDX[y].inSelection || inSelection;
+							tDX[y].inHoverSelection = tDX[y].inHoverSelection || inHoverSelection;
 						}
 					}
 				}
@@ -1433,6 +1432,12 @@ class RenderContext {
 		const screenBox = this.screenBox();
 		const stretchBox = new Box3(screenBox.a.subtract(this.OFF_SCREEN_BUFFER_STRETCH), screenBox.b.add(this.OFF_SCREEN_BUFFER_STRETCH));
 		yield* this.mapper.getNodesInArea(stretchBox.map((v) => this.canvasPointToMap(v)));
+	}
+
+	async * drawnNodes() {
+		for(const nodeId of this.drawnNodeIds) {
+			yield this.mapper.backend.getNodeRef(nodeId);
+		}
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
