@@ -406,6 +406,7 @@ class Selection {
 		this.selectedNodeIds = new Set(this.originIds);
 		this.childNodeIds = new Set();
 		this.siblingNodeIds = new Set();
+		this.directSelectedNodeIds = new Set();
 	}
 
 	static async fromNodeIds(context, nodeIds) {
@@ -427,10 +428,12 @@ class Selection {
 		const parentNodeIds = new Set();
 		const childNodeIds = new Set();
 		const siblingNodeIds = new Set();
+		const directSelectedNodeIds = new Set(this.originIds);
 
 		for(const nodeRef of this.getOrigins()) {
 			for await (const childNodeRef of nodeRef.getAllDescendants()) {
 				selectedNodeIds.add(childNodeRef.id);
+				directSelectedNodeIds.add(childNodeRef.id);
 				childNodeIds.add(childNodeRef.id);
 			}
 
@@ -438,6 +441,7 @@ class Selection {
 			if(parent) {
 				selectedNodeIds.add(parent.id);
 				parentNodeIds.add(parent.id);
+				directSelectedNodeIds.add(parent.id);
 				for await (const siblingNodeRef of parent.getAllDescendants()) {
 					siblingNodeIds.add(siblingNodeRef.id);
 					selectedNodeIds.add(siblingNodeRef.id);
@@ -453,6 +457,7 @@ class Selection {
 		this.selectedNodeIds = selectedNodeIds;
 		this.childNodeIds = childNodeIds;
 		this.siblingNodeIds = siblingNodeIds;
+		this.directSelectedNodeIds = directSelectedNodeIds;
 	}
 
 	hasNodeRef(nodeRef) {
@@ -484,8 +489,8 @@ class Selection {
 	}
 
 	contains(other) {
-		for(const nodeId of other.selectedNodeIds) {
-			if(!this.selectedNodeIds.has(nodeId)) {
+		for(const nodeId of other.directSelectedNodeIds) {
+			if(!this.directSelectedNodeIds.has(nodeId)) {
 				return false;
 			}
 		}
@@ -1366,6 +1371,8 @@ class RenderContext {
 							else {
 								tDX[y].alpha = Math.max(tDX[y].alpha, alpha);
 							}
+							tDX[y].inSelection ||= inSelection;
+							tDX[y].inHoverSelection ||= inHoverSelection;
 						}
 					}
 				}
@@ -1381,7 +1388,12 @@ class RenderContext {
 				const point = this.mapPointToCanvas(t.tile.point);
 				c.globalAlpha = t.alpha;
 				c.strokeStyle = "white";
-				c.strokeRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
+				if(t.inHoverSelection) {
+					c.strokeRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
+				}
+				if(t.inSelection) {
+					c.strokeRect(point.x + 2, point.y + 2, this.TILE_SIZE - 2, this.TILE_SIZE - 2);
+				}
 			}
 		}
 
