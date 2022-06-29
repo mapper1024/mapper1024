@@ -546,7 +546,8 @@ class Path {
 	}
 
 	lastLine() {
-		return this.lines[this.lines.length - 1] ?? Line3.ZERO;
+		const lastLine = this.lines[this.lines.length - 1];
+		return lastLine ? lastLine : Line3.ZERO;
 	}
 
 	lastVertex() {
@@ -554,7 +555,8 @@ class Path {
 	}
 
 	pop() {
-		return this.lines.pop() ?? Line3.ZERO;
+		const lastLine = this.lines.pop();
+		return lastLine ? lastLine : Line3.ZERO;
 	}
 
 	push(line) {
