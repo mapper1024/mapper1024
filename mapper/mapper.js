@@ -1349,7 +1349,7 @@ class RenderContext {
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
 			const sibling = this.hoverSelection.nodeRefIsSibling(nodeRef) || this.selection.nodeRefIsSibling(nodeRef);
 			const notSibling = (inSelection && !this.selection.nodeRefIsSibling(nodeRef)) || (inHoverSelection && !this.hoverSelection.nodeRefIsSibling(nodeRef));
-			const alpha = (sibling && !notSibling) ? 0.2 : 1;
+			const alpha = (sibling && !notSibling) ? 0.25 : 0.75;
 
 			if(inSelection || inHoverSelection) {
 				const nodeTiles = this.nodeIdToTiles[nodeRef.id];
