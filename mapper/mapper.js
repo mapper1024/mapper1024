@@ -1,9 +1,10 @@
 import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3 } from "./geometry.js";
-import { asyncFrom, mod } from "./utils.js";
+import { asyncFrom } from "./utils.js";
 import { DeleteBrush, AddBrush, SelectBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
+import { Tile, MegaTile } from "./tile.js";
 
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
@@ -31,9 +32,7 @@ class RenderContext {
 		this.undoStack = [];
 		this.redoStack = [];
 
-		this.TILE_SIZE = 32;
-		this.MEGA_TILE_SIZE = 512;
-		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(this.MEGA_TILE_SIZE);
+		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(MegaTile.SIZE);
 		this.tiles = {};
 		this.megaTiles = {};
 		this.drawnNodeIds = new Set();
@@ -216,9 +215,9 @@ class RenderContext {
 		let closestNodeRef = null;
 		let closestDistanceSquared = null;
 		for await (const nodeRef of this.drawnNodes()) {
-			const center = this.mapPointToCanvas(await nodeRef.center());
+			const center = this.mapPointToCanvas(await nodeRef.getCenter());
 			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-			if(distanceSquared < (await nodeRef.getPNumber("radius")) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
+			if(distanceSquared < (await nodeRef.getRadius()) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
 				closestNodeRef = nodeRef;
 				closestDistanceSquared = distanceSquared;
 			}
@@ -378,25 +377,17 @@ class RenderContext {
 				}
 				const rX = recheckTiles[x];
 				const tY = this.nodeIdToTiles[removedId][x];
-				const mtX = this.megaTiles[Math.floor(x / this.MEGA_TILE_SIZE * this.TILE_SIZE)];
+				const mtX = this.megaTiles[Math.floor(x / MegaTile.SIZE * Tile.SIZE)];
 				for(const y in tY) {
 					rX[y] = tY[y];
 					delete this.tiles[x][y];
 					if(mtX !== undefined) {
-						const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
 						const megaTile = mtX[megaTilePositionY];
 						if(megaTile !== undefined) {
-							megaTile.adjacentNodeIds.delete(removedId);
-							if(!megaTile.cleared) {
-								for(const nodeId of megaTile.adjacentNodeIds) {
-									updatedNodeIds.add(nodeId);
-								}
-								const c = megaTile.canvas.getContext("2d");
-								c.beginPath();
-								c.rect(0, 0, megaTile.canvas.width, megaTile.canvas.height);
-								c.fillStyle = this.backgroundColor;
-								c.fill();
-								megaTile.cleared = true;
+							megaTile.removeNode(removedId);
+							for(const nodeId of megaTile.popRedraw()) {
+								updatedNodeIds.add(nodeId);
 							}
 						}
 					}
@@ -409,7 +400,7 @@ class RenderContext {
 		for(const x in recheckTiles) {
 			const rX = recheckTiles[x];
 			for(const y in rX) {
-				for(const nodeRef of rX[y].adjacentNodeRefs) {
+				for(const nodeRef of rX[y].getNearbyNodes()) {
 					updatedNodeIds.add(nodeRef.id);
 				}
 			}
@@ -428,12 +419,11 @@ class RenderContext {
 				this.nodeIdToTiles[nodeRef.id] = {};
 			}
 
-			const center = await nodeRef.center();
-			const centerTile = center.divideScalar(this.TILE_SIZE).round();
-			const type = await nodeRef.getPString("type");
-			const radius = await nodeRef.getPNumber("radius");
+			const center = await nodeRef.getCenter();
+			const centerTile = center.divideScalar(Tile.SIZE).round();
+			const radius = await nodeRef.getRadius();
 			if(radius > 0) {
-				const radiusTile = Math.ceil(radius / this.TILE_SIZE);
+				const radiusTile = Math.ceil(radius / Tile.SIZE);
 
 				for(let x = centerTile.x - radiusTile; x <= centerTile.x + radiusTile; x++) {
 					if(this.tiles[x] === undefined) {
@@ -444,7 +434,7 @@ class RenderContext {
 					}
 					const nodeIdToTileX = this.nodeIdToTiles[nodeRef.id][x];
 					const tilesX = this.tiles[x];
-					const megaTilePositionX = Math.floor(x / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+					const megaTilePositionX = Math.floor(x / MegaTile.SIZE * Tile.SIZE);
 
 					if(this.megaTiles[megaTilePositionX] === undefined) {
 						this.megaTiles[megaTilePositionX] = {};
@@ -452,127 +442,38 @@ class RenderContext {
 
 					const mtX = this.megaTiles[megaTilePositionX];
 					for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
-						const megaTilePositionY = Math.floor(y / this.MEGA_TILE_SIZE * this.TILE_SIZE);
+						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
 
 						if(mtX[megaTilePositionY] === undefined) {
-							const canvas = document.createElement("canvas");
-							canvas.width = this.MEGA_TILE_SIZE;
-							canvas.height = this.MEGA_TILE_SIZE;
-
-							mtX[megaTilePositionY] = {
-								point: new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(this.MEGA_TILE_SIZE),
-								adjacentNodeIds: new Set(),
-								canvas: canvas,
-							};
+							mtX[megaTilePositionY] = new MegaTile(this, new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(MegaTile.SIZE));
 						}
 
 						const megaTile = mtX[megaTilePositionY];
-						megaTile.cleared = false;
 
 						if(tilesX[y] === undefined) {
-							const corner = new Vector3(x * this.TILE_SIZE, y * this.TILE_SIZE, 0);
-
-							tilesX[y] = {
-								point: corner,
-								center: corner.add(new Vector3(this.TILE_SIZE / 2, this.TILE_SIZE / 2, 0)),
-								adjacentNodeRefs: [],
-								adjacentNodeTypes: new Set(),
-								adjacentCoreNodeTypes: new Set(),
-								edgeBorder: true,
-								hasEdgeBorder: false,
-								typeBorder: false,
-								border: false,
-								core: false,
-								closestNodeRef: null,
-								closestType: null,
-								closestDistance: Infinity,
-								megaTile: megaTile,
-								megaTileInternalPosition: corner.map((v) => mod(v, this.MEGA_TILE_SIZE)),
-							};
+							tilesX[y] = megaTile.makeTile(new Vector3(x * Tile.SIZE, y * Tile.SIZE, 0));
 						}
 
 						const tile = tilesX[y];
-						const distance = tile.center.subtract(center).length();
 
-						if(distance <= radius + this.TILE_SIZE / 2) {
+						if(await tile.addNode(nodeRef)) {
 							nodeIdToTileX[y] = tile;
 							actualTiles.push(tile);
-
-							tile.adjacentNodeRefs.push(nodeRef);
-							megaTile.adjacentNodeIds.add(nodeRef.id);
-							tile.adjacentNodeTypes.add(type);
-
-							if(distance < tile.closestDistance) {
-								const core = distance <= radius / 2;
-								tile.core = tile.core || core;
-								if(core) {
-									tile.adjacentCoreNodeTypes.add(type);
-								}
-								tile.edgeBorder = tile.edgeBorder && distance + this.TILE_SIZE / 2 >= radius;
-								tile.typeBorder = tile.typeBorder || tile.adjacentNodeTypes.size > 1;
-								tile.border = tile.edgeBorder || tile.typeBorder;
-								tile.closestNodeRef = nodeRef;
-								tile.closestType = type;
-								tile.closestDistance = distance;
-								tile.closestRadius = radius;
-							}
 						}
 					}
 				}
 			}
 		}
 
-		const colors = {
-			water: "darkblue",
-			grass: "lightgreen",
-			mountain: "gray",
-			forest: "darkgreen",
-		};
-
 		for(const tile of actualTiles) {
-			const c = tile.megaTile.canvas.getContext("2d");
-
-			if(tile.border) {
-				let possibleColors = [colors[tile.closestType]];
-
-				for(const adjacentType of tile.adjacentCoreNodeTypes) {
-					possibleColors.push(colors[adjacentType]);
-				}
-
-				if(tile.edgeBorder) {
-					possibleColors.push(this.backgroundColor);
-				}
-
-				if(tile.typeBorder && !tile.core) {
-					for(const adjacentType of tile.adjacentNodeTypes) {
-						possibleColors.push(colors[adjacentType]);
-					}
-				}
-
-				for(let px = tile.megaTileInternalPosition.x; px < tile.megaTileInternalPosition.x + this.TILE_SIZE; px += 4) {
-					for(let py = tile.megaTileInternalPosition.y; py < tile.megaTileInternalPosition.y + this.TILE_SIZE; py += 4) {
-						c.fillStyle = possibleColors[Math.floor(Math.random() * possibleColors.length)];
-						c.fillRect(px, py, 4, 4);
-					}
-				}
-			}
-			else {
-				c.fillStyle = colors[tile.closestType];
-				c.fillRect(tile.megaTileInternalPosition.x, tile.megaTileInternalPosition.y, this.TILE_SIZE, this.TILE_SIZE);
-			}
+			await tile.render();
 		}
 
 		this.requestRedraw();
 	}
 
-	/** Completely redraw the displayed UI. */
-	async redraw() {
+	async drawTiles() {
 		const c = this.canvas.getContext("2d");
-		c.beginPath();
-		c.rect(0, 0, this.canvas.width, this.canvas.height);
-		c.fillStyle = this.backgroundColor;
-		c.fill();
-
 		const tiles = this.megaTiles;
 
 		for (const x in tiles) {
@@ -584,7 +485,10 @@ class RenderContext {
 				c.drawImage(tile.canvas, point.x, point.y);
 			}
 		}
+	}
 
+	async drawSelection() {
+		const c = this.canvas.getContext("2d");
 		const toDraw = {};
 
 		for await (const nodeRef of this.drawnNodes()) {
@@ -627,22 +531,35 @@ class RenderContext {
 			const tX = toDraw[x];
 			for(const y in tX) {
 				const t = tX[y];
-				const point = this.mapPointToCanvas(t.tile.point);
+				const point = this.mapPointToCanvas(t.tile.corner);
 				c.globalAlpha = t.alpha;
 				c.strokeStyle = "white";
 				if(t.inHoverSelection) {
-					c.strokeRect(point.x, point.y, this.TILE_SIZE, this.TILE_SIZE);
+					c.strokeRect(point.x, point.y, Tile.SIZE, Tile.SIZE);
 				}
 				if(t.inSelection) {
-					c.strokeRect(point.x + 2, point.y + 2, this.TILE_SIZE - 2, this.TILE_SIZE - 2);
+					c.strokeRect(point.x + 2, point.y + 2, Tile.SIZE - 2, Tile.SIZE - 2);
 				}
 			}
 		}
 
 		c.globalAlpha = 1;
+	}
 
+	async drawBrush() {
 		await this.brush.draw(this.canvas.getContext("2d"), this.mousePosition);
+	}
 
+	async clearCanvas() {
+		const c = this.canvas.getContext("2d");
+		c.beginPath();
+		c.rect(0, 0, this.canvas.width, this.canvas.height);
+		c.fillStyle = this.backgroundColor;
+		c.fill();
+	}
+
+	async drawHelp() {
+		const c = this.canvas.getContext("2d");
 		c.font = "18px sans";
 		c.fillStyle = "white";
 
@@ -669,6 +586,17 @@ class RenderContext {
 			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
 		}
 		infoLine("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.");
+	}
+
+	/** Completely redraw the displayed UI. */
+	async redraw() {
+		await this.clearCanvas();
+
+		await this.drawTiles();
+		await this.drawSelection();
+		await this.drawBrush();
+
+		await this.drawHelp();
 	}
 
 	async * visibleNodes() {
@@ -741,8 +669,8 @@ class Mapper {
 	async insertNode(point, options) {
 		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null);
 		await nodeRef.setCenter(point);
-		await nodeRef.setPString("type", options.type);
-		await nodeRef.setPNumber("radius", options.radius);
+		await nodeRef.setType(options.type);
+		await nodeRef.setRadius(options.radius);
 		// TODO: connect nodes
 		//await this.connectNode(nodeRef, this.options);
 		await this.hooks.call("insertNode", nodeRef);
@@ -752,7 +680,7 @@ class Mapper {
 	async translateNode(originNodeRef, offset) {
 		const nodeRefs = await asyncFrom(originNodeRef.getSelfAndAllDescendants());
 		for(const nodeRef of nodeRefs) {
-			await nodeRef.setCenter((await nodeRef.center()).add(offset));
+			await nodeRef.setCenter((await nodeRef.getCenter()).add(offset));
 		}
 		await this.hooks.call("translateNodes", nodeRefs);
 	}

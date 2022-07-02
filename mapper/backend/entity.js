@@ -105,8 +105,24 @@ class NodeRef extends EntityRef {
 	/** Get the "center" property of this node.
 	 * @returns {Vector3}
 	 */
-	async center() {
+	async getCenter() {
 		return this.getPVector3("center");
+	}
+
+	async setType(type) {
+		return this.setPString("type", type.id);
+	}
+
+	async getType() {
+		return this.backend.nodeTypeRegistry.get(this.type);
+	}
+
+	async setRadius(radius) {
+		return this.setPNumber("radius", radius);
+	}
+
+	async getRadius() {
+		return this.getPNumber("radius");
 	}
 
 	/** Get all edges connected to this node.
@@ -143,7 +159,7 @@ class EdgeRef extends EntityRef {
 	 * @returns {Line3}
 	 */
 	async getLine() {
-		const [a, b] = await asyncFrom(this.getNodes(), async nodeRef => nodeRef.center());
+		const [a, b] = await asyncFrom(this.getNodes(), async nodeRef => nodeRef.getCenter());
 		return new Line3(a, b);
 	}
 

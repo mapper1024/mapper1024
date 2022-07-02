@@ -1,6 +1,8 @@
 import { Brush } from "./brush.js";
 import { BulkAction, RemoveAction } from "../actions/index.js";
 import { DrawEvent } from "../drag_events/draw_event.js";
+import { Selection } from "../selection.js";
+import { asyncFrom } from "../utils.js";
 
 class DeleteBrush extends Brush {
 	getDescription() {
@@ -13,7 +15,7 @@ class DeleteBrush extends Brush {
 
 	async * getNodesInBrush(brushPosition) {
 		for await (const nodeRef of this.context.drawnNodes()) {
-			if(this.context.mapPointToCanvas((await nodeRef.center())).subtract(brushPosition).length() <= this.getRadius() && await nodeRef.getPNumber("radius") > 0) {
+			if(this.context.mapPointToCanvas((await nodeRef.getCenter())).subtract(brushPosition).length() <= this.getRadius() && await nodeRef.getPNumber("radius") > 0) {
 				yield nodeRef;
 			}
 		}

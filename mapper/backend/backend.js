@@ -2,6 +2,7 @@ import { Vector3, Box3 } from "../geometry.js";
 import { EntityRef, NodeRef, EdgeRef, DirEdgeRef } from "./entity.js";
 import { HookContainer } from "../hook_container.js";
 import { asyncFrom } from "../utils.js";
+import { NodeTypeRegistry } from "../node_type.js";
 
 /** Abstract mapper backend, i.e. what map is being presented.
  * The backend translates between the concept of a map and a database, a file, an API, or whatever else is actually being used to store the data.
@@ -18,6 +19,7 @@ class MapBackend {
 	constructor() {
 		this.loaded = false;
 		this.hooks = new HookContainer();
+		this.nodeTypeRegistry = new NodeTypeRegistry();
 	}
 
 	/** Get a number property on an entity.
@@ -240,7 +242,7 @@ class MapBackend {
 	 * @returns {AsyncIterable.<NodeRef>} All the discovered nodes. Does not include the original node.
 	 */
 	async * getNearbyNodes(nodeRef, blendDistance) {
-		for await (const otherNodeRef of this.getNodesInArea(Box3.fromRadius(await nodeRef.center(), blendDistance))) {
+		for await (const otherNodeRef of this.getNodesInArea(Box3.fromRadius(await nodeRef.getCenter(), blendDistance))) {
 			if(otherNodeRef.id !== nodeRef.id) {
 				yield otherNodeRef;
 			}

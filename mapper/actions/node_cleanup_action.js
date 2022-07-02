@@ -22,7 +22,7 @@ class NodeCleanupAction extends Action {
 
 	async * getAllNodes() {
 		for await (const nodeRef of this.options.nodeRef.getSelfAndAllDescendants()) {
-			if(await nodeRef.getPString("type") === this.options.type) {
+			if(await nodeRef.getType().id === this.options.type.id) {
 				yield nodeRef;
 			}
 		}
@@ -35,7 +35,7 @@ class NodeCleanupAction extends Action {
 				yield {
 					nodeRef: nodeRef,
 					removable: !(await nodeRef.hasChildren()),
-					point: await nodeRef.center(),
+					point: await nodeRef.getCenter(),
 					radius: radius,
 				};
 			}

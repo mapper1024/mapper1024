@@ -35,7 +35,7 @@ class DrawPathAction extends Action {
 
 			if(radius > 0) {
 				placedNodes.push(await this.context.mapper.insertNode(vertex, {
-					type: this.options.nodeType,
+					type: this.options.nodeType.id,
 					radius: radius,
 					parent: this.options.parent,
 				}));

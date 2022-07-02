@@ -8,11 +8,11 @@ class AddBrush extends Brush {
 		super(context);
 
 		this.nodeTypeIndex = 1;
-		this.nodeTypes = ["water", "grass", "forest", "mountain"];
+		this.nodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
 	}
 
 	getDescription() {
-		return `Place ${this.getNodeType()} (size ${this.size})`;
+		return `Place ${this.getNodeType().getDescription()} (size ${this.size})`;
 	}
 
 	getNodeType() {
@@ -44,7 +44,7 @@ class AddBrush extends Brush {
 		};
 
 		const selectionParent = await mouseDragEvent.getSelectionParent();
-		if(selectionParent && await selectionParent.getPString("type") === this.getNodeType()) {
+		if(selectionParent && await selectionParent.getType().id === this.getNodeType().id) {
 			drawPathActionOptions.parent = selectionParent;
 		}
 
