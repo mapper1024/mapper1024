@@ -114,7 +114,7 @@ class NodeRef extends EntityRef {
 	}
 
 	async getType() {
-		return this.backend.nodeTypeRegistry.get(this.type);
+		return this.backend.nodeTypeRegistry.get(await this.getPString("type"));
 	}
 
 	async setRadius(radius) {

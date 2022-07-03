@@ -1,50 +1,23 @@
 import { Action, BulkAction, NodeCleanupAction, RemoveAction } from "./index.js";
 
 class DrawPathAction extends Action {
+	getPathOnMap() {
+		return this.options.path.mapOrigin((origin) => origin.add(this.options.scrollOffset)).withBisectedLines(this.options.radius);
+	}
+
 	async perform() {
-		const path = this.options.path;
-		const scrollOffset = this.options.scrollOffset;
-
-		const pathOnMap = path.mapOrigin((origin) => origin.add(scrollOffset)).withBisectedLines(this.options.radius);
-
 		const placedNodes = [];
 
-		if(!this.options.parent) {
-			this.options.parent = await this.context.mapper.insertNode(pathOnMap.getCenter(), {
-				type: this.options.nodeType,
-				radius: 0,
-			});
-
+		if(this.options.undoParent) {
 			placedNodes.push(this.options.parent);
 		}
 
-		const pathCenter = pathOnMap.getCenter();
-
-		const vertices = Array.from(pathOnMap.vertices()).sort((a, b) => a.subtract(pathCenter).lengthSquared() - b.subtract(pathCenter).lengthSquared());
-
-		const placedVertices = [];
-
-		const radius = this.options.radius;
-
-		placeEachVertex: for(const vertex of vertices) {
-			for(const placedVertex of placedVertices) {
-				if(placedVertex.point.subtract(vertex).length() < (radius + placedVertex.radius) / 4) {
-					continue placeEachVertex;
-				}
-			}
-
-			if(radius > 0) {
-				placedNodes.push(await this.context.mapper.insertNode(vertex, {
-					type: this.options.nodeType.id,
-					radius: radius,
-					parent: this.options.parent,
-				}));
-
-				placedVertices.push({
-					point: vertex,
-					radius: radius,
-				});
-			}
+		for(const vertex of this.getPathOnMap().vertices()) {
+			placedNodes.push(await this.context.mapper.insertNode(vertex, {
+				type: this.options.nodeType,
+				radius: this.options.radius,
+				parent: this.options.parent,
+			}));
 		}
 
 		const undoAction = new RemoveAction(this.context, {

@@ -1,7 +1,7 @@
 class NodeType {
 	constructor(id, def) {
-		this.id = id
-		this.def = def
+		this.id = id;
+		this.def = def;
 	}
 
 	getDescription() {
@@ -10,7 +10,7 @@ class NodeType {
 }
 
 class NodeTypeRegistry {
-	constructor(context) {
+	constructor() {
 		this.types = {};
 
 		this.registerType(new NodeType("water", {

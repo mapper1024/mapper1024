@@ -8,10 +8,10 @@ class NodeCleanupAction extends Action {
 		const vertices = (await asyncFrom(this.getAllVertices())).sort((a, b) => a.radius - b.radius);
 
 		for(const vertex of vertices) {
-			if(vertex.removable) {
+			if(!toRemove.has(vertex.nodeRef.id)) {
 				for(const otherVertex of vertices) {
-					if(!toRemove.has(otherVertex.nodeRef.id) && otherVertex !== vertex && otherVertex.point.subtract(vertex.point).length() < (vertex.radius + otherVertex.radius) / 4) {
-						toRemove.add(vertex.nodeRef.id);
+					if(otherVertex.removable && otherVertex.nodeRef.id !== vertex.nodeRef.id && otherVertex.point.subtract(vertex.point).length() < (vertex.radius + otherVertex.radius) / 4) {
+						toRemove.add(otherVertex.nodeRef.id);
 					}
 				}
 			}
@@ -22,7 +22,7 @@ class NodeCleanupAction extends Action {
 
 	async * getAllNodes() {
 		for await (const nodeRef of this.options.nodeRef.getSelfAndAllDescendants()) {
-			if(await nodeRef.getType().id === this.options.type.id) {
+			if((await nodeRef.getType()).id === this.options.type.id) {
 				yield nodeRef;
 			}
 		}
@@ -30,7 +30,7 @@ class NodeCleanupAction extends Action {
 
 	async * getAllVertices() {
 		for await (const nodeRef of this.getAllNodes()) {
-			const radius = await nodeRef.getPNumber("radius");
+			const radius = await nodeRef.getRadius();
 			if(radius > 0) {
 				yield {
 					nodeRef: nodeRef,

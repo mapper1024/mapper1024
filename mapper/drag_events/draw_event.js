@@ -2,11 +2,10 @@ import { DragEvent } from "./drag_event.js";
 import { BulkAction } from "../actions/bulk_action.js";
 
 class DrawEvent extends DragEvent {
-	constructor(context, startPoint, cumulative) {
+	constructor(context, startPoint) {
 		super(context, startPoint);
 
 		this.undoActions = [];
-		this.cumulative = cumulative;
 	}
 
 	getUndoAction() {
@@ -24,17 +23,9 @@ class DrawEvent extends DragEvent {
 	async end(endPoint) {
 		super.end(endPoint);
 
-		if(!this.cumulative) {
-			await this.clear();
-		}
-
-		this.undoActions.push(await this.trigger(this.cumulative ? this.path.asMostRecent() : this.path));
+		this.undoActions.push(await this.trigger(this.path.asMostRecent()));
 
 		this.context.pushUndo(this.getUndoAction());
-	}
-
-	async clear() {
-		return await this.context.performAction(this.getUndoAction(), false);
 	}
 
 	async trigger(path) {

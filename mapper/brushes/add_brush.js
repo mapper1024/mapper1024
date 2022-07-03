@@ -41,18 +41,30 @@ class AddBrush extends Brush {
 			nodeType: this.getNodeType(),
 			scrollOffset: this.context.scrollOffset,
 			fullCalculation: mouseDragEvent.done,
+			parent: this.parentNode,
+			undoParent: this.undoParent,
 		};
-
-		const selectionParent = await mouseDragEvent.getSelectionParent();
-		if(selectionParent && await selectionParent.getType().id === this.getNodeType().id) {
-			drawPathActionOptions.parent = selectionParent;
-		}
 
 		return await this.context.performAction(new DrawPathAction(this.context, drawPathActionOptions));
 	}
 
 	async activate(where) {
-		return new DrawEvent(this.context, where, false);
+		const mouseDragEvent = new DrawEvent(this.context, where);
+
+		const selectionParent = await mouseDragEvent.getSelectionParent();
+		if(selectionParent && (await selectionParent.getType()).id === this.getNodeType().id) {
+			this.parentNode = selectionParent;
+			this.undoParent = false;
+		}
+		else {
+			this.parentNode = await this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
+				type: this.getNodeType(),
+				radius: 0,
+			});
+			this.undoParent = true;
+		}
+
+		return mouseDragEvent;
 	}
 }
 

@@ -5,7 +5,7 @@ class Tile {
 	constructor(megaTile, corner) {
 		this.context = megaTile.context;
 		this.megaTile = megaTile;
-		this.nearbyNodeIds = new Set();
+		this.nearbyNodes = new Map();
 		this.corner = corner;
 	}
 
@@ -20,7 +20,7 @@ class Tile {
 	async addNode(nodeRef) {
 		const distance = (await nodeRef.getCenter()).subtract(this.getCenter()).length();
 		if(distance <= (await nodeRef.getRadius()) + Tile.SIZE / 2) {
-			this.nearbyNodeIds.add(nodeRef.id);
+			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);
 			return true;
 		}
@@ -30,20 +30,18 @@ class Tile {
 	}
 
 	* getNearbyNodes() {
-		for(const nodeId of this.nearbyNodeIds) {
-			yield this.context.mapper.backend.getNodeRef(nodeId);
-		}
+		yield* this.nearbyNodes.values();
 	}
 
 	async render() {
 		const position = this.getMegaTilePosition();
 		const c = this.megaTile.canvas.getContext("2d");
-		c.fillStyle = "blue";
+		c.fillStyle = this.nearbyNodes.size > 1 ? "red" : "blue";
 		c.fillRect(position.x, position.y, Tile.SIZE, Tile.SIZE);
 	}
 }
 
-Tile.SIZE = 32
+Tile.SIZE = 32;
 Tile.HALF_SIZE_VECTOR = new Vector3(Tile.SIZE / 2, Tile.SIZE / 2, 0);
 
 class MegaTile {
@@ -94,6 +92,6 @@ class MegaTile {
 	}
 }
 
-MegaTile.SIZE = Tile.SIZE * 4;
+MegaTile.SIZE = Tile.SIZE * 8;
 
 export { Tile, MegaTile };

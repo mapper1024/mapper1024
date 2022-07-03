@@ -588,6 +588,17 @@ class RenderContext {
 		infoLine("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.");
 	}
 
+	async drawDebug() {
+		const c = this.canvas.getContext("2d");
+		for await (const nodeRef of this.drawnNodes()) {
+			const position = this.mapPointToCanvas(await nodeRef.getCenter());
+			c.beginPath();
+			c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
+			c.strokeStyle = "white";
+			c.stroke();
+		}
+	}
+
 	/** Completely redraw the displayed UI. */
 	async redraw() {
 		await this.clearCanvas();
@@ -597,6 +608,10 @@ class RenderContext {
 		await this.drawBrush();
 
 		await this.drawHelp();
+
+		if(this.isKeyDown("`")) {
+			await this.drawDebug();
+		}
 	}
 
 	async * visibleNodes() {

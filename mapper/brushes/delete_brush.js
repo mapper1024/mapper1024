@@ -10,7 +10,7 @@ class DeleteBrush extends Brush {
 	}
 
 	async activate(where) {
-		return new DrawEvent(this.context, where, true);
+		return new DrawEvent(this.context, where);
 	}
 
 	async * getNodesInBrush(brushPosition) {
