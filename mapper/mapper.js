@@ -709,13 +709,16 @@ class Mapper {
 		}
 
 		const nodeRefsWithChildren = Array.from(nodeIds, (nodeId) => this.backend.getNodeRef(nodeId));
+		const removedNodeRefs = [];
 
 		await this.hooks.call("removeNodes", nodeRefsWithChildren);
 		for(const nodeRef of nodeRefsWithChildren) {
-			await nodeRef.remove();
+			if(await nodeRef.remove()) {
+				removedNodeRefs.push(nodeRef);
+			}
 		}
 
-		return nodeRefsWithChildren;
+		return removedNodeRefs;
 	}
 
 	async unremoveNodes(nodeRefs) {

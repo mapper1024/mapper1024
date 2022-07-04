@@ -72,7 +72,7 @@ class SQLiteMapBackend extends MapBackend {
 
 		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
 		this.s_deleteEntity = this.db.prepare("DELETE FROM entity WHERE entityid = $entityId");
-		this.s_invalidateEntity = this.db.prepare("UPDATE entity SET valid = FALSE WHERE entityid = $entityId");
+		this.s_invalidateEntity = this.db.prepare("UPDATE entity SET valid = FALSE WHERE entityid = $entityId AND valid = TRUE");
 		this.s_validateEntity = this.db.prepare("UPDATE entity SET valid = TRUE WHERE entityid = $entityId");
 
 		/* Find or create the global entity.
@@ -162,7 +162,7 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async removeEntity(entityId) {
-		this.s_invalidateEntity.run({entityId: entityId});
+		return this.s_invalidateEntity.run({entityId: entityId}).changes > 0;
 	}
 
 	async unremoveEntity(entityId) {

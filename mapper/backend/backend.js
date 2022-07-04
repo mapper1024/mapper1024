@@ -153,6 +153,7 @@ class MapBackend {
 
 	/** Remove an edge from the backend.
 	 * Has a default implementation that just removes the entity.
+	 * @returns {boolean} Was the edge actually removed?
 	 */
 	async removeEdge(edgeId) {
 		return this.removeEntity(edgeId);
@@ -160,6 +161,7 @@ class MapBackend {
 
 	/** Remove a node from the backend.
 	 * Has a default implementation that just removes the entity.
+	 * @returns {boolean} Was the node actually removed?
 	 */
 	async removeNode(nodeId) {
 		return this.removeEntity(nodeId);
@@ -176,6 +178,7 @@ class MapBackend {
 	/** Remove an entity from the backend.
 	 * This method should work to remove any entity.
 	 * However, calling code should use #removeEdge() and #removeNode() when applicable instead, for potential optimization purposes.
+	 * @returns {boolean} Was the entity actually removed?
 	 */
 	async removeEntity(entityId) {
 		entityId;

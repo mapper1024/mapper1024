@@ -8,10 +8,6 @@ class DrawPathAction extends Action {
 	async perform() {
 		const placedNodes = [];
 
-		if(this.options.undoParent) {
-			placedNodes.push(this.options.parent);
-		}
-
 		for(const vertex of this.getPathOnMap().vertices()) {
 			placedNodes.push(await this.context.mapper.insertNode(vertex, {
 				type: this.options.nodeType,
@@ -20,19 +16,16 @@ class DrawPathAction extends Action {
 			}));
 		}
 
-		const undoAction = new RemoveAction(this.context, {
+		if(this.options.fullCalculation) {
+			if(this.options.undoParent) {
+				placedNodes.push(this.options.parent);
+			}
+			await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false);
+		}
+
+		return new RemoveAction(this.context, {
 			nodeRefs: placedNodes,
 		});
-
-		if(this.options.fullCalculation) {
-			const undoCleanupAction = await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false);
-			return new BulkAction(this.context, {
-				actions: [undoCleanupAction, undoAction],
-			});
-		}
-		else {
-			return undoAction;
-		}
 	}
 
 	empty() {
