@@ -5,7 +5,7 @@ class NodeCleanupAction extends Action {
 	async perform() {
 		const toRemove = new Set();
 
-		const vertices = (await asyncFrom(this.getAllVertices())).sort((a, b) => a.radius - b.radius);
+		const vertices = (await asyncFrom(this.getAllVertices())).sort((a, b) => b.radius - a.radius);
 
 		for(const vertex of vertices) {
 			if(!toRemove.has(vertex.nodeRef.id)) {
