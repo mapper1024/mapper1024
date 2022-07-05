@@ -1,6 +1,18 @@
 import { Vector3 } from "./geometry.js";
 import { mod } from "./utils.js";
 
+const dirs = {};
+
+dirs.N = new Vector3(0, -1, 0);
+dirs.S = new Vector3(0, 1, 0);
+dirs.W = new Vector3(-1, 0, );
+dirs.E = new Vector3(1, 0, 0);
+
+dirs.NW = dirs.N.add(dirs.W);
+dirs.NE = dirs.N.add(dirs.E);
+dirs.SW = dirs.S.add(dirs.W);
+dirs.SE = dirs.S.add(dirs.E);
+
 class Tile {
 	constructor(megaTile, corner) {
 		this.context = megaTile.context;
@@ -15,6 +27,10 @@ class Tile {
 
 	getCenter() {
 		return this.corner.add(Tile.HALF_SIZE_VECTOR);
+	}
+
+	getMegatileCenterPosition() {
+		return this.getMegaTilePosition().add(Tile.HALF_SIZE_VECTOR);
 	}
 
 	getMegaTilePosition() {
@@ -47,11 +63,32 @@ class Tile {
 		yield* this.nearbyNodes.values();
 	}
 
+	* getNeighborTiles() {
+		const origin = this.getTilePosition();
+		for(const dirName in dirs) {
+			const dir = dirs[dirName];
+			const otherTilePosition = origin.add(dir);
+			const otherTileX = this.context.tiles[otherTilePosition.x];
+			let otherTile;
+			if(otherTileX) {
+				otherTile = otherTileX[otherTilePosition.y];
+			}
+			yield [dirName, dir, otherTile];
+		}
+	}
+
 	async render() {
 		const position = this.getMegaTilePosition();
+		const centerPosition = this.getMegatileCenterPosition();
 		const c = this.megaTile.canvas.getContext("2d");
 		c.fillStyle = this.closestNodeType.def.color;
 		c.fillRect(position.x, position.y, Tile.SIZE, Tile.SIZE);
+
+		for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+			const p = centerPosition.add(dir.multiplyScalar(Tile.SIZE / 4));
+			c.fillStyle = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.def.color : "black";
+			c.fillRect(p.x - 4, p.y - 4, 8, 8);
+		}
 	}
 }
 
