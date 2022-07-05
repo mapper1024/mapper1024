@@ -7,17 +7,6 @@ class Tile {
 		this.megaTile = megaTile;
 		this.nearbyNodes = new Map();
 		this.corner = corner;
-
-		this.corners = {}
-
-		for(const corner in Tile.CORNERS) {
-			const c = Tile.CORNERS[corner];
-			this.corners[corner] = {
-				point: this.corner.add(c.offset),
-				closestNodeRef: null,
-				closestDistance: Infinity,
-			}
-		}
 	}
 
 	getCenter() {
@@ -29,24 +18,10 @@ class Tile {
 	}
 
 	async addNode(nodeRef) {
-		const nodeCenter = await nodeRef.getCenter();
-		const distanceToCenter = nodeCenter.subtract(this.getCenter()).length();
-		if(distanceToCenter <= (await nodeRef.getRadius()) + Tile.SIZE / 2) {
-			this.nearbyNodes.set(nodeRef.id, {
-				distance: distanceToCenter,
-				nodeRef: nodeRef,
-			});
+		const distance = (await nodeRef.getCenter()).subtract(this.getCenter()).length();
+		if(distance <= (await nodeRef.getRadius()) + Tile.SIZE / 2) {
+			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);
-
-			for(const corner in this.corners) {
-				const c = this.corners[corner];
-				const distanceToCorner = (corner === "center") ? distanceToCenter : nodeCenter.subtract(c.point).length();
-				if(distanceToCorner < c.closestDistance) {
-					c.closestDistance = distanceToCorner;
-					c.closestNodeRef = nodeRef;
-				}
-			}
-
 			return true;
 		}
 		else {
@@ -55,65 +30,19 @@ class Tile {
 	}
 
 	* getNearbyNodes() {
-		for(const nearby of this.nearbyNodes.values()) {
-			yield nearby.nodeRef;
-		}
+		yield* this.nearbyNodes.values();
 	}
 
 	async render() {
 		const position = this.getMegaTilePosition();
-		const context = this.megaTile.canvas.getContext("2d");
-		const center = this.getCenter();
-		for(const corner in this.corners) {
-			const c = this.corners[corner];
-			const ct = Tile.CORNERS[corner];
-			context.fillStyle = (await c.closestNodeRef.getType()).def.color.toCSS();
-			if(ct.dir) {
-				const offsetPosition = position.add(ct.offset);
-				context.beginPath();
-				context.moveTo(offsetPosition.x, offsetPosition.y);
-				context.lineTo(offsetPosition.x + Tile.SIZE * ct.dir.x, offsetPosition.y);
-				context.lineTo(offsetPosition.x, offsetPosition.y + Tile.SIZE * ct.dir.y);
-				context.closePath();
-				context.fill();
-			}
-			else {
-				context.beginPath();
-				context.moveTo(position.x + Tile.SIZE / 2, position.y);
-				context.lineTo(position.x + Tile.SIZE, position.y + Tile.SIZE / 2);
-				context.lineTo(position.x + Tile.SIZE / 2, position.y + Tile.SIZE);
-				context.lineTo(position.x, position.y + Tile.SIZE / 2);
-				context.closePath();
-				context.fill();
-			}
-		}
+		const c = this.megaTile.canvas.getContext("2d");
+		c.fillStyle = this.nearbyNodes.size > 1 ? "red" : "blue";
+		c.fillRect(position.x, position.y, Tile.SIZE, Tile.SIZE);
 	}
 }
 
 Tile.SIZE = 32;
 Tile.HALF_SIZE_VECTOR = new Vector3(Tile.SIZE / 2, Tile.SIZE / 2, 0);
-Tile.CORNERS = {
-	center: {
-		offset: Tile.HALF_SIZE_VECTOR,
-		dir: null,
-	},
-	nw: {
-		offset: Vector3.ZERO,
-		dir: new Vector3(1, 1, 0),
-	},
-	ne: {
-		offset: new Vector3(Tile.SIZE, 0, 0),
-		dir: new Vector3(-1, 1, 0),
-	},
-	sw: {
-		offset: new Vector3(0, Tile.SIZE, 0),
-		dir: new Vector3(1, -1, 0),
-	},
-	se: {
-		offset: new Vector3(Tile.SIZE, Tile.SIZE, 0),
-		dir: new Vector3(-1, -1, 0),
-	},
-}
 
 class MegaTile {
 	constructor(context, point) {
