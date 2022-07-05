@@ -23,6 +23,7 @@ class Tile {
 		this.closestNodeRef = null;
 		this.closestNodeType = null;
 		this.closestNodeDistance = Infinity;
+		this.closestNodeIsOverpowering = false;
 	}
 
 	getCenter() {
@@ -42,14 +43,17 @@ class Tile {
 	}
 
 	async addNode(nodeRef) {
-		const distance = (await nodeRef.getCenter()).subtract(this.getCenter()).length();
-		if(distance <= (await nodeRef.getRadius()) + Tile.SIZE / 2) {
+		const nodeCenter = await nodeRef.getCenter();
+		const distance = nodeCenter.subtract(this.getCenter()).length();
+		const nodeRadius = await nodeRef.getRadius();
+		if(distance <= nodeRadius + Tile.SIZE / 2) {
 			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);
 
 			if(distance < this.closestNodeDistance) {
 				this.closestNodeRef = nodeRef;
 				this.closestNodeType = await nodeRef.getType();
+				this.closestNodeIsOverpowering = distance < nodeRadius - Tile.SIZE / 2;
 			}
 
 			return true;
@@ -84,10 +88,12 @@ class Tile {
 		c.fillStyle = this.closestNodeType.def.color;
 		c.fillRect(position.x, position.y, Tile.SIZE, Tile.SIZE);
 
-		for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
-			const p = centerPosition.add(dir.multiplyScalar(Tile.SIZE / 4));
-			c.fillStyle = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.def.color : "black";
-			c.fillRect(p.x - 4, p.y - 4, 8, 8);
+		if(!this.closestNodeIsOverpowering) {
+			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+				const p = centerPosition.add(dir.multiplyScalar(Tile.SIZE / 4));
+				c.fillStyle = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.def.color : "black";
+				c.fillRect(p.x - Tile.SIZE / 2, p.y - Tile.SIZE / 2, Tile.SIZE / 2, Tile.SIZE / 2);
+			}
 		}
 	}
 }
