@@ -1,3 +1,5 @@
+import { Color } from "./color.js";
+
 class NodeType {
 	constructor(id, def) {
 		this.id = id;
@@ -14,19 +16,19 @@ class NodeTypeRegistry {
 		this.types = {};
 
 		this.registerType(new NodeType("water", {
-			color: "darkblue",
+			color: Color.fromRGB(0, 0, 0.5),
 		}));
 
 		this.registerType(new NodeType("grass", {
-			color: "lightgreen",
+			color: Color.fromRGB(0, 0.75, 0),
 		}));
 
 		this.registerType(new NodeType("forest", {
-			color: "darkgreen",
+			color: Color.fromRGB(0, 0.5, 0),
 		}));
 
 		this.registerType(new NodeType("mountain", {
-			color: "gray",
+			color: Color.fromRGB(0.5, 0.5, 0.5),
 		}));
 	}
 
