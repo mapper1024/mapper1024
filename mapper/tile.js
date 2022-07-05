@@ -7,6 +7,10 @@ class Tile {
 		this.megaTile = megaTile;
 		this.nearbyNodes = new Map();
 		this.corner = corner;
+
+		this.closestNodeRef = null;
+		this.closestNodeType = null;
+		this.closestNodeDistance = Infinity;
 	}
 
 	getCenter() {
@@ -17,11 +21,21 @@ class Tile {
 		return this.corner.map((v) => mod(v, MegaTile.SIZE));
 	}
 
+	getTilePosition() {
+		return this.corner.map((v) => Math.floor(v / Tile.SIZE));
+	}
+
 	async addNode(nodeRef) {
 		const distance = (await nodeRef.getCenter()).subtract(this.getCenter()).length();
 		if(distance <= (await nodeRef.getRadius()) + Tile.SIZE / 2) {
 			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);
+
+			if(distance < this.closestNodeDistance) {
+				this.closestNodeRef = nodeRef;
+				this.closestNodeType = await nodeRef.getType();
+			}
+
 			return true;
 		}
 		else {
@@ -36,7 +50,7 @@ class Tile {
 	async render() {
 		const position = this.getMegaTilePosition();
 		const c = this.megaTile.canvas.getContext("2d");
-		c.fillStyle = this.nearbyNodes.size > 1 ? "red" : "blue";
+		c.fillStyle = this.closestNodeType.def.color;
 		c.fillRect(position.x, position.y, Tile.SIZE, Tile.SIZE);
 	}
 }
