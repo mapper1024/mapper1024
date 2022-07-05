@@ -13,6 +13,8 @@ dirs.NE = dirs.N.add(dirs.E);
 dirs.SW = dirs.S.add(dirs.W);
 dirs.SE = dirs.S.add(dirs.E);
 
+const tileRenders = {};
+
 class Tile {
 	constructor(megaTile, corner) {
 		this.context = megaTile.context;
@@ -84,18 +86,33 @@ class Tile {
 	async render() {
 		const position = this.getMegaTilePosition();
 		const centerPosition = this.getMegatileCenterPosition();
-		const c = this.megaTile.canvas.getContext("2d");
-		c.fillStyle = this.closestNodeType.def.color;
-		c.fillRect(position.x, position.y, Tile.SIZE, Tile.SIZE);
+
+		const key = [this.closestNodeType.id];
 
 		if(!this.closestNodeIsOverpowering) {
 			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
 				dirName;
-				const p = centerPosition.add(dir.multiplyScalar(Tile.SIZE / 4));
-				c.fillStyle = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.def.color : "black";
-				c.fillRect(p.x - Tile.SIZE / 2, p.y - Tile.SIZE / 2, Tile.SIZE / 2, Tile.SIZE / 2);
+				dir;
+				const otherType = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.id : "null";
+				key.push(` ${otherType}`);
 			}
 		}
+
+		let keyString = key.join(" ");
+
+		if(tileRenders[keyString] === undefined) {
+			console.log(keyString);
+			const canvas = tileRenders[keyString] = document.createElement("canvas");
+			canvas.width = Tile.SIZE;
+			canvas.height = Tile.SIZE;
+
+			const c = canvas.getContext("2d");
+			c.fillStyle = this.closestNodeType.def.color;
+			c.fillRect(0, 0, Tile.SIZE, Tile.SIZE);
+		}
+
+		const megaTileContext = this.megaTile.canvas.getContext("2d");
+		megaTileContext.drawImage(tileRenders[keyString], position.x, position.y);
 	}
 }
 
