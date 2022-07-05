@@ -90,6 +90,7 @@ class Tile {
 
 		if(!this.closestNodeIsOverpowering) {
 			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+				dirName;
 				const p = centerPosition.add(dir.multiplyScalar(Tile.SIZE / 4));
 				c.fillStyle = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.def.color : "black";
 				c.fillRect(p.x - Tile.SIZE / 2, p.y - Tile.SIZE / 2, Tile.SIZE / 2, Tile.SIZE / 2);

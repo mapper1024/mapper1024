@@ -1,4 +1,4 @@
-import { Action, BulkAction, NodeCleanupAction, RemoveAction } from "./index.js";
+import { Action, NodeCleanupAction, RemoveAction } from "./index.js";
 
 class DrawPathAction extends Action {
 	getPathOnMap() {
