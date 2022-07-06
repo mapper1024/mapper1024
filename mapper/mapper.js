@@ -19,6 +19,8 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.keyboardShortcuts = [];
+
 		this.wantRedraw = true;
 
 		this.recalculateViewport = true;
@@ -115,6 +117,13 @@ class RenderContext {
 
 		this.canvas.addEventListener("keydown", async (event) => {
 			this.pressedKeys[event.key] = true;
+			for(const shortcut of this.keyboardShortcuts) {
+				if(shortcut.filter(this, event)) {
+					if(await shortcut.handler() !== true) {
+						return;
+					}
+				}
+			}
 			if(event.key === "z") {
 				const undo = this.undoStack.pop();
 				if(undo !== undefined) {
@@ -176,6 +185,13 @@ class RenderContext {
 		setTimeout(this.redrawLoop.bind(this), 10);
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
+	}
+
+	registerKeyboardShortcut(filter, handler) {
+		this.keyboardShortcuts.push({
+			filter: filter,
+			handler: handler,
+		});
 	}
 
 	changeBrush(brush) {

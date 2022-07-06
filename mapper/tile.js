@@ -85,7 +85,6 @@ class Tile {
 
 	async render() {
 		const position = this.getMegaTilePosition();
-		const centerPosition = this.getMegatileCenterPosition();
 
 		const key = [this.closestNodeType.id];
 
@@ -123,6 +122,7 @@ class Tile {
 	}
 
 	static async renderMaster(canvas, type, neighbors) {
+		neighbors;
 		const c = canvas.getContext("2d");
 
 		function fillRandomPixels(colors, pixelSize) {
