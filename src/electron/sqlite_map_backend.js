@@ -162,7 +162,7 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async removeEntity(entityId) {
-		return this.s_invalidateEntity.run({entityId: entityId}).changes > 0;
+		this.s_invalidateEntity.run({entityId: entityId});
 	}
 
 	async unremoveEntity(entityId) {

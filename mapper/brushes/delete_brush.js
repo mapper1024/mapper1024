@@ -58,7 +58,9 @@ class DeleteBrush extends Brush {
 	}
 
 	async trigger(path) {
-		return await this.context.performAction(await this.triggerOnPath(path));
+		const action = await this.triggerOnPath(path);
+		const undoAction = await this.context.performAction(action);
+		return undoAction;
 	}
 }
 
