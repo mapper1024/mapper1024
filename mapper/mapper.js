@@ -217,7 +217,7 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const center = this.mapPointToCanvas(await nodeRef.getCenter());
 			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-			if(distanceSquared < (await nodeRef.getRadius()) ** 2 && (!closestDistanceSquared || distanceSquared <= closestDistanceSquared)) {
+			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < (await nodeRef.getRadius()) ** 2) {
 				closestNodeRef = nodeRef;
 				closestDistanceSquared = distanceSquared;
 			}
