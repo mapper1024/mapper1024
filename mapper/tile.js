@@ -94,25 +94,62 @@ class Tile {
 				dirName;
 				dir;
 				const otherType = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.id : "null";
-				key.push(` ${otherType}`);
+				key.push(otherType);
 			}
 		}
 
-		let keyString = key.join(" ");
+		const keyString = key.join(" ");
 
 		if(tileRenders[keyString] === undefined) {
-			console.log(keyString);
-			const canvas = tileRenders[keyString] = document.createElement("canvas");
+			const canvas = document.createElement("canvas");
 			canvas.width = Tile.SIZE;
 			canvas.height = Tile.SIZE;
 
-			const c = canvas.getContext("2d");
-			c.fillStyle = this.closestNodeType.def.color;
-			c.fillRect(0, 0, Tile.SIZE, Tile.SIZE);
+			const neighbors = {};
+
+			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+				neighbors[dirName] = {
+					dir: dir,
+					type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
+				};
+			}
+
+			await Tile.renderMaster(canvas, this.closestNodeType, neighbors);
+			tileRenders[keyString] = canvas;
 		}
 
 		const megaTileContext = this.megaTile.canvas.getContext("2d");
 		megaTileContext.drawImage(tileRenders[keyString], position.x, position.y);
+	}
+
+	static async renderMaster(canvas, type, neighbors) {
+		const c = canvas.getContext("2d");
+
+		function fillRandomPixels(colors, pixelSize) {
+			for(let x = 0; x < canvas.width; x += pixelSize) {
+				for(let y = 0; y < canvas.height; y += pixelSize) {
+					c.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+					c.fillRect(x, y, pixelSize, pixelSize);
+				}
+			}
+		}
+
+		if(type.id === "grass") {
+			fillRandomPixels(["green", "forestgreen", "mediumseagreen", "seagreen"], 1);
+		}
+		else if(type.id === "water") {
+			fillRandomPixels(["blue", "skyblue", "aqua", "deepskyblue"], 1);
+		}
+		else if(type.id === "forest") {
+			fillRandomPixels(["darkgreen", "forestgreen", "darkseagreen", "olivedrab"], 2);
+		}
+		else if(type.id === "rocks") {
+			fillRandomPixels(["slategray", "black", "gray", "lightslategray", "darkgray"], 2);
+		}
+		else {
+			c.fillStyle = type.def.color;
+			c.fillRect(0, 0, Tile.SIZE, Tile.SIZE);
+		}
 	}
 }
 

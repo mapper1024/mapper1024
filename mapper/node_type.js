@@ -25,7 +25,7 @@ class NodeTypeRegistry {
 			color: "darkgreen",
 		}));
 
-		this.registerType(new NodeType("mountain", {
+		this.registerType(new NodeType("rocks", {
 			color: "gray",
 		}));
 	}
