@@ -47,6 +47,8 @@ class RenderContext {
 		this.oldMousePosition = Vector3.ZERO;
 		this.mousePosition = Vector3.ZERO;
 
+		this.debugMode = false;
+
 		this.scrollOffset = Vector3.ZERO;
 
 		this.brush = new AddBrush(this);
@@ -124,16 +126,21 @@ class RenderContext {
 					}
 				}
 			}
-			if(event.key === "z") {
-				const undo = this.undoStack.pop();
-				if(undo !== undefined) {
-					this.redoStack.push(await this.performAction(undo, false));
+			if(this.isKeyDown("Control")) {
+				if(event.key === "z") {
+					const undo = this.undoStack.pop();
+					if(undo !== undefined) {
+						this.redoStack.push(await this.performAction(undo, false));
+					}
 				}
-			}
-			else if(event.key === "y") {
-				const redo = this.redoStack.pop();
-				if(redo !== undefined) {
-					this.pushUndo(await this.performAction(redo, false), true);
+				else if(event.key === "y") {
+					const redo = this.redoStack.pop();
+					if(redo !== undefined) {
+						this.pushUndo(await this.performAction(redo, false), true);
+					}
+				}
+				else if(event.key === "c") {
+					this.scrollOffset = Vector3.ZERO;
 				}
 			}
 			else if(event.key === "d") {
@@ -144,6 +151,9 @@ class RenderContext {
 			}
 			else if(event.key === "s") {
 				this.changeBrush(new SelectBrush(this));
+			}
+			else if(event.key === "`") {
+				this.debugMode = !this.debugMode;
 			}
 			this.requestRedraw();
 		});
@@ -601,7 +611,8 @@ class RenderContext {
 			infoLine("Click to delete. Hold Shift to delete an entire object.");
 			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
 		}
-		infoLine("Right click to move map. Ctrl+Z is undo, Ctrl+Y is redo.");
+		infoLine("Right click to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo.");
+		infoLine("Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S to save as, ` to toggle debug mode.");
 	}
 
 	async drawDebug() {
@@ -625,7 +636,7 @@ class RenderContext {
 
 		await this.drawHelp();
 
-		if(this.isKeyDown("`")) {
+		if(this.debugMode) {
 			await this.drawDebug();
 		}
 	}
