@@ -10,14 +10,22 @@ class SQLiteMapBackend extends MapBackend {
 	 * Note that the file will not be opened or created until #load() is called.
 	 * The backend cannot be used until #load() finishes.
 	 */
-	constructor(filename) {
+	constructor(filename, options) {
 		super();
 		this.filename = filename;
+		this.options = options ?? {};
 	}
 
 	/** Open the backend database, or create it if it does not exist. */
 	async load() {
-		this.db = Database(this.filename);
+		if(this.options.autosave) {
+			this.db = Database(this.filename);
+		}
+		else {
+			const db = Database(this.filename);
+			this.db = Database(db.serialize());
+			db.close();
+		}
 
 		// We use foreign keys and recursive triggers to delete child nodes and edges.
 		this.db.pragma("foreign_keys = ON");
@@ -114,11 +122,15 @@ class SQLiteMapBackend extends MapBackend {
 		await this.hooks.call("loaded");
 	}
 
-	async duplicate(filename) {
+	async flush() {
+		if(!this.options.autosave) {
+			await this.save(this.filename);
+		}
+	}
+
+	async save(filename) {
 		await this.db.backup(filename);
-		const backend = new SQLiteMapBackend(filename);
-		await backend.load();
-		return backend;
+		return new SQLiteMapBackend(filename);
 	}
 
 	baseCreateEntity(type) {

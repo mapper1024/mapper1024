@@ -71,9 +71,12 @@ async function loadMap(backend) {
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "S", async () => saveAs());
 
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "s", async () => {
-		// If this is a temporary file, show the option to save to a permanent file. Otherwise the SQLite backend autosaves.
 		if(openPathIsTemporary) {
 			saveAs();
+		}
+		else {
+			backend.flush();
+			mapper.clearUnsavedChangeState();
 		}
 	});
 
@@ -102,14 +105,13 @@ async function loadMap(backend) {
 		document.title = title;
 	}
 
-	// SQLite autosaves.
-	if(!openPathIsTemporary) {
+	if(!openPathIsTemporary && backend.options.autosave) {
 		mapper.hooks.add("update", () => mapper.clearUnsavedChangeState());
 	}
-	mapper.hooks.add("update", () => ipcRenderer.invoke("updateSavedChangeState", mapper.hasUnsavedChanges()));
-	mapper.hooks.add("update", () => updateTitle());
-	updateTitle();
+	mapper.hooks.add("unsavedStateChange", () => ipcRenderer.invoke("updateSavedChangeState", mapper.hasUnsavedChanges()));
+	mapper.hooks.add("unsavedStateChange", () => updateTitle());
 
+	mapper.clearUnsavedChangeState();
 	renderedMap.focus();
 }
 

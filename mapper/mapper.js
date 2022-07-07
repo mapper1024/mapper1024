@@ -667,7 +667,7 @@ class Mapper {
 		this.hooks.add("removeNodes", async () => await this.hooks.call("update"));
 		this.hooks.add("translateNodes", async () => await this.hooks.call("update"));
 
-		this.hooks.add("update", () => { this.unsavedChanges = true; });
+		this.hooks.add("update", () => { this.declareUnsavedChanges(); });
 
 		this.options = {
 			blendDistance: 400,
@@ -679,6 +679,12 @@ class Mapper {
 
 	clearUnsavedChangeState() {
 		this.unsavedChanges = false;
+		this.hooks.call("unsavedStateChange", false);
+	}
+
+	declareUnsavedChanges() {
+		this.unsavedChanges = true;
+		this.hooks.call("unsavedStateChange", true);
 	}
 
 	hasUnsavedChanges() {
