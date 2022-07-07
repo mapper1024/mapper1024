@@ -138,15 +138,22 @@ class SQLiteMapBackend extends MapBackend {
 
 	async flush() {
 		if(!this.options.autosave) {
-			await this.save(this.filename);
+			await this.save(this.filename, false);
 		}
 	}
 
-	async save(filename) {
+	async save(filename, swapDb) {
 		await this.db.backup(filename);
-		return new SQLiteMapBackend(filename, {...this.options, ...{
-			cleanup: false,
-		}});
+
+		if(swapDb) {
+			// Replace the current database with the newly written database.
+			this.filename = filename;
+			const newBackend = new SQLiteMapBackend(filename, {...this.options, ...{
+				cleanup: false,
+			}});
+			await newBackend.load();
+			this.db = newBackend.db;
+		}
 	}
 
 	baseCreateEntity(type) {

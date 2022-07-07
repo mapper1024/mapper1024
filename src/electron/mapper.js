@@ -35,9 +35,9 @@ async function loadMap(backend) {
 		return;
 	}
 
-	const openPath = backend.filename;
-	const openPathIsTemporary = openPath === ":memory:";
-	const openFilename = openPath.split("/").pop();
+	const openPath = () => backend.filename;
+	const openPathIsTemporary = () => (openPath() === ":memory:");
+	const openFilename = () => openPath().split("/").pop();
 
 	const mapper = new Mapper(backend);
 	if(renderedMap) {
@@ -66,14 +66,15 @@ async function loadMap(backend) {
 			if(splitOnDot.length < 2) {
 				path = path + ".map";
 			}
-			await loadMap(await mapper.backend.save(path));
+			await mapper.backend.save(path, true);
+			mapper.clearUnsavedChangeState();
 		}
 	}
 
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "S", async () => saveAs());
 
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "s", async () => {
-		if(openPathIsTemporary) {
+		if(openPathIsTemporary()) {
 			saveAs();
 		}
 		else {
@@ -100,14 +101,14 @@ async function loadMap(backend) {
 	});
 
 	function updateTitle() {
-		let title = openPathIsTemporary ? "New map" : openFilename;
+		let title = openPathIsTemporary() ? "New map" : openFilename();
 		if(mapper.hasUnsavedChanges()) {
 			title += " *";
 		}
 		document.title = title;
 	}
 
-	if(!openPathIsTemporary && backend.options.autosave) {
+	if(!openPathIsTemporary() && backend.options.autosave) {
 		mapper.hooks.add("update", () => mapper.clearUnsavedChangeState());
 	}
 	mapper.hooks.add("unsavedStateChange", () => ipcRenderer.invoke("updateSavedChangeState", mapper.hasUnsavedChanges()));
