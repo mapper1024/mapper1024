@@ -13,7 +13,10 @@ class SQLiteMapBackend extends MapBackend {
 	constructor(filename, options) {
 		super();
 		this.filename = filename;
-		this.options = options ?? {};
+		this.options = {...{
+			autosave: false,
+			cleanup: true,
+		}, ...(options ?? {})};
 	}
 
 	getDbOptions() {
@@ -124,6 +127,11 @@ class SQLiteMapBackend extends MapBackend {
 			return id;
 		});
 
+		if(this.options.cleanup) {
+			this.db.exec("DELETE FROM entity WHERE valid = FALSE");
+			this.db.exec("VACUUM");
+		}
+
 		this.loaded = true;
 		await this.hooks.call("loaded");
 	}
@@ -136,7 +144,9 @@ class SQLiteMapBackend extends MapBackend {
 
 	async save(filename) {
 		await this.db.backup(filename);
-		return new SQLiteMapBackend(filename);
+		return new SQLiteMapBackend(filename, {...this.options, ...{
+			cleanup: false,
+		}});
 	}
 
 	baseCreateEntity(type) {

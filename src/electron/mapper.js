@@ -66,8 +66,7 @@ async function loadMap(backend) {
 			if(splitOnDot.length < 2) {
 				path = path + ".map";
 			}
-			await mapper.backend.save(path);
-			await loadMap(new SQLiteMapBackend(path));
+			await loadMap(await mapper.backend.save(path));
 		}
 	}
 
