@@ -16,13 +16,19 @@ class SQLiteMapBackend extends MapBackend {
 		this.options = options ?? {};
 	}
 
+	getDbOptions() {
+		return {
+			fileMustExist: true,
+		};
+	}
+
 	/** Open the backend database, or create it if it does not exist. */
 	async load() {
 		if(this.options.autosave) {
-			this.db = Database(this.filename);
+			this.db = Database(this.filename, this.getDbOptions());
 		}
 		else {
-			const db = Database(this.filename);
+			const db = Database(this.filename, this.getDbOptions());
 			this.db = Database(db.serialize());
 			db.close();
 		}

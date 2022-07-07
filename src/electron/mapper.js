@@ -30,7 +30,7 @@ async function loadMap(backend) {
 	} catch(error) {
 		await dialog.showErrorBox("Could not load map...", error.message);
 		if(!renderedMap) {
-			await loadMap(await blankMap());
+			app.quit();
 		}
 		return;
 	}
@@ -66,7 +66,7 @@ async function loadMap(backend) {
 			if(splitOnDot.length < 2) {
 				path = path + ".map";
 			}
-			await mapper.backend.duplicate(path);
+			await mapper.backend.save(path);
 			await loadMap(new SQLiteMapBackend(path));
 		}
 	}
