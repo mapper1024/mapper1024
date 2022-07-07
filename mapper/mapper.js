@@ -667,10 +667,22 @@ class Mapper {
 		this.hooks.add("removeNodes", async () => await this.hooks.call("update"));
 		this.hooks.add("translateNodes", async () => await this.hooks.call("update"));
 
+		this.hooks.add("update", () => { this.unsavedChanges = true; });
+
 		this.options = {
 			blendDistance: 400,
 			cleanNormalDistance: 0.5,
 		};
+
+		this.unsavedChanges = false;
+	}
+
+	clearUnsavedChangeState() {
+		this.unsavedChanges = false;
+	}
+
+	hasUnsavedChanges() {
+		return this.unsavedChanges;
 	}
 
 	/** Get all nodes inside a specified spatial box.

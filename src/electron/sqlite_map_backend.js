@@ -114,6 +114,13 @@ class SQLiteMapBackend extends MapBackend {
 		await this.hooks.call("loaded");
 	}
 
+	async duplicate(filename) {
+		await this.db.backup(filename);
+		const backend = new SQLiteMapBackend(filename);
+		await backend.load();
+		return backend;
+	}
+
 	baseCreateEntity(type) {
 		return this.s_createEntity.run({type: type}).lastInsertRowid;
 	}

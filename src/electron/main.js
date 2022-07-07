@@ -1,8 +1,10 @@
 // Boilerplate code to load index.html as an app.
 
+const remoteMain = require("@electron/remote/main");
 const { app, BrowserWindow } = require("electron");
-
 const path = require("path");
+
+remoteMain.initialize();
 
 const createWindow = () => {
 	const win = new BrowserWindow({
@@ -15,6 +17,8 @@ const createWindow = () => {
 			contextIsolation: false
 		}
 	});
+
+	remoteMain.enable(win.webContents);
 
 	win.loadFile("src/electron/index.html");
 };
