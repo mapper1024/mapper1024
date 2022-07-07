@@ -1,5 +1,5 @@
 const { ipcRenderer } = require("electron");
-const { dialog } = require("@electron/remote");
+const { dialog, process, app } = require("@electron/remote");
 import { Mapper } from "../../mapper/index.js";
 import { SQLiteMapBackend } from "./sqlite_map_backend.js";
 
@@ -29,6 +29,9 @@ async function loadMap(backend) {
 		await backend.load();
 	} catch(error) {
 		await dialog.showErrorBox("Could not load map...", error.message);
+		if(!renderedMap) {
+			await loadMap(await blankMap());
+		}
 		return;
 	}
 
@@ -115,8 +118,10 @@ async function loadMap(backend) {
 	renderedMap.focus();
 }
 
+const argv = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
+
 window.addEventListener("DOMContentLoaded", async () => {
-	await loadMap(await blankMap());
+	await loadMap(argv.length === 0 ? await blankMap() : new SQLiteMapBackend(argv[0]));
 });
 
 
