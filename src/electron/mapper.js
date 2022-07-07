@@ -1,4 +1,5 @@
-const { dialog, getCurrentWindow } = require("@electron/remote");
+const { ipcRenderer } = require("electron");
+const { dialog } = require("@electron/remote");
 import { Mapper } from "../../mapper/index.js";
 import { SQLiteMapBackend } from "./sqlite_map_backend.js";
 
@@ -9,9 +10,10 @@ async function confirmClear() {
 		if(renderedMap.mapper.hasUnsavedChanges()) {
 			return (await dialog.showMessageBox({
 				message: "Continue and lose unsaved changes?",
+				title: "Lose changes?",
 				type: "warning",
 				buttons: ["Continue", "Cancel"],
-				defaultId: 0,
+				defaultId: 1,
 			})).response === 0;
 		}
 	}
@@ -94,12 +96,17 @@ async function loadMap(backend) {
 
 	function updateTitle() {
 		let title = openPathIsTemporary ? "New map" : openFilename;
-		if(mapper.hasUnsavedChanges() && openPathIsTemporary) {
+		if(mapper.hasUnsavedChanges()) {
 			title += " *";
 		}
 		document.title = title;
 	}
 
+	// SQLite autosaves.
+	if(!openPathIsTemporary) {
+		mapper.hooks.add("update", () => mapper.clearUnsavedChangeState());
+	}
+	mapper.hooks.add("update", () => ipcRenderer.invoke("updateSavedChangeState", mapper.hasUnsavedChanges()));
 	mapper.hooks.add("update", () => updateTitle());
 	updateTitle();
 
@@ -108,15 +115,6 @@ async function loadMap(backend) {
 
 window.addEventListener("DOMContentLoaded", async () => {
 	await loadMap(await blankMap());
-});
-
-window.addEventListener("beforeunload", (e) => {
-	e.returnValue = false;
-	confirmClear().then(async (value) => {
-		if(value) {
-			getCurrentWindow().destroy();
-		}
-	});
 });
 
 
