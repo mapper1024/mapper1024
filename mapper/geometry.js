@@ -132,4 +132,109 @@ class Box3 {
 	}
 }
 
-export { Vector3, Line3, Box3 };
+class Path {
+	constructor(startPoint) {
+		this.lines = [];
+		this.origin = startPoint;
+		this.at = Vector3.ZERO;
+	}
+
+	mapOrigin(f) {
+		const path = new Path(f(this.origin));
+		path.lines = this.lines;
+		path.at = this.at;
+		return path;
+	}
+
+	mapLines(f) {
+		const path = new Path(this.origin);
+		path.lines = this.lines.map((line) => line.map(f));
+		path.at = f(this.at);
+	}
+
+	withBisectedLines(radius) {
+		const path = new Path(this.origin);
+
+		function addBisectedLine(line) {
+			if(line.distance() >= radius) {
+				const middle = line.a.add(line.b).divideScalar(2);
+				const lineA = new Line3(line.a, middle);
+				const lineB = new Line3(middle, line.b);
+				addBisectedLine(lineA);
+				addBisectedLine(lineB);
+			}
+			else {
+				path.lines.push(line);
+			}
+		}
+
+		for(const line of this.lines) {
+			addBisectedLine(line);
+		}
+
+		path.at = this.at;
+		return path;
+	}
+
+	next(nextPoint) {
+		const nextRelativePoint = nextPoint.subtract(this.origin);
+		if(this.at.subtract(nextRelativePoint).lengthSquared() > 0) {
+			this.lines.push(new Line3(this.at, nextRelativePoint));
+			this.at = nextRelativePoint;
+		}
+	}
+
+	lastLine() {
+		const lastLine = this.lines[this.lines.length - 1];
+		return lastLine ? lastLine : Line3.ZERO;
+	}
+
+	lastVertex() {
+		return this.lastLine().b.add(this.origin);
+	}
+
+	pop() {
+		const lastLine = this.lines.pop();
+		return lastLine ? lastLine : Line3.ZERO;
+	}
+
+	push(line) {
+		return this.lines.push(line);
+	}
+
+	* vertices() {
+		yield this.at.add(this.origin);
+		for(const line of this.lines) {
+			yield line.b.add(this.origin);
+		}
+	}
+
+	getCenter() {
+		const vertices = Array.from(this.vertices());
+		let sum = Vector3.ZERO;
+		for(const vertex of vertices) {
+			sum = sum.add(vertex);
+		}
+		return sum.divideScalar(vertices.length);
+	}
+
+	getRadius() {
+		const center = this.getCenter();
+		let furthest = this.getCenter();
+		for(const vertex of this.vertices()) {
+			if(vertex.subtract(center).lengthSquared() >= furthest.subtract(center).lengthSquared()) {
+				furthest = vertex;
+			}
+		}
+		return furthest.subtract(center).length();
+	}
+
+	asMostRecent() {
+		const lastLine = this.lastLine();
+		const path = new Path(this.origin.add(lastLine.a));
+		path.next(this.origin.add(lastLine.b));
+		return path;
+	}
+}
+
+export { Vector3, Line3, Box3, Path };
