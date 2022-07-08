@@ -432,6 +432,32 @@ class RenderContext {
 			}
 		}
 
+		for(const nodeId of updatedNodeIds) {
+			const tX = this.nodeIdToTiles[nodeId];
+			for(const x in tX) {
+				if(recheckTiles[x] === undefined) {
+					recheckTiles[x] = {};
+				}
+				const rX = recheckTiles[x];
+				const tY = this.nodeIdToTiles[nodeId][x];
+				const mtX = this.megaTiles[Math.floor(x / MegaTile.SIZE * Tile.SIZE)];
+				for(const y in tY) {
+					rX[y] = tY[y];
+					delete this.tiles[x][y];
+					if(mtX !== undefined) {
+						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
+						const megaTile = mtX[megaTilePositionY];
+						if(megaTile !== undefined) {
+							megaTile.reset();
+							for(const nodeId of megaTile.popRedraw()) {
+								updatedNodeIds.add(nodeId);
+							}
+						}
+					}
+				}
+			}
+		}
+
 		for(const nodeId of removedNodeIds) {
 			updatedNodeIds.delete(nodeId);
 		}
