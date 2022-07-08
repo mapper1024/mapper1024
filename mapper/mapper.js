@@ -581,10 +581,17 @@ class RenderContext {
 			c.beginPath();
 			c.moveTo(actualLine.a.x, actualLine.a.y);
 			c.lineTo(actualLine.b.x, actualLine.b.y);
+
+			const gradient = c.createLinearGradient(actualLine.a.x, actualLine.a.y, actualLine.b.x, actualLine.b.y);
+			gradient.addColorStop(0, "white");
+			gradient.addColorStop(0.25, "black");
+			gradient.addColorStop(0.75, "white");
+			gradient.addColorStop(1, "black");
+
+			c.strokeStyle = gradient;
 			c.stroke();
 		};
 
-		c.strokeStyle = "white";
 		c.lineWidth = 2;
 
 		for(const x in toDraw) {
