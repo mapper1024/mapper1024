@@ -68,6 +68,22 @@ class Line3 {
 		return new Line3(f(this.a), f(this.b));
 	}
 
+	add(offset) {
+		return this.map((v) => v.add(offset));
+	}
+
+	subtract(offset) {
+		return this.map((v) => v.subtract(offset));
+	}
+
+	multiplyScalar(scalar) {
+		return this.map((v) => v.multiplyScalar(scalar));
+	}
+
+	divideScalar(scalar) {
+		return this.map((v) => v.divideScalar(scalar));
+	}
+
 	vector() {
 		return this.b.subtract(this.a);
 	}

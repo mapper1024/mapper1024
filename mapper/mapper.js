@@ -1,5 +1,5 @@
 import { HookContainer } from "./hook_container.js";
-import { Vector3, Box3 } from "./geometry.js";
+import { Vector3, Box3, Line3 } from "./geometry.js";
 import { asyncFrom } from "./utils.js";
 import { DeleteBrush, AddBrush, SelectBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
@@ -553,22 +553,62 @@ class RenderContext {
 			c.globalAlpha = 1;
 		}
 
+		const dirs = {};
+		dirs.north = new Vector3(0, -1, 0);
+		dirs.south = new Vector3(0, 1, 0);
+		dirs.east = new Vector3(1, 0, 0);
+		dirs.west = new Vector3(-1, 0, 0);
+
+		const lines = {};
+		lines.north = new Line3(new Vector3(0, 0, 0), new Vector3(1, 0, 0));
+		lines.south = new Line3(new Vector3(0, 1, 0), new Vector3(1, 1, 0));
+		lines.west = new Line3(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+		lines.east = new Line3(new Vector3(1, 0, 0), new Vector3(1, 1, 0));
+
+		for(const line in lines) {
+			lines[line] = lines[line].multiplyScalar(Tile.SIZE);
+		}
+
+		function dirNeighbor(x, y, dir) {
+			const nx = x + dir.x;
+			const ny = y + dir.y;
+			return (toDraw[nx] && toDraw[nx][ny]) ? toDraw[nx][ny] : null;
+		}
+
+		const drawLine = (t, line, dir, inset) => {
+			const point = this.mapPointToCanvas(t.tile.corner);
+			const actualLine = line.add(point).add(dir.multiplyScalar(-inset));
+			c.beginPath();
+			c.moveTo(actualLine.a.x, actualLine.a.y);
+			c.lineTo(actualLine.b.x, actualLine.b.y);
+			c.stroke();
+		};
+
+		c.strokeStyle = "white";
+		c.lineWidth = 2;
+
 		for(const x in toDraw) {
 			const tX = toDraw[x];
 			for(const y in tX) {
 				const t = tX[y];
-				const point = this.mapPointToCanvas(t.tile.corner);
+
 				c.globalAlpha = t.alpha;
-				c.strokeStyle = "white";
-				if(t.inHoverSelection) {
-					c.strokeRect(point.x, point.y, Tile.SIZE, Tile.SIZE);
-				}
-				if(t.inSelection) {
-					c.strokeRect(point.x + 2, point.y + 2, Tile.SIZE - 2, Tile.SIZE - 2);
+
+				for(const dirName in dirs) {
+					const dir = dirs[dirName];
+					const n = dirNeighbor(+x, +y, dir);
+					if(t.inSelection && (!n || !n.inSelection || n.alpha != t.alpha)) {
+						drawLine(t, lines[dirName], dir, 0);
+					}
+
+					if(t.inHoverSelection && (!n || !n.inHoverSelection || n.alpha != t.alpha)) {
+						drawLine(t, lines[dirName], dir, 2);
+					}
 				}
 			}
 		}
 
+		c.lineWidth = 1;
 		c.globalAlpha = 1;
 	}
 
