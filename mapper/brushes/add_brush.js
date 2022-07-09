@@ -12,7 +12,7 @@ class AddBrush extends Brush {
 	}
 
 	getDescription() {
-		return `Place ${this.getNodeType().getDescription()} (size ${this.size})`;
+		return `Place ${this.getNodeType().getDescription()} (radius ${this.sizeInMeters()}m)`;
 	}
 
 	getNodeType() {
@@ -39,7 +39,6 @@ class AddBrush extends Brush {
 			path: path,
 			radius: this.getRadius(),
 			nodeType: this.getNodeType(),
-			scrollOffset: this.context.scrollOffset,
 			fullCalculation: mouseDragEvent.done,
 			parent: this.parentNode,
 			undoParent: this.undoParent,

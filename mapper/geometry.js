@@ -166,6 +166,7 @@ class Path {
 		const path = new Path(this.origin);
 		path.lines = this.lines.map((line) => line.map(f));
 		path.at = f(this.at);
+		return path;
 	}
 
 	withBisectedLines(radius) {

@@ -45,9 +45,9 @@ class Tile {
 	}
 
 	async addNode(nodeRef) {
-		const nodeCenter = await nodeRef.getCenter();
+		const nodeCenter = (await nodeRef.getCenter()).map((a) => this.context.unitsToPixels(a));
 		const distance = nodeCenter.subtract(this.getCenter()).length();
-		const nodeRadius = await nodeRef.getRadius();
+		const nodeRadius = this.context.unitsToPixels(await nodeRef.getRadius());
 		if(distance <= nodeRadius + Tile.SIZE / 2) {
 			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);

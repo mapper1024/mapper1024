@@ -2,7 +2,11 @@ import { Action, NodeCleanupAction, RemoveAction } from "./index.js";
 
 class DrawPathAction extends Action {
 	getPathOnMap() {
-		return this.options.path.mapOrigin((origin) => origin.add(this.options.scrollOffset)).withBisectedLines(this.options.radius);
+		return this.context.canvasPathToMap(this.options.path).withBisectedLines(this.getRadiusOnMap());
+	}
+
+	getRadiusOnMap() {
+		return this.context.pixelsToUnits(this.options.radius);
 	}
 
 	async perform() {
@@ -11,7 +15,7 @@ class DrawPathAction extends Action {
 		for(const vertex of this.getPathOnMap().vertices()) {
 			placedNodes.push(await this.context.mapper.insertNode(vertex, {
 				type: this.options.nodeType,
-				radius: this.options.radius,
+				radius: this.getRadiusOnMap(),
 				parent: this.options.parent,
 			}));
 		}

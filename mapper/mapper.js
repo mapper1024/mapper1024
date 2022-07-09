@@ -50,6 +50,7 @@ class RenderContext {
 		this.debugMode = false;
 
 		this.scrollOffset = Vector3.ZERO;
+		this.zoom = 5;
 
 		this.brush = new AddBrush(this);
 
@@ -163,7 +164,7 @@ class RenderContext {
 			this.requestRedraw();
 		});
 
-		this.canvas.addEventListener("wheel", (event) => {
+		this.canvas.addEventListener("wheel", async (event) => {
 			event.preventDefault();
 
 			if(this.isKeyDown("q")) {
@@ -181,6 +182,16 @@ class RenderContext {
 				else {
 					this.brush.shrink();
 				}
+			}
+			else {
+				if(event.deltaY < 0) {
+					this.zoom = this.zoom - 1;
+				}
+				else {
+					this.zoom = this.zoom + 1;
+				}
+				this.zoom = Math.max(0, Math.min(this.zoom, 10));
+				this.recalculateTilesNodesTranslate(await asyncFrom(this.drawnNodes()));
 			}
 
 			this.redraw();
@@ -243,7 +254,7 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const center = this.mapPointToCanvas(await nodeRef.getCenter());
 			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < (await nodeRef.getRadius()) ** 2) {
+			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
 				closestNodeRef = nodeRef;
 				closestDistanceSquared = distanceSquared;
 			}
@@ -330,11 +341,23 @@ class RenderContext {
 	}
 
 	canvasPointToMap(v) {
-		return new Vector3(v.x, v.y, 0).add(this.scrollOffset);
+		return new Vector3(v.x, v.y, 0).add(this.scrollOffset).map((a) => this.pixelsToUnits(a));
 	}
 
 	mapPointToCanvas(v) {
-		return new Vector3(v.x, v.y, 0).subtract(this.scrollOffset);
+		return new Vector3(v.x, v.y, 0).map((a) => this.unitsToPixels(a)).subtract(this.scrollOffset);
+	}
+
+	canvasPathToMap(path) {
+		return path.mapOrigin((origin) => this.canvasPointToMap(origin)).mapLines((v) => v.map((a) => this.pixelsToUnits(a)));
+	}
+
+	pixelsToUnits(pixels) {
+		return pixels * (5 + this.zoom);
+	}
+
+	unitsToPixels(units) {
+		return units / this.pixelsToUnits(1);
 	}
 
 	screenSize() {
@@ -471,9 +494,9 @@ class RenderContext {
 				this.nodeIdToTiles[nodeRef.id] = {};
 			}
 
-			const center = await nodeRef.getCenter();
+			const center = (await nodeRef.getCenter()).map((a) => this.unitsToPixels(a));
 			const centerTile = center.divideScalar(Tile.SIZE).round();
-			const radius = await nodeRef.getRadius();
+			const radius = this.unitsToPixels(await nodeRef.getRadius());
 			if(radius > 0) {
 				const radiusTile = Math.ceil(radius / Tile.SIZE);
 
@@ -602,7 +625,7 @@ class RenderContext {
 		}
 
 		const drawLine = (t, line, dir, inset) => {
-			const point = this.mapPointToCanvas(t.tile.corner);
+			const point = t.tile.corner.subtract(this.scrollOffset);
 			const actualLine = line.add(point).add(dir.multiplyScalar(-inset));
 			c.beginPath();
 			c.moveTo(actualLine.a.x, actualLine.a.y);
@@ -699,6 +722,29 @@ class RenderContext {
 		}
 	}
 
+	async drawScale() {
+		const c = this.canvas.getContext("2d");
+		const barHeight = 10;
+		const barWidth = this.canvas.width / 5;
+		const barX = 10;
+		const label2Y = this.canvas.height - barHeight;
+		const barY = label2Y - barHeight - 15;
+		const labelY = barY - barHeight / 2;
+
+		c.fillStyle = "black";
+		c.fillRect(barX, barY, barWidth, barHeight);
+
+		c.font = "12px mono";
+		c.fillStyle = "white";
+
+		for(let point = 0; point < 6; point++) {
+			const y = (point % 2 === 0) ? labelY : label2Y;
+			const pixel = barWidth * point / 5;
+			c.fillText(`${Math.floor(this.mapper.unitsToMeters(this.pixelsToUnits(pixel)) + 0.5)}m`, barX + pixel, y);
+			c.fillRect(barX + pixel, barY, 2, barHeight);
+		}
+	}
+
 	/** Completely redraw the displayed UI. */
 	async redraw() {
 		await this.clearCanvas();
@@ -708,6 +754,7 @@ class RenderContext {
 		await this.drawBrush();
 
 		await this.drawHelp();
+		await this.drawScale();
 
 		if(this.debugMode) {
 			await this.drawDebug();
@@ -759,6 +806,14 @@ class Mapper {
 		};
 
 		this.unsavedChanges = false;
+	}
+
+	unitsToMeters(units) {
+		return units * 2;
+	}
+
+	metersToUnits(meters) {
+		return meters / this.unitsToMeters(1);
 	}
 
 	clearUnsavedChangeState() {

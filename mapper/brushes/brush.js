@@ -15,6 +15,10 @@ class Brush {
 		return this.size * 32;
 	}
 
+	sizeInMeters() {
+		return this.context.mapper.unitsToMeters(this.context.pixelsToUnits(this.getRadius()));
+	}
+
 	increment() {}
 
 	decrement() {}
@@ -38,6 +42,15 @@ class Brush {
 		context.arc(position.x, position.y, this.getRadius(), 0, 2 * Math.PI, false);
 		context.strokeStyle = "white";
 		context.stroke();
+
+		context.fillStyle = "white";
+		context.fillRect(position.x - this.getRadius(), position.y - 16, 2, 32);
+		context.fillRect(position.x + this.getRadius(), position.y - 16, 2, 32);
+		context.fillRect(position.x - this.getRadius(), position.y - 1, this.getRadius() * 2, 2);
+
+		context.font = "12px mono";
+		const text = `${this.sizeInMeters() * 2}m`;
+		context.fillText(text, position.x - context.measureText(text).width / 2, position.y - 6);
 	}
 
 	async draw(context, position) {

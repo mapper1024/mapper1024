@@ -6,7 +6,7 @@ import { asyncFrom } from "../utils.js";
 
 class DeleteBrush extends Brush {
 	getDescription() {
-		return `Delete (size ${this.size})`;
+		return `Delete (radius ${this.sizeInMeters()}m)`;
 	}
 
 	async activate(where) {
