@@ -164,7 +164,7 @@ class RenderContext {
 			this.requestRedraw();
 		});
 
-		this.canvas.addEventListener("wheel", async (event) => {
+		this.canvas.addEventListener("wheel", (event) => {
 			event.preventDefault();
 
 			if(this.isKeyDown("q")) {
@@ -730,7 +730,7 @@ class RenderContext {
 	async drawScale() {
 		const c = this.canvas.getContext("2d");
 		const barHeight = 10;
-		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(100)));
+		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(100 * 5)));
 		const barX = 10;
 		const label2Y = this.canvas.height - barHeight;
 		const barY = label2Y - barHeight - 15;
