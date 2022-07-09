@@ -1,6 +1,6 @@
 import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3, Line3 } from "./geometry.js";
-import { asyncFrom } from "./utils.js";
+import { asyncFrom, mod } from "./utils.js";
 import { DeleteBrush, AddBrush, SelectBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
@@ -184,14 +184,19 @@ class RenderContext {
 				}
 			}
 			else {
-				if(event.deltaY < 0) {
-					this.zoom = this.zoom - 1;
-				}
-				else {
-					this.zoom = this.zoom + 1;
-				}
-				this.zoom = Math.max(0, Math.min(this.zoom, 10));
-				this.recalculateTilesNodesTranslate(await asyncFrom(this.drawnNodes()));
+				asyncFrom(this.drawnNodes()).then((drawnNodes) => {
+					const oldMousePosition = this.canvasPointToMap(this.mousePosition);
+					if(event.deltaY < 0) {
+						this.zoom = this.zoom - 1;
+					}
+					else {
+						this.zoom = this.zoom + 1;
+					}
+					this.zoom = Math.max(1, Math.min(this.zoom, 20));
+					const newMousePosition = this.canvasPointToMap(this.mousePosition);
+					this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldMousePosition).subtract(this.mapPointToCanvas(newMousePosition)));
+					this.recalculateTilesNodesTranslate(drawnNodes);
+				});
 			}
 
 			this.redraw();
@@ -353,7 +358,7 @@ class RenderContext {
 	}
 
 	pixelsToUnits(pixels) {
-		return pixels * (5 + this.zoom);
+		return pixels * this.zoom;
 	}
 
 	unitsToPixels(units) {
@@ -725,7 +730,7 @@ class RenderContext {
 	async drawScale() {
 		const c = this.canvas.getContext("2d");
 		const barHeight = 10;
-		const barWidth = this.canvas.width / 5;
+		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(100)));
 		const barX = 10;
 		const label2Y = this.canvas.height - barHeight;
 		const barY = label2Y - barHeight - 15;

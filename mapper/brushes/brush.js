@@ -12,7 +12,7 @@ class Brush {
 	}
 
 	getRadius() {
-		return this.size * 32;
+		return this.size * 25;
 	}
 
 	sizeInMeters() {
