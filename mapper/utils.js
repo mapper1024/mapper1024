@@ -27,4 +27,16 @@ function mod(n, m) {
 	return ((n % m) + m) % m;
 }
 
-export { asyncFrom, mod };
+function merge(...args) {
+	const r = {};
+	for(const arg of args) {
+		if(arg) {
+			for(const k in arg) {
+				r[k] = arg[k];
+			}
+		}
+	}
+	return r;
+}
+
+export { asyncFrom, mod, merge };

@@ -18,7 +18,7 @@ describe("SQLiteMapBackend", function() {
 
 	beforeEach(async function() {
 		await fs.unlink(backendFilename);
-		backend = new SQLiteMapBackend(backendFilename);
+		backend = new SQLiteMapBackend(backendFilename, {create: true});
 		await backend.load();
 	});
 

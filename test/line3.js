@@ -10,6 +10,19 @@ describe("Line3", function() {
 		expect(a.fullMin()).to.deep.equal(new Vector3(10, 5, 0));
 	});
 
+	it("should have map functions", function() {
+		const a = new Line3(new Vector3(2, 4, 6), new Vector3(6, 12, 18));
+
+		expect(a.map((v) => v.map((a) => a - 1))).to.deep.equal(new Line3(new Vector3(1, 3, 5), new Vector3(5, 11, 17)));
+		expect(a.subtract(new Vector3(1, 1, 1))).to.deep.equal(new Line3(new Vector3(1, 3, 5), new Vector3(5, 11, 17)));
+		expect(a.add(new Vector3(1, 1, 1))).to.deep.equal(new Line3(new Vector3(3, 5, 7), new Vector3(7, 13, 19)));
+	});
+
+	it("should convert to a vector", function() {
+		const a = new Line3(new Vector3(1, 2, -3), new Vector3(4, 5, -6));
+		expect(a.vector()).to.deep.equal(new Vector3(3, 3, -3));
+	});
+
 	it("should have distance", function() {
 		const a = new Line3(new Vector3(1, -12, 8), new Vector3(3, -15, 14));
 

@@ -1,4 +1,4 @@
-import { MapBackend, Vector3 } from "../../mapper/index.js";
+import { MapBackend, Vector3, merge } from "../../mapper/index.js";
 const Database = require("better-sqlite3");
 
 /** SQLite-backed map backend.
@@ -13,15 +13,16 @@ class SQLiteMapBackend extends MapBackend {
 	constructor(filename, options) {
 		super();
 		this.filename = filename;
-		this.options = {...{
+		this.options = merge({
 			autosave: false,
 			cleanup: true,
-		}, ...(options ?? {})};
+			create: false,
+		}, options);
 	}
 
 	getDbOptions() {
 		return {
-			fileMustExist: true,
+			fileMustExist: !this.options.create,
 		};
 	}
 
@@ -148,9 +149,9 @@ class SQLiteMapBackend extends MapBackend {
 		if(swapDb) {
 			// Replace the current database with the newly written database.
 			this.filename = filename;
-			const newBackend = new SQLiteMapBackend(filename, {...this.options, ...{
+			const newBackend = new SQLiteMapBackend(filename, merge(this.options, {
 				cleanup: false,
-			}});
+			}));
 			await newBackend.load();
 			this.db = newBackend.db;
 		}
