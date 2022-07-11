@@ -23,10 +23,21 @@ async function asyncFrom(asyncIterable, mapFunction) {
 	return values;
 }
 
+/** Calculate modulo with behavior for negative dividends.
+ * E.g. mod(7, 4) === 3 && mod(-11, 7) === 3
+ * @param n {number} the dividend
+ * @param m {number} the divisor
+ * @returns {number} the modulo (m % n)
+ */
 function mod(n, m) {
 	return ((n % m) + m) % m;
 }
 
+/** Merge multiply associative array objects together into a new object.
+ * Properties in later objects will override properties in earlier objects.
+ * @param ...args Objects to merge together
+ * @returns {Object} the merged object
+ */
 function merge(...args) {
 	const r = {};
 	for(const arg of args) {
