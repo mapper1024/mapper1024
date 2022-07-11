@@ -1,6 +1,6 @@
 const expect = require("chai").expect;
 const _require = require("esm")(module);
-const { Vector3, Line3, Path } = _require("../mapper/index.js");
+const { Vector3, Path } = _require("../mapper/index.js");
 
 const DELTA = 0.000001;
 
