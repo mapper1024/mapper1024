@@ -5,7 +5,7 @@ const dirs = {};
 
 dirs.N = new Vector3(0, -1, 0);
 dirs.S = new Vector3(0, 1, 0);
-dirs.W = new Vector3(-1, 0, );
+dirs.W = new Vector3(-1, 0, 0);
 dirs.E = new Vector3(1, 0, 0);
 
 dirs.NW = dirs.N.add(dirs.W);
@@ -98,9 +98,10 @@ class Tile {
 		}
 
 		const keyString = key.join(" ");
+		let canvas = tileRenders[keyString];
 
-		if(tileRenders[keyString] === undefined) {
-			const canvas = document.createElement("canvas");
+		if(canvas === undefined) {
+			canvas = document.createElement("canvas");
 			canvas.width = Tile.SIZE;
 			canvas.height = Tile.SIZE;
 
@@ -118,7 +119,7 @@ class Tile {
 		}
 
 		const megaTileContext = this.megaTile.canvas.getContext("2d");
-		megaTileContext.drawImage(tileRenders[keyString], position.x, position.y);
+		megaTileContext.drawImage(canvas, position.x, position.y);
 	}
 
 	static async renderMaster(canvas, type, neighbors) {
@@ -150,6 +151,10 @@ class Tile {
 			c.fillStyle = type.def.color;
 			c.fillRect(0, 0, Tile.SIZE, Tile.SIZE);
 		}
+	}
+
+	static getTileRenders() {
+		return tileRenders;
 	}
 }
 

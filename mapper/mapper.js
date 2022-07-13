@@ -199,7 +199,7 @@ class RenderContext {
 				});
 			}
 
-			this.redraw();
+			this.requestRedraw();
 		});
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
@@ -381,7 +381,7 @@ class RenderContext {
 		this.canvas.width = this.parent.clientWidth;
 		this.canvas.height = this.parent.clientHeight;
 
-		this.redraw();
+		this.requestRedraw();
 	}
 
 	recalculateTilesViewport() {
@@ -714,6 +714,10 @@ class RenderContext {
 		}
 		infoLine("Right click to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo.");
 		infoLine("Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S to save as, ` to toggle debug mode.");
+
+		if(this.debugMode) {
+			infoLine(`${Object.keys(Tile.getTileRenders()).length} cached tiles`);
+		}
 	}
 
 	async drawDebug() {
