@@ -22,7 +22,7 @@ class TranslateEvent extends DragEvent {
 		for(const nodeRef of this.nodeRefs) {
 			this.undoActions.push(await this.context.performAction(new TranslateAction(this.context, {
 				nodeRef: nodeRef,
-				offset: this.path.lastLine().vector(),
+				offset: this.context.canvasPathToMap(this.path).lastLine().vector(),
 			}), false));
 		}
 	}

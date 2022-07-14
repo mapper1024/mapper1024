@@ -9,6 +9,7 @@ class AddBrush extends Brush {
 
 		this.nodeTypeIndex = 1;
 		this.nodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
+		this.lastTypeChange = performance.now();
 	}
 
 	getDescription() {
@@ -22,16 +23,36 @@ class AddBrush extends Brush {
 	increment() {
 		this.nodeTypeIndex = this.nodeTypeIndex + 1;
 		this.wrapIndex();
+		this.lastTypeChange = performance.now();
 	}
 
 	decrement() {
 		this.nodeTypeIndex = this.nodeTypeIndex - 1;
 		this.wrapIndex();
+		this.lastTypeChange = performance.now();
 	}
 
 	wrapIndex() {
 		const len = this.nodeTypes.length;
 		this.nodeTypeIndex = (len == 0) ? -1 : mod(this.nodeTypeIndex, len);
+	}
+
+	typeRecentlyChanged() {
+		return performance.now() - this.lastTypeChange < 1000;
+	}
+
+	async draw(context, position) {
+		await super.draw(context, position);
+
+		if(this.typeRecentlyChanged() && this.nodeTypes.length > 0) {
+			const radius = Math.min(4, Math.ceil(this.nodeTypes.length / 2));
+			for(let i = -radius; i <= radius; i++) {
+				const type = this.nodeTypes[mod(this.nodeTypeIndex + i, this.nodeTypes.length)];
+				const text = type.getDescription()
+				context.font = (i === 0) ? "bold 12px sans" : `${12 - Math.abs(i)}px sans`;
+				context.fillText(text, position.x - this.getRadius() - context.measureText(text).width - 4, position.y + 4 + (-i) * 14);
+			}
+		}
 	}
 
 	async trigger(path, mouseDragEvent) {
