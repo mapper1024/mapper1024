@@ -80,8 +80,10 @@ class Selection {
 		return this.siblingNodeIds.has(nodeRef.id);
 	}
 
-	getOrigins() {
-		return Array.from(this.originIds.values()).map((id) => this.context.mapper.backend.getNodeRef(id));
+	* getOrigins() {
+		for(const originId of this.originIds) {
+			yield this.context.mapper.backend.getNodeRef(originId);
+		}
 	}
 
 	exists() {
