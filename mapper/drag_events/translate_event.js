@@ -19,10 +19,12 @@ class TranslateEvent extends DragEvent {
 	async next(nextPoint) {
 		super.next(nextPoint);
 
+		const offset = this.context.canvasPathToMap(this.path).lastLine().vector();
+
 		for(const nodeRef of this.nodeRefs) {
 			this.undoActions.push(await this.context.performAction(new TranslateAction(this.context, {
 				nodeRef: nodeRef,
-				offset: this.context.canvasPathToMap(this.path).lastLine().vector(),
+				offset: offset,
 			}), false));
 		}
 	}
