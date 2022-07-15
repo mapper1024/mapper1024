@@ -161,7 +161,10 @@ class RenderContext {
 				const nodeRef = await this.hoverSelection.getParent();
 				if(nodeRef) {
 					const where = await this.getNamePosition(nodeRef);
+
 					const input = document.createElement("input");
+					input.value = (await nodeRef.getPString("name")) || "";
+
 					input.style.position = "absolute";
 					input.style.left = `${where.x}px`;
 					input.style.top = `${where.y}px`;
@@ -746,12 +749,18 @@ class RenderContext {
 
 	async drawLabels() {
 		const c = this.canvas.getContext("2d");
-		c.font = "24px serif";
-		c.fillStyle = "white";
+		c.textBaseline = "top";
 		for await (const nodeRef of this.drawnNodes()) {
 			const name = await nodeRef.getPString("name");
 			if(name !== undefined) {
 				const where = await this.getNamePosition(nodeRef);
+				c.font = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) ? "bold 24px serif" : "24px serif";
+				const measure = c.measureText(name);
+				c.globalAlpha = 0.25;
+				c.fillStyle = "black";
+				c.fillRect(where.x, where.y, measure.width, measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent);
+				c.globalAlpha = 1;
+				c.fillStyle = "white";
 				c.fillText(name, where.x, where.y);
 			}
 		}
@@ -759,10 +768,11 @@ class RenderContext {
 
 	async drawHelp() {
 		const c = this.canvas.getContext("2d");
+		c.textBaseline = "top";
 		c.font = "18px sans";
 		c.fillStyle = "white";
 
-		let infoLineY = 18;
+		let infoLineY = 9;
 		function infoLine(l) {
 			c.fillText(l, 18, infoLineY);
 			infoLineY += 24;
@@ -811,6 +821,8 @@ class RenderContext {
 		const label2Y = this.canvas.height - barHeight;
 		const barY = label2Y - barHeight - 15;
 		const labelY = barY - barHeight / 2;
+
+		c.textBaseline = "alphabetic";
 
 		c.fillStyle = "black";
 		c.fillRect(barX, barY, barWidth, barHeight);
