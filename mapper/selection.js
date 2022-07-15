@@ -98,6 +98,22 @@ class Selection {
 		}
 		return true;
 	}
+
+	async getParent() {
+		if(this.exists()) {
+			for(const origin of this.getOrigins()) {
+				const parent = await origin.getParent();
+				if(parent && !(await origin.hasChildren())) {
+					return parent;
+				}
+				else {
+					return origin;
+				}
+			}
+		}
+
+		return null;
+	}
 }
 
 export { Selection };

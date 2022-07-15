@@ -38,6 +38,7 @@ class RenderContext {
 		this.tiles = {};
 		this.megaTiles = {};
 		this.drawnNodeIds = new Set();
+		this.drawnTiles = [];
 		this.nodeIdToTiles = {};
 
 		this.backgroundColor = "#997";
@@ -156,6 +157,45 @@ class RenderContext {
 			else if(event.key === "`") {
 				this.debugMode = !this.debugMode;
 			}
+			else if(event.key === "n") {
+				const nodeRef = await this.hoverSelection.getParent();
+				if(nodeRef) {
+					const where = await this.getNamePosition(nodeRef);
+					const input = document.createElement("input");
+					input.style.position = "absolute";
+					input.style.left = `${where.x}px`;
+					input.style.top = `${where.y}px`;
+					input.style.fontSize = "16px";
+
+					const cancel = () => {
+						input.removeEventListener("blur", cancel);
+						input.remove();
+						this.focus();
+					};
+
+					const submit = async () => {
+						await nodeRef.setPString("name", input.value);
+						await this.mapper.hooks.call("updateNode", nodeRef);
+						cancel();
+					};
+
+					input.addEventListener("blur", cancel);
+
+					input.addEventListener("keyup", (event) => {
+						if(event.key === "Escape") {
+							cancel();
+						}
+						else if(event.key === "Enter") {
+							submit();
+						}
+						event.preventDefault();
+					});
+
+					this.parent.appendChild(input);
+					input.focus();
+					event.preventDefault();
+				}
+			}
 			this.requestRedraw();
 		});
 
@@ -223,6 +263,23 @@ class RenderContext {
 	changeBrush(brush) {
 		this.brush = brush;
 		this.requestRedraw();
+	}
+
+	async getNamePosition(nodeRef) {
+		const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
+		let best = null;
+
+		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
+
+		for(const tile of this.drawnTiles) {
+			if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
+				if(!best || tile.getCenter().subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
+					best = tile.getCenter();
+				}
+			}
+		}
+
+		return (best || optimal).subtract(this.scrollOffset);
 	}
 
 	async redrawLoop() {
@@ -549,6 +606,8 @@ class RenderContext {
 			await tile.render();
 		}
 
+		this.drawnTiles = Array.from(this.freshDrawnTiles());
+
 		this.requestRedraw();
 	}
 
@@ -685,6 +744,19 @@ class RenderContext {
 		c.fill();
 	}
 
+	async drawLabels() {
+		const c = this.canvas.getContext("2d");
+		c.font = "24px serif";
+		c.fillStyle = "white";
+		for await (const nodeRef of this.drawnNodes()) {
+			const name = await nodeRef.getPString("name");
+			if(name !== undefined) {
+				const where = await this.getNamePosition(nodeRef);
+				c.fillText(name, where.x, where.y);
+			}
+		}
+	}
+
 	async drawHelp() {
 		const c = this.canvas.getContext("2d");
 		c.font = "18px sans";
@@ -699,7 +771,7 @@ class RenderContext {
 		infoLine(`Brush: ${this.brush.getDescription()}`);
 
 		// Debug help
-		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete.");
+		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. You can (N)ame the selected object.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 			infoLine("Hold Q while scrolling to change brush type; hold W while scrolling to change brush size.");
@@ -760,6 +832,7 @@ class RenderContext {
 
 		await this.drawTiles();
 		await this.drawSelection();
+		await this.drawLabels();
 		await this.drawBrush();
 
 		await this.drawHelp();
@@ -779,6 +852,24 @@ class RenderContext {
 	async * drawnNodes() {
 		for(const nodeId of this.drawnNodeIds) {
 			yield this.mapper.backend.getNodeRef(nodeId);
+		}
+	}
+
+	* freshDrawnTiles() {
+		const corner = this.scrollOffset.divideScalar(Tile.SIZE).map((v) => Math.floor(v));
+		const end = this.scrollOffset.add(this.screenSize()).divideScalar(Tile.SIZE).map((v) => Math.ceil(v));
+
+		const tX = this.tiles;
+		for(let x = corner.x; x <= end.x; x++) {
+			const tY = tX[x];
+			if(tY) {
+				for(let y = corner.y; y <= end.y; y++) {
+					const tile = tY[y];
+					if(tile) {
+						yield tile;
+					}
+				}
+			}
 		}
 	}
 

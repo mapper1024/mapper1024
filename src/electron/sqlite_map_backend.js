@@ -246,10 +246,11 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async getPString(entityId, propertyName) {
-		return this.s_gps.get({
+		const row = this.s_gps.get({
 			entityId: entityId,
 			property: propertyName,
-		}).v_string;
+		});
+		return row ? row.v_string : undefined;
 	}
 
 	async setPString(entityId, propertyName, value) {

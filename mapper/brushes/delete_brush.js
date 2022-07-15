@@ -43,7 +43,7 @@ class DeleteBrush extends Brush {
 				selection = this.context.hoverSelection;
 			}
 
-			toRemove = selection.getOrigins();
+			toRemove = Array.from(selection.getOrigins());
 		}
 
 		return new RemoveAction(this.context, {nodeRefs: toRemove});

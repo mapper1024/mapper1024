@@ -20,19 +20,7 @@ class DragEvent {
 	cancel() {}
 
 	async getSelectionParent() {
-		if(this.hoverSelection.exists()) {
-			for(const origin of this.hoverSelection.getOrigins()) {
-				const parent = await origin.getParent();
-				if(parent && !(await origin.hasChildren())) {
-					return parent;
-				}
-				else {
-					return origin;
-				}
-			}
-		}
-
-		return null;
+		return await this.hoverSelection.getParent();
 	}
 }
 
