@@ -52,6 +52,7 @@ class RenderContext {
 
 		this.scrollOffset = Vector3.ZERO;
 		this.zoom = 5;
+		this.requestedZoom = 5;
 
 		this.brush = new AddBrush(this);
 
@@ -143,6 +144,7 @@ class RenderContext {
 				}
 				else if(event.key === "c") {
 					this.scrollOffset = Vector3.ZERO;
+					this.requestZoomChange(5);
 				}
 			}
 			else if(event.key === "d") {
@@ -227,19 +229,7 @@ class RenderContext {
 				}
 			}
 			else {
-				asyncFrom(this.drawnNodes()).then((drawnNodes) => {
-					const oldMousePosition = this.canvasPointToMap(this.mousePosition);
-					if(event.deltaY < 0) {
-						this.zoom = this.zoom - 1;
-					}
-					else {
-						this.zoom = this.zoom + 1;
-					}
-					this.zoom = Math.max(1, Math.min(this.zoom, 20));
-					const newMousePosition = this.canvasPointToMap(this.mousePosition);
-					this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldMousePosition).subtract(this.mapPointToCanvas(newMousePosition)));
-					this.recalculateTilesNodesTranslate(drawnNodes);
-				});
+				this.requestZoomChange(this.zoom + (event.deltaY < 0 ? -1 : 1));
 			}
 
 			this.requestRedraw();
@@ -254,6 +244,7 @@ class RenderContext {
 		setTimeout(this.redrawLoop.bind(this), 10);
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
+		setTimeout(this.applyZoom.bind(this), 10);
 	}
 
 	registerKeyboardShortcut(filter, handler) {
@@ -283,6 +274,23 @@ class RenderContext {
 		}
 
 		return (best || optimal).subtract(this.scrollOffset);
+	}
+
+	requestZoomChange(zoom) {
+		this.requestedZoom = Math.max(1, Math.min(zoom, 20));
+	}
+
+	async applyZoom() {
+		if(this.zoom !== this.requestedZoom) {
+			asyncFrom(this.drawnNodes()).then((drawnNodes) => {
+				const oldLandmark = this.canvasPointToMap(Vector3.UNIT);
+				this.zoom = this.requestedZoom;
+				const newLandmark = this.canvasPointToMap(Vector3.UNIT);
+				this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
+				this.recalculateTilesNodesTranslate(drawnNodes);
+			});
+		}
+		setTimeout(this.applyZoom.bind(this), 10);
 	}
 
 	async redrawLoop() {
