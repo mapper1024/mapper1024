@@ -126,30 +126,53 @@ class Tile {
 		neighbors;
 		const c = canvas.getContext("2d");
 
-		function fillRandomPixels(colors, pixelSize) {
-			for(let x = 0; x < canvas.width; x += pixelSize) {
-				for(let y = 0; y < canvas.height; y += pixelSize) {
-					c.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-					c.fillRect(x, y, pixelSize, pixelSize);
-				}
-			}
+		const colors = {
+			grass: ["green", "forestgreen", "mediumseagreen", "seagreen"],
+			water: ["blue", "skyblue", "aqua", "deepskyblue"],
+			forest: ["darkgreen", "forestgreen", "darkseagreen", "olivedrab"],
+			rocks: ["slategray", "black", "gray", "lightslategray", "darkgray"],
+			null: ["black", "darkgray", "darkseagreen"],
+		};
+
+		const pixelSizes = {
+			grass: 1,
+			water: 1,
+			forest: 2,
+			rocks: 2,
+		};
+
+		function getTypeColors(type) {
+			const acolors = colors[type.id];
+			return acolors || [type.def.color];
 		}
 
-		if(type.id === "grass") {
-			fillRandomPixels(["green", "forestgreen", "mediumseagreen", "seagreen"], 1);
+		function getOurColors() {
+			return getTypeColors(type);
 		}
-		else if(type.id === "water") {
-			fillRandomPixels(["blue", "skyblue", "aqua", "deepskyblue"], 1);
-		}
-		else if(type.id === "forest") {
-			fillRandomPixels(["darkgreen", "forestgreen", "darkseagreen", "olivedrab"], 2);
-		}
-		else if(type.id === "rocks") {
-			fillRandomPixels(["slategray", "black", "gray", "lightslategray", "darkgray"], 2);
-		}
-		else {
-			c.fillStyle = type.def.color;
-			c.fillRect(0, 0, Tile.SIZE, Tile.SIZE);
+
+		const ourColors = getOurColors();
+		const pixelSize = pixelSizes[type.id] || 1;
+
+		for(let x = 0; x < canvas.width; x += pixelSize) {
+			for(let y = 0; y < canvas.height; y += pixelSize) {
+				const pxv = (new Vector3(x, y, 0)).subtract(Tile.HALF_SIZE_VECTOR).divideScalar(Tile.SIZE);
+
+				let neighborColors = ourColors;
+				let closestDistance = Infinity;
+
+				for(const dirName in dirs) {
+					const distance = dirs[dirName].subtract(pxv).length();
+					if(closestDistance > distance) {
+						const neighborType = neighbors[dirName].type;
+						neighborColors = neighborType ? getTypeColors(neighborType) : colors["null"];
+						closestDistance = distance;
+					}
+				}
+
+				const ucolors = Math.random() < closestDistance ? ourColors : neighborColors;
+				c.fillStyle = ucolors[Math.floor(Math.random() * ucolors.length)];
+				c.fillRect(x, y, pixelSize, pixelSize);
+			}
 		}
 	}
 
