@@ -7,6 +7,7 @@ class EntityRef {
 	constructor(id, backend) {
 		this.id = id;
 		this.backend = backend;
+		this.cache = this.backend.getEntityCache(id);
 	}
 
 	/** Check if this entity exists in the database.
@@ -22,31 +23,46 @@ class EntityRef {
 
 	/** Get a number property. */
 	async getPNumber(propertyName) {
-		return this.backend.getPNumber(this.id, propertyName);
+		let value = this.cache[propertyName];
+		if(value === undefined) {
+			value = this.cache[propertyName] = this.backend.getPNumber(this.id, propertyName);
+		}
+		return value;
 	}
 
 	/** Get a string property. */
 	async getPString(propertyName) {
-		return this.backend.getPString(this.id, propertyName);
+		let value = this.cache[propertyName];
+		if(value === undefined) {
+			value = this.cache[propertyName] = this.backend.getPString(this.id, propertyName);
+		}
+		return value;
 	}
 
 	/** Get a Vector3 property. */
 	async getPVector3(propertyName) {
-		return this.backend.getPVector3(this.id, propertyName);
+		let value = this.cache[propertyName];
+		if(value === undefined) {
+			value = this.cache[propertyName] = this.backend.getPVector3(this.id, propertyName);
+		}
+		return value;
 	}
 
 	/** Set a number property. */
 	async setPNumber(propertyName, value) {
+		this.cache[propertyName] = value;
 		return this.backend.setPNumber(this.id, propertyName, value);
 	}
 
 	/** Set a string property. */
 	async setPString(propertyName, value) {
+		this.cache[propertyName] = value;
 		return this.backend.setPString(this.id, propertyName, value);
 	}
 
 	/** Set a Vector3 property. */
 	async setPVector3(propertyName, v) {
+		this.cache[propertyName] = v;
 		return this.backend.setPVector3(this.id, propertyName, v);
 	}
 

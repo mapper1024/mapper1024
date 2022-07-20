@@ -20,6 +20,15 @@ class MapBackend {
 		this.loaded = false;
 		this.hooks = new HookContainer();
 		this.nodeTypeRegistry = new NodeTypeRegistry();
+		this.entityCache = {};
+	}
+
+	getEntityCache(id) {
+		let cache = this.entityCache[id];
+		if(cache === undefined) {
+			cache = this.entityCache[id] = {};
+		}
+		return cache;
 	}
 
 	/** Get a number property on an entity.
