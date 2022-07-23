@@ -26,15 +26,9 @@ class MapBackend {
 	getEntityCache(id) {
 		let cache = this.entityCache[id];
 		if(cache === undefined) {
-			cache = this.entityCache[id] = new WeakRef({});
+			cache = this.entityCache[id] = {};
 		}
-
-		let ref = cache.deref();
-		if(ref === undefined) {
-			ref = {};
-			cache = this.entityCache[id] = new WeakRef(ref);
-		}
-		return ref;
+		return cache;
 	}
 
 	/** Get a number property on an entity.
