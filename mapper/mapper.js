@@ -658,9 +658,10 @@ class RenderContext {
 						}
 						const tDX = toDraw[x];
 						for(const y in tX) {
+							const tile = tX[y];
 							if(tDX[y] === undefined) {
 								tDX[y] = {
-									tile: tX[y],
+									tile: tile,
 									alpha: alpha,
 								};
 							}

@@ -118,8 +118,7 @@ class Tile {
 			tileRenders[keyString] = canvas;
 		}
 
-		const megaTileContext = this.megaTile.canvas.getContext("2d");
-		megaTileContext.drawImage(canvas, position.x, position.y);
+		this.megaTile.canvasContext.drawImage(canvas, position.x, position.y);
 	}
 
 	static async renderMaster(canvas, type, neighbors) {
@@ -195,6 +194,7 @@ class MegaTile {
 		this.canvas = document.createElement("canvas");
 		this.canvas.width = MegaTile.SIZE;
 		this.canvas.height = MegaTile.SIZE;
+		this.canvasContext = this.canvas.getContext("2d");
 	}
 
 	makeTile(point) {
