@@ -131,7 +131,7 @@ class SQLiteMapBackend extends MapBackend {
 			return id;
 		});
 
-		if(this.options.cleanup) {
+		if(this.options.cleanup && !this.options.readOnly) {
 			this.db.exec("DELETE FROM entity WHERE valid = FALSE");
 			this.db.exec("VACUUM");
 		}
@@ -158,6 +158,7 @@ class SQLiteMapBackend extends MapBackend {
 			}));
 			await newBackend.load();
 			this.db = newBackend.db;
+			this.options.readOnly = false;
 		}
 	}
 
