@@ -37,6 +37,7 @@ async function loadMap(backend) {
 
 	const openPath = () => backend.filename;
 	const openPathIsTemporary = () => (openPath() === ":memory:");
+	const openPathIsReadOnly = () => backend.options.readOnly;
 	const openFilename = () => openPath().split("/").pop();
 
 	const mapper = new Mapper(backend);
@@ -74,7 +75,7 @@ async function loadMap(backend) {
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "S", async () => saveAs());
 
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "s", async () => {
-		if(openPathIsTemporary()) {
+		if(openPathIsTemporary() || openPathIsReadOnly()) {
 			saveAs();
 		}
 		else {
@@ -102,6 +103,9 @@ async function loadMap(backend) {
 
 	function updateTitle() {
 		let title = openPathIsTemporary() ? "New map" : openFilename();
+		if(openPathIsReadOnly()) {
+			title += " [read-only]";
+		}
 		if(mapper.hasUnsavedChanges()) {
 			title += " *";
 		}
@@ -121,7 +125,9 @@ async function loadMap(backend) {
 const argv = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
 
 window.addEventListener("DOMContentLoaded", async () => {
-	await loadMap(argv.length === 0 ? await blankMap() : new SQLiteMapBackend(argv[0]));
+	await loadMap(argv.length === 0 ? await new SQLiteMapBackend(app.getAppPath() + "/samples/sample_map.map", {
+		readOnly: true,
+	}) : new SQLiteMapBackend(argv[0]));
 });
 
 

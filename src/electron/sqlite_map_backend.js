@@ -17,7 +17,10 @@ class SQLiteMapBackend extends MapBackend {
 			autosave: false,
 			cleanup: true,
 			create: false,
+			readOnly: false,
 		}, options);
+
+		this.options.autosave = this.options.autosave && !this.options.readOnly;
 	}
 
 	getDbOptions() {
@@ -138,7 +141,7 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async flush() {
-		if(!this.options.autosave) {
+		if(!this.options.autosave && !this.options.readOnly) {
 			await this.save(this.filename, false);
 		}
 	}
@@ -151,6 +154,7 @@ class SQLiteMapBackend extends MapBackend {
 			this.filename = filename;
 			const newBackend = new SQLiteMapBackend(filename, merge(this.options, {
 				cleanup: false,
+				readOnly: false,
 			}));
 			await newBackend.load();
 			this.db = newBackend.db;
