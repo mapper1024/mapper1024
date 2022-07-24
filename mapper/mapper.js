@@ -5,6 +5,7 @@ import { DeleteBrush, AddBrush, SelectBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { Tile, MegaTile } from "./tile.js";
+import { ChangeNameAction } from "./actions/index.js";
 
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
@@ -178,8 +179,7 @@ class RenderContext {
 					};
 
 					const submit = async () => {
-						await nodeRef.setPString("name", input.value);
-						await this.mapper.hooks.call("updateNode", nodeRef);
+						this.performAction(new ChangeNameAction(this, {nodeRef: nodeRef, name: input.value}), true);
 						cancel();
 					};
 

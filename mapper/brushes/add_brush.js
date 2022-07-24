@@ -7,7 +7,7 @@ class AddBrush extends Brush {
 	constructor(context) {
 		super(context);
 
-		this.nodeTypeIndex = 1;
+		this.nodeTypeIndex = 0;
 		this.nodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
 		this.lastTypeChange = performance.now();
 	}
