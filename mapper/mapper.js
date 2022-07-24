@@ -34,7 +34,6 @@ class RenderContext {
 		this.undoStack = [];
 		this.redoStack = [];
 
-		this.OFF_SCREEN_BUFFER_STRETCH = Vector3.UNIT.multiplyScalar(MegaTile.SIZE);
 		this.tiles = {};
 		this.megaTiles = {};
 		this.drawnNodeIds = new Set();
@@ -340,7 +339,7 @@ class RenderContext {
 			this.recalculateViewport = false;
 			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
 		}
-		setTimeout(this.recalculateLoop.bind(this), 10);
+		setTimeout(this.recalculateLoop.bind(this), 100);
 	}
 
 	async performAction(action, addToUndoStack) {
@@ -477,11 +476,14 @@ class RenderContext {
 
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
 
+		// TODO: Actually remove nodes that are no longer drawn. Currently removed due to performance overhead of the recalculation for large nodes.
+		/*
 		for(const nodeId of this.drawnNodeIds) {
 			if(!visibleNodeIds.has(nodeId)) {
 				removedNodeIds.add(nodeId);
 			}
 		}
+		*/
 
 		for(const nodeId of visibleNodeIds) {
 			if(!this.drawnNodeIds.has(nodeId)) {
@@ -807,7 +809,7 @@ class RenderContext {
 		infoLine("Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S to save as, ` to toggle debug mode.");
 
 		if(this.debugMode) {
-			infoLine(`${Object.keys(Tile.getTileRenders()).length} cached tiles`);
+			infoLine(`${Object.keys(Tile.getTileRenders()).length} cached tiles | ${this.drawnNodeIds.size} drawn nodes`);
 		}
 	}
 
@@ -866,8 +868,7 @@ class RenderContext {
 
 	async * visibleNodes() {
 		const screenBox = this.screenBox();
-		const stretchBox = new Box3(screenBox.a.subtract(this.OFF_SCREEN_BUFFER_STRETCH), screenBox.b.add(this.OFF_SCREEN_BUFFER_STRETCH));
-		yield* this.mapper.getNodesInArea(stretchBox.map((v) => this.canvasPointToMap(v)));
+		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
 	}
 
 	async * drawnNodes() {
@@ -957,6 +958,14 @@ class Mapper {
 	 */
 	async * getNodesInArea(box) {
 		yield* this.backend.getNodesInArea(box);
+	}
+
+	/** Get all nodes in or near a spatial box (according to their radii).
+	 * @param box {Box3}
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
+	async * getNodesTouchingArea(box) {
+		yield* this.backend.getNodesTouchingArea(box);
 	}
 
 	/** Get all edges attached to the specified node.

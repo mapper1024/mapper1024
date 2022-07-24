@@ -233,6 +233,15 @@ class MapBackend {
 		throw "getNodesInArea not implemented";
 	}
 
+	/** Get all nodes in or near a spatial box (according to their radii).
+	 * @param box {Box3} The box to find nodes within or near.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
+	getNodesTouchingArea(box) {
+		box;
+		throw "getNodesTouchingArea not implemented";
+	}
+
 	/** Get the edge between two nodes, if it exists.
 	 * @param nodeAId {number} The ID of one of the nodes on the edge to find.
 	 * @param nodeBId {number} The ID of the other node on the edge to find.
