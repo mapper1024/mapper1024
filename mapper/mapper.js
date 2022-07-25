@@ -440,6 +440,11 @@ class RenderContext {
 		return new Box3(Vector3.ZERO, this.screenSize());
 	}
 
+	screenBoxTiles() {
+		const offsetScreenBox = this.screenBox().map((v) => v.add(this.scrollOffset));
+		return new Box3(offsetScreenBox.a.map((c) => Math.floor(c / Tile.SIZE)), offsetScreenBox.b.map((c) => Math.ceil(c / Tile.SIZE)));
+	}
+
 	/** Recalculate the UI size based on the parent.
 	 * This requires a full redraw.
 	 */
@@ -476,6 +481,8 @@ class RenderContext {
 
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
 
+		const screenBoxTiles = this.screenBoxTiles();
+
 		for(const nodeId of this.drawnNodeIds) {
 			if(!visibleNodeIds.has(nodeId)) {
 				removedNodeIds.add(nodeId);
@@ -490,30 +497,38 @@ class RenderContext {
 
 		const recheckTiles = {};
 
-		for(const removedId of new Set([...removedNodeIds, ...translatedNodeIds])) {
-			const tX = this.nodeIdToTiles[removedId];
+		const clearNodeTiles = (nodeId) => {
+			const tX = this.nodeIdToTiles[nodeId];
 			for(const x in tX) {
-				if(recheckTiles[x] === undefined) {
-					recheckTiles[x] = {};
-				}
-				const rX = recheckTiles[x];
-				const tY = this.nodeIdToTiles[removedId][x];
-				const mtX = this.megaTiles[Math.floor(x / MegaTile.SIZE * Tile.SIZE)];
-				for(const y in tY) {
-					rX[y] = tY[y];
-					delete this.tiles[x][y];
-					if(mtX !== undefined) {
-						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
-						const megaTile = mtX[megaTilePositionY];
-						if(megaTile !== undefined) {
-							megaTile.removeNode(removedId);
-							for(const nodeId of megaTile.popRedraw()) {
-								updatedNodeIds.add(nodeId);
+				if(x >= screenBoxTiles.a.x && x <= screenBoxTiles.b.x) {
+					if(recheckTiles[x] === undefined) {
+						recheckTiles[x] = {};
+					}
+					const rX = recheckTiles[x];
+					const tY = this.nodeIdToTiles[nodeId][x];
+					const mtX = this.megaTiles[Math.floor(x / MegaTile.SIZE * Tile.SIZE)];
+					for(const y in tY) {
+						if(y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y) {
+							rX[y] = tY[y];
+							delete this.tiles[x][y];
+							if(mtX !== undefined) {
+								const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
+								const megaTile = mtX[megaTilePositionY];
+								if(megaTile !== undefined) {
+									megaTile.removeNode(nodeId);
+									for(const nodeId of megaTile.popRedraw()) {
+										updatedNodeIds.add(nodeId);
+									}
+								}
 							}
 						}
 					}
 				}
 			}
+		};
+
+		for(const removedId of new Set([...removedNodeIds, ...translatedNodeIds])) {
+			clearNodeTiles(removedId);
 			delete this.nodeIdToTiles[removedId];
 			this.drawnNodeIds.delete(removedId);
 		}
@@ -528,29 +543,7 @@ class RenderContext {
 		}
 
 		for(const nodeId of updatedNodeIds) {
-			const tX = this.nodeIdToTiles[nodeId];
-			for(const x in tX) {
-				if(recheckTiles[x] === undefined) {
-					recheckTiles[x] = {};
-				}
-				const rX = recheckTiles[x];
-				const tY = this.nodeIdToTiles[nodeId][x];
-				const mtX = this.megaTiles[Math.floor(x / MegaTile.SIZE * Tile.SIZE)];
-				for(const y in tY) {
-					rX[y] = tY[y];
-					delete this.tiles[x][y];
-					if(mtX !== undefined) {
-						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
-						const megaTile = mtX[megaTilePositionY];
-						if(megaTile !== undefined) {
-							megaTile.reset();
-							for(const nodeId of megaTile.popRedraw()) {
-								updatedNodeIds.add(nodeId);
-							}
-						}
-					}
-				}
-			}
+			clearNodeTiles(nodeId);
 		}
 
 		for(const nodeId of removedNodeIds) {
@@ -572,7 +565,12 @@ class RenderContext {
 			if(radius > 0) {
 				const radiusTile = Math.ceil(radius / Tile.SIZE);
 
-				for(let x = centerTile.x - radiusTile; x <= centerTile.x + radiusTile; x++) {
+				const tileBox = new Box3(
+					new Vector3(Math.max(screenBoxTiles.a.x, centerTile.x - radiusTile), Math.max(screenBoxTiles.a.y, centerTile.y - radiusTile), 0),
+					new Vector3(Math.min(screenBoxTiles.b.x, centerTile.x + radiusTile), Math.min(screenBoxTiles.b.y, centerTile.y + radiusTile), 0)
+				);
+
+				for(let x = tileBox.a.x; x <= tileBox.b.x; x++) {
 					if(this.tiles[x] === undefined) {
 						this.tiles[x] = {};
 					}
@@ -588,7 +586,7 @@ class RenderContext {
 					}
 
 					const mtX = this.megaTiles[megaTilePositionX];
-					for(let y = centerTile.y - radiusTile; y <= centerTile.y + radiusTile; y++) {
+					for(let y = tileBox.a.y; y <= tileBox.b.y; y++) {
 						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
 
 						if(mtX[megaTilePositionY] === undefined) {
