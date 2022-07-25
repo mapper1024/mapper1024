@@ -468,7 +468,7 @@ class RenderContext {
 	}
 
 	async recalculateTiles(updatedNodeRefs, removedNodeRefs, translatedNodeRefs) {
-		const actualTiles = [];
+		const actualTiles = new Set();
 
 		const updatedNodeIds = new Set([...updatedNodeRefs, ...translatedNodeRefs].map((nodeRef) => nodeRef.id));
 		const removedNodeIds = new Set(removedNodeRefs.map((nodeRef) => nodeRef.id));
@@ -476,14 +476,11 @@ class RenderContext {
 
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleNodes(), (nodeRef) => nodeRef.id));
 
-		// TODO: Actually remove nodes that are no longer drawn. Currently removed due to performance overhead of the recalculation for large nodes.
-		/*
 		for(const nodeId of this.drawnNodeIds) {
 			if(!visibleNodeIds.has(nodeId)) {
 				removedNodeIds.add(nodeId);
 			}
 		}
-		*/
 
 		for(const nodeId of visibleNodeIds) {
 			if(!this.drawnNodeIds.has(nodeId)) {
@@ -608,7 +605,7 @@ class RenderContext {
 
 						if(await tile.addNode(nodeRef)) {
 							nodeIdToTileX[y] = tile;
-							actualTiles.push(tile);
+							actualTiles.add(tile);
 						}
 					}
 				}
