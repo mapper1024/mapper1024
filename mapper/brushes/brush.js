@@ -56,7 +56,7 @@ class Brush {
 		context.textBaseline = "top";
 		const worldPosition = this.context.canvasPointToMap(position).map(c => this.context.mapper.unitsToMeters(c)).round();
 		const positionText = `${worldPosition.x}m, ${worldPosition.y}m`;
-		context.fillText(positionText, position.x - context.measureText(positionText).width / 2, position.y + this.getRadius() + 6);
+		context.fillText(positionText, position.x - Math.min(this.getRadius(), context.measureText(positionText).width / 2), position.y + this.getRadius() + 6);
 	}
 
 	async draw(context, position) {
