@@ -180,7 +180,7 @@ class Tile {
 	}
 }
 
-Tile.SIZE = 32;
+Tile.SIZE = 16;
 Tile.HALF_SIZE_VECTOR = new Vector3(Tile.SIZE / 2, Tile.SIZE / 2, 0);
 
 class MegaTile {

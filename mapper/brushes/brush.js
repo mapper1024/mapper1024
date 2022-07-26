@@ -48,9 +48,15 @@ class Brush {
 		context.fillRect(position.x + this.getRadius(), position.y - 16, 2, 32);
 		context.fillRect(position.x - this.getRadius(), position.y - 1, this.getRadius() * 2, 2);
 
+		context.textBaseline = "alphabetic";
 		context.font = "12px mono";
-		const text = `${this.sizeInMeters() * 2}m`;
-		context.fillText(text, position.x - context.measureText(text).width / 2, position.y - 6);
+		const sizeText = `${this.sizeInMeters() * 2}m`;
+		context.fillText(sizeText, position.x - context.measureText(sizeText).width / 2, position.y - 6);
+
+		context.textBaseline = "top";
+		const worldPosition = this.context.canvasPointToMap(position).map(c => this.context.mapper.unitsToMeters(c)).round();
+		const positionText = `${worldPosition.x}m, ${worldPosition.y}m`;
+		context.fillText(positionText, position.x - context.measureText(positionText).width / 2, position.y + this.getRadius() + 6);
 	}
 
 	async draw(context, position) {
