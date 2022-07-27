@@ -32,11 +32,11 @@ class SqlJsMapBackend extends MapBackend {
 	async load() {
 		const Database = (await SqlJs()).Database;
 
-		if(this.uri === null) {
-			this.db = new Database();
+		if(this.uri) {
+			this.db = new Database(new Uint8Array(await (await fetch(this.uri)).arrayBuffer()));
 		}
 		else {
-			this.db = new Database(new Uint8Array(await (await fetch(this.uri)).arrayBuffer()));
+			this.db = new Database();
 		}
 
 		this.db.run("PRAGMA foreign_keys = ON");
@@ -116,7 +116,7 @@ class SqlJsMapBackend extends MapBackend {
 		this.baseCreateNode = (parentId) => {
 			this.db.run("BEGIN EXCLUSIVE TRANSACTION");
 			const id = this.baseCreateEntity("node");
-			this.s_createNode.run({$entityId: id, $parentId: parentId});
+			this.s_createNode.run({$entityId: id, $parentId: parentId ? parentId : null});
 			this.db.run("COMMIT");
 			return id;
 		};
@@ -129,7 +129,7 @@ class SqlJsMapBackend extends MapBackend {
 		this.baseCreateEdge = (nodeAId, nodeBId) => {
 			this.db.run("BEGIN EXCLUSIVE TRANSACTION");
 			const id = this.baseCreateEntity("edge");
-			this.s_createConnection.run({$edgeId: id, nodeId: nodeAId});
+			this.s_createConnection.run({$edgeId: id, $nodeId: nodeAId});
 			this.s_createConnection.run({$edgeId: id, $nodeId: nodeBId});
 			this.db.run("COMMIT");
 			return id;
@@ -140,16 +140,16 @@ class SqlJsMapBackend extends MapBackend {
 	}
 
 	baseCreateEntity(type) {
-		this.s_createEntity.run({type: type});
+		this.s_createEntity.run({$type: type});
 		return this.db.exec("SELECT last_insert_rowid()")[0].values[0][0];
 	}
 
 	async entityExists(entityId) {
-		return this.s_entityExists.get({$entityId: entityId}) !== undefined;
+		return this.s_entityExists.get({$entityId: entityId}).length > 0;
 	}
 
 	async entityValid(entityId) {
-		return this.s_entityValid.get({$entityId: entityId}) !== undefined;
+		return this.s_entityValid.get({$entityId: entityId}).length > 0;
 	}
 
 	async createEntity(type) {
@@ -245,6 +245,25 @@ class SqlJsMapBackend extends MapBackend {
 		while(this.s_getNodesTouchingArea.step()) {
 			yield this.getNodeRef(this.s_getNodesTouchingArea.get()[0]);
 		}
+	}
+
+	async * getNodeEdges(nodeId) {
+		this.s_getNodeEdges.bind({$nodeId: nodeId});
+		while(this.s_getNodeEdges.step()) {
+			yield this.getDirEdgeRef(this.s_getNodeEdges.get()[0], nodeId);
+		}
+	}
+
+	async * getEdgeNodes(edgeId) {
+		this.s_getEdgeNodes.bind({$edgeId: edgeId});
+		while(this.s_getEdgeNodes.step()) {
+			yield this.getNodeRef(this.s_getEdgeNodes.get()[0]);
+		}
+	}
+
+	async getEdgeBetween(nodeAId, nodeBId) {
+		const row = this.s_getEdgeBetween.get({$nodeAId: nodeAId, $nodeBId: nodeBId});
+		return (row.length === 0) ? null : this.getEdgeRef(row[0]);
 	}
 }
 

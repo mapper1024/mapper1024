@@ -4,7 +4,7 @@
 	"description": "An accessible and efficient map making tool",
 	"main": "src/electron/main.js",
 	"scripts": {
-		"test": "electron-mocha",
+		"test": "electron-mocha --renderer",
 		"start": "electron .",
 		"build-and-run": "yarn run check-format; yarn run start",
 		"format": "git ls-files | grep '\\.js$' | xargs yarn run eslint --fix",
