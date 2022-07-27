@@ -1,4 +1,4 @@
-import { MapBackend, Vector3 } from "../index.js";
+import { MapBackend, Vector3, merge } from "../index.js";
 
 // Load [sql.js](https://sql.js.org) from the remote server.
 let sqlJsPromise;
@@ -22,8 +22,22 @@ async function SqlJs() {
 }
 
 class SqlJsMapBackend extends MapBackend {
+	constructor(uri, options) {
+		super();
+
+		this.uri = uri;
+		this.options = merge({}, options);
+	}
+
 	async load() {
-		this.db = new (await SqlJs()).Database();
+		const Database = (await SqlJs()).Database;
+
+		if(this.uri === null) {
+			this.db = new Database();
+		}
+		else {
+			this.db = new Database(new Uint8Array(await (await fetch(this.uri)).arrayBuffer()));
+		}
 
 		this.db.run("PRAGMA foreign_keys = ON");
 		this.db.run("PRAGMA recursive_triggers = ON");

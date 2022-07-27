@@ -20,4 +20,8 @@ def interface(path):
 def mapper(path):
 	return send_from_directory("../../mapper", path)
 
+@app.route("/samples/<path:path>")
+def samples(path):
+	return send_from_directory("../../samples", path)
+
 # TODO: backend
