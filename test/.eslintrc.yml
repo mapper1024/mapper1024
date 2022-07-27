@@ -21,3 +21,5 @@ rules:
   semi:
     - error
     - always
+  "mocha/no-exports": off
+  "mocha/no-setup-in-describe": off
