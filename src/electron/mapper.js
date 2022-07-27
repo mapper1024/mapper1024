@@ -1,3 +1,4 @@
+const path = require("path");
 const { ipcRenderer } = require("electron");
 const { dialog, process, app } = require("@electron/remote");
 import { Mapper } from "../../mapper/index.js";
@@ -125,7 +126,7 @@ async function loadMap(backend) {
 const argv = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
 
 window.addEventListener("DOMContentLoaded", async () => {
-	await loadMap(argv.length === 0 ? await new SQLiteMapBackend(app.getAppPath() + "/samples/sample_map.map", {
+	await loadMap(argv.length === 0 ? await new SQLiteMapBackend((app.isPackaged ? path.dirname(app.getAppPath()) : app.getAppPath()) + "/samples/sample_map.map", {
 		readOnly: true,
 	}) : new SQLiteMapBackend(argv[0]));
 });

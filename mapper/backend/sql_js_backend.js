@@ -1,23 +1,29 @@
-import { MapBackend, Vector3, merge } from "../index.js";
+import { MapBackend, Vector3 } from "../index.js";
 
 // Load [sql.js](https://sql.js.org) from the remote server.
-const SqlJs = new Promise((resolve, reject) => {
-	const script = document.createElement("script");
-	script.src = "https://sql.js.org/dist/sql-wasm.js";
-	script.addEventListener("load", async function() {
-		const SQL = await initSqlJs({
-			locateFile: file => `https://sql.js.org/dist/${file}`,
-		});
+let sqlJsPromise;
+async function SqlJs() {
+	if(sqlJsPromise === undefined) {
+		sqlJsPromise = new Promise((resolve, reject) => {
+			const script = document.createElement("script");
+			script.src = "https://sql.js.org/dist/sql-wasm.js";
+			script.addEventListener("load", async function() {
+				const SQL = await window.initSqlJs({
+					locateFile: file => `https://sql.js.org/dist/${file}`,
+				});
 
-		resolve(SQL);
-	});
-	script.addEventListener("reject", e => reject(e.error));
-	document.head.appendChild(script);
-});
+				resolve(SQL);
+			});
+			script.addEventListener("error", reject);
+			document.head.appendChild(script);
+		});
+	}
+	return await sqlJsPromise;
+}
 
 class SqlJsMapBackend extends MapBackend {
 	async load() {
-		this.db = new (await SqlJs).Database();
+		this.db = new (await SqlJs()).Database();
 
 		this.db.run("PRAGMA foreign_keys = ON");
 		this.db.run("PRAGMA recursive_triggers = ON");
@@ -226,6 +232,6 @@ class SqlJsMapBackend extends MapBackend {
 			yield this.getNodeRef(this.s_getNodesTouchingArea.get()[0]);
 		}
 	}
-};
+}
 
 export { SqlJsMapBackend };
