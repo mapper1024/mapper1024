@@ -1,6 +1,7 @@
 import { MapBackend, Vector3, merge } from "../index.js";
 
 // Load [sql.js](https://sql.js.org) from the remote server.
+// Will not attempt to load until the function is called the first time to avoid unnecessary remote fetches.
 let sqlJsPromise;
 async function SqlJs() {
 	if(sqlJsPromise === undefined) {
@@ -21,7 +22,15 @@ async function SqlJs() {
 	return await sqlJsPromise;
 }
 
+/** SQLite-backed map backend, using [sql.js](https://sql.js.org).
+ * Each map is an individual SQLite database file stored in memory.
+ * This backend is built for the online demo usecase.
+ */
 class SqlJsMapBackend extends MapBackend {
+	/** Ready the backend on a specific database filename.
+	 * The backend cannot be used until #load() finishes.
+	 * @param uri A url to be fetched and loaded as a binary sqlite database. If this is falsey, a blank map will be loaded.
+	 */
 	constructor(uri, options) {
 		super();
 
