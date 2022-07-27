@@ -76,6 +76,10 @@ class RenderContext {
 		this.mapper.hooks.add("translateNodes", (nodeRefs) => this.recalculateTilesNodesTranslate(nodeRefs));
 		this.mapper.hooks.add("update", this.requestUpdateSelection.bind(this));
 
+		this.canvas.addEventListener("contextmenu", event => {
+			event.preventDefault();
+		});
+
 		this.canvas.addEventListener("mousedown", async (event) => {
 			if(this.mouseDragEvents[event.button] === undefined) {
 				const where = new Vector3(event.x, event.y, 0);
