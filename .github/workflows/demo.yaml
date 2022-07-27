@@ -1,0 +1,37 @@
+name: demo
+on:
+    push:
+        tags:
+            - v*
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v2
+              with:
+                node-version: "16"
+            - run: yarn
+            - run: yarn run electron-rebuild
+            - run: yarn run check-format
+            - uses: GabrielBB/xvfb-action@v1
+              with:
+                run: yarn run test
+    demo:
+        needs: check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v2
+              with:
+                node-version: "16"
+            - run: yarn
+            - run: bash tools/build_demo.sh
+            - name: Deploy
+              uses: peaceiris/actions-gh-pages@v3
+              with:
+                personal_token: ${{ secrets.WORKFLOW_TOKEN }}
+                external_repository: mapper1024/mapper1024.github.io
+                publish_branch: master
+                publish_dir: dist/demo
+                destination_dir: demo/mapper
