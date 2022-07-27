@@ -1,6 +1,6 @@
 {
 	"name": "mapper1024",
-	"version": "0.0.22",
+	"version": "0.0.23",
 	"description": "An accessible and efficient map making tool",
 	"main": "src/electron/main.js",
 	"scripts": {
@@ -38,7 +38,9 @@
 	"build": {
 		"appId": "io.github.mapper1024.mapper1024",
 		"productName": "Mapper1024",
-		"extraResources": ["samples/**/*"]
+		"extraResources": [
+			"samples/**/*"
+		]
 	},
 	"dependencies": {
 		"@electron/remote": "^2.0.8",
