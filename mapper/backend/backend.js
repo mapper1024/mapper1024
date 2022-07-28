@@ -26,7 +26,9 @@ class MapBackend {
 	getEntityCache(id) {
 		let cache = this.entityCache[id];
 		if(cache === undefined) {
-			cache = this.entityCache[id] = {};
+			cache = this.entityCache[id] = {
+				properties: {},
+			};
 		}
 		return cache;
 	}

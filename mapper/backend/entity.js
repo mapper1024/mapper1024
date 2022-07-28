@@ -8,6 +8,7 @@ class EntityRef {
 		this.id = id;
 		this.backend = backend;
 		this.cache = this.backend.getEntityCache(id);
+		this.propertyCache = this.cache.properties;
 	}
 
 	/** Check if this entity exists in the database.
@@ -23,46 +24,46 @@ class EntityRef {
 
 	/** Get a number property. */
 	async getPNumber(propertyName) {
-		let value = this.cache[propertyName];
+		let value = this.propertyCache[propertyName];
 		if(value === undefined) {
-			value = this.cache[propertyName] = this.backend.getPNumber(this.id, propertyName);
+			value = this.propertyCache[propertyName] = this.backend.getPNumber(this.id, propertyName);
 		}
 		return value;
 	}
 
 	/** Get a string property. */
 	async getPString(propertyName) {
-		let value = this.cache[propertyName];
+		let value = this.propertyCache[propertyName];
 		if(value === undefined) {
-			value = this.cache[propertyName] = this.backend.getPString(this.id, propertyName);
+			value = this.propertyCache[propertyName] = this.backend.getPString(this.id, propertyName);
 		}
 		return value;
 	}
 
 	/** Get a Vector3 property. */
 	async getPVector3(propertyName) {
-		let value = this.cache[propertyName];
+		let value = this.propertyCache[propertyName];
 		if(value === undefined) {
-			value = this.cache[propertyName] = this.backend.getPVector3(this.id, propertyName);
+			value = this.propertyCache[propertyName] = this.backend.getPVector3(this.id, propertyName);
 		}
 		return value;
 	}
 
 	/** Set a number property. */
 	async setPNumber(propertyName, value) {
-		this.cache[propertyName] = value;
+		this.propertyCache[propertyName] = value;
 		return this.backend.setPNumber(this.id, propertyName, value);
 	}
 
 	/** Set a string property. */
 	async setPString(propertyName, value) {
-		this.cache[propertyName] = value;
+		this.propertyCache[propertyName] = value;
 		return this.backend.setPString(this.id, propertyName, value);
 	}
 
 	/** Set a Vector3 property. */
 	async setPVector3(propertyName, v) {
-		this.cache[propertyName] = v;
+		this.propertyCache[propertyName] = v;
 		return this.backend.setPVector3(this.id, propertyName, v);
 	}
 
@@ -79,18 +80,33 @@ class EntityRef {
 /** Reference to a node entity.
  * Do not construct manually, use backend methods. */
 class NodeRef extends EntityRef {
+	constructor(id, backend) {
+		super(id, backend);
+	}
+
 	/** Get the parent node of this node, if it exists.
 	 * @returns {NodeRef|null} The parent node, or null if there is no parent.
 	 */
 	async getParent() {
-		return this.backend.getNodeParent(this.id);
+		let parent = this.cache.parent;
+		if(parent === undefined) {
+			parent = this.cache.parent = this.backend.getNodeParent(this.id);
+		}
+		return parent;
 	}
 
 	/** Get all children of this node.
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
 	async * getChildren() {
-		yield* this.backend.getNodeChildren(this.id);
+		let children = this.cache.children;
+		if(children === undefined) {
+			children = this.cache.children = await asyncFrom(this.backend.getNodeChildren(this.id));
+		}
+
+		for(const child of children) {
+			yield child;
+		}
 	}
 
 	async hasChildren() {
@@ -148,8 +164,15 @@ class NodeRef extends EntityRef {
 		yield* this.backend.getNodeEdges(this.id);
 	}
 
+	/** Remove this entity from the database. */
 	async remove() {
+		delete (await this.getParent()).cache.children;
 		return this.backend.removeNode(this.id);
+	}
+
+	async unremove() {
+		delete (await this.getParent()).cache.children;
+		return super.unremove();
 	}
 }
 
