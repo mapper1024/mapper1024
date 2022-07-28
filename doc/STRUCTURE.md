@@ -14,6 +14,5 @@ Serves the mapper component wrapped in a web UI with an API/web server database 
 ## test
 [Mocha](https://mochajs.org/) test cases.
 
-## test_datasets
-Database generators to create test-case maps.
-May include methods to generate maps programatically for test purposes, map files, SQL dumps, etc.
+## samples
+Sample map files for demonstration purposes.
