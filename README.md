@@ -17,6 +17,9 @@ The mapping tool can be run as an Electron desktop app; the mapping component an
 ### Web App
 Alternatively, the mapping component can be embedded in any other web app. The mapper component library is bundled into a single javascript module file with each release.
 
+#### Live Demo
+A live demo is available at [https://mapper1024.github.io/demo](https://mapper1024.github.io/demo).
+
 ## Building & Running
 ### Electron (Local)
 To run with Electron as a local desktop app, use the yarn commands:
