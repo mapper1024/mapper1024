@@ -1,5 +1,9 @@
 import { Action } from "./action.js";
 
+/** An action composed of several actions. Will handle creating the needed bulk action to undo the actions in order.
+ * Options:
+ * - actions: An array of actions to perform.
+ */
 class BulkAction extends Action {
 	async perform() {
 		const actions = [];

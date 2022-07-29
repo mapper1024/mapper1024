@@ -18,6 +18,9 @@ class EntityRef {
 		return this.backend.entityExists(this.id);
 	}
 
+	/** Check if this entity is valid (i.e. not deleted).
+	 * @returns {boolean}
+	 */
 	async valid() {
 		return this.backend.entityValid(this.id);
 	}
