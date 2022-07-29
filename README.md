@@ -2,7 +2,7 @@
 Under rapid development.
 
 ## Release Downloads
-The [current release](https://github.com/mapper1024/mapper1024/releases/latest) is built for all supported platforms. The mapper component javascript library is also bundled with each release.
+See [DOWNLOAD.md](DOWNLOAD.md) for download information.
 
 ## Documentation
 * [https://mapper1024.github.io/jsdoc](https://mapper1024.github.io/jsdoc): auto-generated API documentation
