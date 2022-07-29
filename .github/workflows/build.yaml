@@ -100,7 +100,7 @@ jobs:
               with:
                 node-version: "16"
             - run: yarn
-            - run: yarn run electron-builder --x64 --ia32 -p never -w zip '-c.artifactName=${productName}-${version}.windows.${ext}'
+            - run: yarn run electron-builder --ia32 -p never -w zip '-c.artifactName=${productName}-${version}.windows.${ext}'
             - name: Release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/')
