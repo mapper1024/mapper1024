@@ -20,6 +20,7 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.hooks = new HookContainer();
 		this.keyboardShortcuts = [];
 
 		this.wantRedraw = true;
@@ -823,8 +824,11 @@ class RenderContext {
 			infoLine("Click to delete. Hold Shift to delete an entire object.");
 			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
 		}
-		infoLine("Right click to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo.");
-		infoLine("Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S to save as, ` to toggle debug mode.");
+		infoLine("Right click to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
+
+		this.hooks.call("draw_help", {
+			infoLine: infoLine,
+		});
 
 		if(this.debugMode) {
 			infoLine(`${Object.keys(Tile.getTileRenders()).length} cached tiles | ${this.drawnNodeIds.size} drawn nodes, ${this.offScreenDrawnNodeIds.size} on border`);

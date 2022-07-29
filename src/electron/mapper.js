@@ -55,6 +55,10 @@ async function loadMap(backend) {
 	}
 	renderedMap = mapper.render(document.getElementById("mapper"));
 
+	renderedMap.hooks.add("draw_help", function(options) {
+		options.infoLine("Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S to save as, Ctrl+N to make a blank map.");
+	});
+
 	// Ctrl+N: New Map
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "n", async () => {
 		if(await confirmClear()) {
