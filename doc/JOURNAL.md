@@ -26,9 +26,6 @@ The mapper library is packed into one file using [rollup.js](https://rollupjs.or
 ## Node & Edge Architecture
 The node and edge architecture is an `"Entity-Based [Model]..." (Rigaux et al., p. 31)` where nodes contain the map object's `"description and... spatial component" (p. 31)`. The edges are only part of the prototype design for now, with the intent to use them as a cache of node relationships. Further study will be required.
 
-# References
-* Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
-
 # Functional Prototype: Summer 2022
 Over the course of Summer 2022 the mapping tool has developed to the point of being functional, albiet with a limited set of options.
 
@@ -61,3 +58,6 @@ Testing has revealed that Google Chrome has much better performance than Firefox
 
 ## Sample Map
 A sample map is provided and loaded by default with the desktop app and live demo to show what the tool is currently capable of. This sample map was designed on the fly, but has a tiny bit of storytelling attached to make it interesting. It is expected that testers will be able to play with the sample map which will be updated in the future as new features are added.
+
+# References
+* Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
