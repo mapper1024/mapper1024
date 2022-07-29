@@ -464,7 +464,7 @@ class RenderContext {
 		this.canvas.width = this.parent.clientWidth;
 		this.canvas.height = this.parent.clientHeight;
 
-		this.requestRedraw();
+		this.recalculateTilesViewport();
 	}
 
 	recalculateTilesViewport() {
