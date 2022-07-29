@@ -22,6 +22,7 @@ const createWindow = () => {
 
 	let unsavedChanges = false;
 
+	// When the window is closed, check if we have unsaved changes and therefore need the user to confirm.
 	win.on("close", (event) => {
 		event.preventDefault();
 		if(!unsavedChanges || dialog.showMessageBoxSync({
@@ -35,6 +36,7 @@ const createWindow = () => {
 		}
 	});
 
+	// Remote handler for the mapper to update whether we have unsaved changes that should prevent closing.
 	ipcMain.handle("updateSavedChangeState", (event, hasUnsavedChanges) => {
 		if(event.sender.id === win.id) {
 			unsavedChanges = hasUnsavedChanges;

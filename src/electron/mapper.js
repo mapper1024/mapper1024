@@ -6,6 +6,9 @@ import { SQLiteMapBackend } from "./sqlite_map_backend.js";
 
 let renderedMap;
 
+/** Have the user confirm clearing/closing of the map if there are unsaved changes.
+ * @returns {boolean} true if the user wants to clear/close, false if not.
+ */
 async function confirmClear() {
 	if(renderedMap) {
 		if(renderedMap.mapper.hasUnsavedChanges()) {
@@ -21,15 +24,20 @@ async function confirmClear() {
 	return true;
 }
 
+/** Generate a new blank map. */
 async function blankMap() {
 	return new SQLiteMapBackend(":memory:");
 }
 
+/** Load a map into the display.
+ * @param backend {MapBackend} the map to load. backend.load() will be called by this method, do not call it prior to passing it.
+ */
 async function loadMap(backend) {
 	try {
 		await backend.load();
 	} catch(error) {
 		await dialog.showErrorBox("Could not load map...", error.message);
+		// If this is the first map we've tried to load, just quit.
 		if(!renderedMap) {
 			app.quit();
 		}
@@ -47,6 +55,7 @@ async function loadMap(backend) {
 	}
 	renderedMap = mapper.render(document.getElementById("mapper"));
 
+	// Ctrl+N: New Map
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "n", async () => {
 		if(await confirmClear()) {
 			await loadMap(await blankMap());
@@ -73,8 +82,10 @@ async function loadMap(backend) {
 		}
 	}
 
+	// Ctrl+Shift+S: Save As
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "S", async () => saveAs());
 
+	// Ctrl+S: Save
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "s", async () => {
 		if(openPathIsTemporary() || openPathIsReadOnly()) {
 			saveAs();
@@ -85,6 +96,7 @@ async function loadMap(backend) {
 		}
 	});
 
+	// Ctrl+O: Open
 	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "o", async () => {
 		const open = await dialog.showOpenDialog({
 			title: "Open...",
@@ -113,9 +125,11 @@ async function loadMap(backend) {
 		document.title = title;
 	}
 
+	// If we're autosaving to a file, just constantly clear the unsaved changed state.
 	if(!openPathIsTemporary() && backend.options.autosave) {
 		mapper.hooks.add("update", () => mapper.clearUnsavedChangeState());
 	}
+
 	mapper.hooks.add("unsavedStateChange", () => ipcRenderer.invoke("updateSavedChangeState", mapper.hasUnsavedChanges()));
 	mapper.hooks.add("unsavedStateChange", () => updateTitle());
 
@@ -125,6 +139,7 @@ async function loadMap(backend) {
 
 const argv = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
 
+// If there are no arguments, load the sample map. Otherwise, load the map specified on the command line.
 window.addEventListener("DOMContentLoaded", async () => {
 	await loadMap(argv.length === 0 ? await new SQLiteMapBackend((app.isPackaged ? path.dirname(app.getAppPath()) : app.getAppPath()) + "/samples/sample_map.map", {
 		readOnly: true,
