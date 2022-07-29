@@ -1,16 +1,16 @@
 # Download Options
 Choose any option below to get the mapping tool.
 ## Windows
-* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v0.0.28/mapper1024-0.0.28.windows.zip)
+* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v0.0.29/mapper1024-0.0.29.windows.zip)
  * Extract the zip file and run the program file called `mapper1024.exe` found inside.
-* [Ordinary program](https://github.com/mapper1024/mapper1024/releases/download/v0.0.28/Mapper1024.0.0.28.exe)
+* [Ordinary program](https://github.com/mapper1024/mapper1024/releases/download/v0.0.29/Mapper1024.0.0.29.exe)
  * This one doesn't need to be installed, just download it and run it. You may need to give it permission to run.
-* [Installer](https://github.com/mapper1024/mapper1024/releases/download/v0.0.28/Mapper1024.Setup.0.0.28.exe)
+* [Installer](https://github.com/mapper1024/mapper1024/releases/download/v0.0.29/Mapper1024.Setup.0.0.29.exe)
  * Run the installer and the mapping tool will be installed. You may need to give it permission to run.
 ## Linux
-* [AppImage](https://github.com/mapper1024/mapper1024/releases/download/v0.0.28/Mapper1024-0.0.28.AppImage)
+* [AppImage](https://github.com/mapper1024/mapper1024/releases/download/v0.0.29/Mapper1024-0.0.29.AppImage)
  * See [How to run an AppImage](https://docs.appimage.org/introduction/quickstart.html#how-to-run-an-appimage) to use this option
-* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v0.0.28/mapper1024-0.0.28.linux.zip)
+* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v0.0.29/mapper1024-0.0.29.linux.zip)
  * Extract the zip file and run the program file called `mapper1024` found inside.
 ## MacOS
 Unfortunantely there are no desktop builds for MacOS. You can still explore the live demo linked below.
