@@ -28,3 +28,36 @@ The node and edge architecture is an `"Entity-Based [Model]..." (Rigaux et al., 
 
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
+
+# Functional Prototype: Summer 2022
+Over the course of Summer 2022 the mapping tool has developed to the point of being functional, albiet with a limited set of options.
+
+## Spatial Nodes
+The map itself is still represented with a set of nodes: each node being an object in the map such as a forest, a lake, or a river. The nodes have shape and size currently defined by their children. Nodes are technically positioned in 3D space with pseudo-spherical shape, but currently the Z axis is unused so the nodes are effectively pseudo-circles on a 2D plane. The position and shape of each node is then used to determine how the entire map is rendered.
+
+## Backend
+The map backend is where the nodes and map settings are stored and retrieved from. The backends are intended to be swappable, e.g. the mapper component could be used with a backend that loads and saves from a local file (like the SQLite backend) or from a remote server (yet to be implemented). Unit tests have been set up for all existing map backends.
+
+Currently there is a fully functional SQLite map backend, for the desktop app, and a [sql.js](https://sql.js.org) backend that does not support loading or saving and is used for the live demo.
+
+### Caching
+Because accessing a database may be relatively slow (testing revealed that the WASM-compiled sql.js backend was noticeably slower than the native SQLite backend), the backend implements a cache for each entity. The entities' properties and parent-child relationships are cached in memory so they must only be loaded from the database once. Since writes to entities occur far less frequently than reads, the cache is write-through: changing a property or relationship will immediately change it in the database as well as in the cache.
+
+## Interface
+The user interface is programmer art; it is not very pretty. It provides quickstart information and information about the scale of the map, what brush is being used, and hotkey options. The primary control is the mouse for drawing, deleting, selecting, and moving, with the keyboard being used to select options.
+
+### Tile Rendering
+The map itself is rendered with the use of tiles. The map is not tile-based internally, that would not be flexible enough, but the renderer takes the map information about what objects are where and renders them to the screen as a set of tiles.
+In the current implementation, each tile has a primary "type" which is what kind of node it is closest to, and it has information on what the primary "types" of the nearby tiles are as well. The tile uses this information to generate an image representing that location on the map. The neighbor information is used to render transition images, e.g. where water turns into grassland there is a transition like a "beach". The rendered tiles are cached, so identical tiles only need to be rendered once.
+
+## Electron App
+The electron app supports saving, loading, and editing maps. It stores each map in a SQLite database that is saved to the file system.
+This is the "primary" way to use the mapping tool for the forseeable future, as it is the most performant and allows for the use of native SQLite as opposed to WASM-compiled SQLite or remote databases.
+
+## Live Demo
+For users who cannot use the electron app (MacOS doesn't have a build yet, for example) or don't want to bother, a live demo is provided at [https://mapper1024.github.io/demo](https://mapper1024.github.io/demo). This has the full mapper component, but does not yet support loading or saving maps.
+
+Testing has revealed that Google Chrome has much better performance than Firefox for the mapping tool, so further optimization will be needed.
+
+## Sample Map
+A sample map is provided and loaded by default with the desktop app and live demo to show what the tool is currently capable of. This sample map was designed on the fly, but has a tiny bit of storytelling attached to make it interesting. It is expected that testers will be able to play with the sample map which will be updated in the future as new features are added.
