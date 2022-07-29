@@ -53,17 +53,17 @@ echo "Choose any option below to get the mapping tool." >> DOWNLOAD.md
 
 echo "## Windows" >> DOWNLOAD.md
 echo "* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/mapper1024-$VERSION.windows.zip)" >> DOWNLOAD.md
-echo " * Extract the zip file and run the program file called \`mapper1024.exe\` found inside." >> DOWNLOAD.md
+echo "  * Extract the zip file and run the program file called \`mapper1024.exe\` found inside." >> DOWNLOAD.md
 echo "* [Ordinary program](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/Mapper1024.$VERSION.exe)" >> DOWNLOAD.md
-echo " * This one doesn't need to be installed, just download it and run it. You may need to give it permission to run." >> DOWNLOAD.md
+echo "  * This one doesn't need to be installed, just download it and run it. You may need to give it permission to run." >> DOWNLOAD.md
 echo "* [Installer](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/Mapper1024.Setup.$VERSION.exe)" >> DOWNLOAD.md
-echo " * Run the installer and the mapping tool will be installed. You may need to give it permission to run." >> DOWNLOAD.md
+echo "  * Run the installer and the mapping tool will be installed. You may need to give it permission to run." >> DOWNLOAD.md
 
 echo "## Linux" >> DOWNLOAD.md
 echo "* [AppImage](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/Mapper1024-$VERSION.AppImage)" >> DOWNLOAD.md
-echo " * See [How to run an AppImage](https://docs.appimage.org/introduction/quickstart.html#how-to-run-an-appimage) to use this option" >> DOWNLOAD.md
+echo "  * See [How to run an AppImage](https://docs.appimage.org/introduction/quickstart.html#how-to-run-an-appimage) to use this option" >> DOWNLOAD.md
 echo "* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/mapper1024-$VERSION.linux.zip)" >> DOWNLOAD.md
-echo " * Extract the zip file and run the program file called \`mapper1024\` found inside." >> DOWNLOAD.md
+echo "  * Extract the zip file and run the program file called \`mapper1024\` found inside." >> DOWNLOAD.md
 
 echo "## MacOS" >> DOWNLOAD.md
 echo "Unfortunantely there are no desktop builds for MacOS. You can still explore the live demo linked below." >> DOWNLOAD.md
