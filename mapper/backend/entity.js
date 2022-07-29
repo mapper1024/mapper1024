@@ -87,6 +87,18 @@ class NodeRef extends EntityRef {
 		super(id, backend);
 	}
 
+	/** Called when the node is created. */
+	async create() {
+		await this.clearParentCache();
+	}
+
+	async clearParentCache() {
+		const parent = await this.getParent();
+		if(parent) {
+			delete parent.cache.children;
+		}
+	}
+
 	/** Get the parent node of this node, if it exists.
 	 * @returns {NodeRef|null} The parent node, or null if there is no parent.
 	 */
@@ -169,12 +181,12 @@ class NodeRef extends EntityRef {
 
 	/** Remove this entity from the database. */
 	async remove() {
-		delete (await this.getParent()).cache.children;
+		await this.clearParentCache();
 		return this.backend.removeNode(this.id);
 	}
 
 	async unremove() {
-		delete (await this.getParent()).cache.children;
+		await this.clearParentCache();
 		return super.unremove();
 	}
 }

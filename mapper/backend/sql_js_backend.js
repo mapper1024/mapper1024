@@ -166,7 +166,9 @@ class SqlJsMapBackend extends MapBackend {
 	}
 
 	async createNode(parentId) {
-		return this.getNodeRef(this.baseCreateNode(parentId));
+		const nodeRef = this.getNodeRef(this.baseCreateNode(parentId));
+		await nodeRef.create();
+		return nodeRef;
 	}
 
 	async createEdge(nodeAId, nodeBId) {
