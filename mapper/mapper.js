@@ -151,8 +151,11 @@ class RenderContext {
 					}
 				}
 				else if(event.key === "c") {
-					this.setScrollOffset(Vector3.ZERO);
-					this.requestZoomChange(5);
+					asyncFrom(this.drawnNodes()).then((drawnNodes) => {
+						this.scrollOffset = Vector3.ZERO;
+						this.zoom = this.requestedZoom = 5;
+						this.recalculateTilesNodesTranslate(drawnNodes);
+					});
 				}
 			}
 			else if(event.key === "d") {
@@ -832,18 +835,23 @@ class RenderContext {
 		const c = this.canvas.getContext("2d");
 		c.textBaseline = "top";
 		c.font = "18px sans";
-		c.fillStyle = "white";
 
 		let infoLineY = 9;
 		function infoLine(l) {
+			const measure = c.measureText(l);
+			c.globalAlpha = 0.25;
+			c.fillStyle = "black";
+			c.fillRect(18, infoLineY - 2, measure.width, measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent + 4);
+			c.globalAlpha = 1;
+			c.fillStyle = "white";
 			c.fillText(l, 18, infoLineY);
 			infoLineY += 24;
 		}
 
-		infoLine(`Brush: ${this.brush.getDescription()}`);
+		infoLine(`Brush: ${this.brush.getDescription()} | Change brush mode with (A)dd, (S)elect or (D)elete. `);
 
 		// Debug help
-		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. You can (N)ame the selected object.");
+		infoLine("You can (N)ame the selected object. Scroll to zoom.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 			infoLine("Hold Q while scrolling to change brush type; hold W while scrolling to change brush size.");
