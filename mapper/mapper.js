@@ -20,6 +20,8 @@ class RenderContext {
 		this.parent = parent;
 		this.mapper = mapper;
 
+		this.alive = true;
+
 		this.hooks = new HookContainer();
 		this.keyboardShortcuts = [];
 
@@ -240,6 +242,8 @@ class RenderContext {
 			this.requestRedraw();
 		});
 
+		this.tileRenders = {};
+
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
 		this.parentObserver.observe(this.parent);
@@ -274,7 +278,6 @@ class RenderContext {
 
 		const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
 		let best = null;
-		let bestDrawn = null;
 
 		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
 
@@ -293,7 +296,7 @@ class RenderContext {
 		}
 
 		return {
-			size: Math.min(24, tileCount),
+			size: Math.min(24, tileCount * 2),
 			where: (best || optimal).subtract(this.scrollOffset)
 		};
 	}
@@ -312,7 +315,10 @@ class RenderContext {
 				this.recalculateTilesNodesTranslate(drawnNodes);
 			});
 		}
-		setTimeout(this.applyZoom.bind(this), 10);
+
+		if(this.alive) {
+			setTimeout(this.applyZoom.bind(this), 10);
+		}
 	}
 
 	async redrawLoop() {
@@ -320,7 +326,10 @@ class RenderContext {
 			this.wantRedraw = false;
 			await this.redraw();
 		}
-		setTimeout(this.redrawLoop.bind(this), 10);
+
+		if(this.alive) {
+			setTimeout(this.redrawLoop.bind(this), 10);
+		}
 	}
 
 	async recalculateSelection() {
@@ -334,13 +343,17 @@ class RenderContext {
 				this.hoverSelection = new Selection(this, []);
 			}
 		}
+
 		if(this.wantUpdateSelection) {
 			this.wantUpdateSelection = false;
 			await this.hoverSelection.update();
 			await this.selection.update();
 			this.requestRedraw();
 		}
-		setTimeout(this.recalculateSelection.bind(this), 10);
+
+		if(this.alive) {
+			setTimeout(this.recalculateSelection.bind(this), 10);
+		}
 	}
 
 	async getClosestNodeRef(canvasPosition) {
@@ -362,7 +375,10 @@ class RenderContext {
 			this.recalculateViewport = false;
 			await this.recalculateTiles(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
 		}
-		setTimeout(this.recalculateLoop.bind(this), 100);
+
+		if(this.alive) {
+			setTimeout(this.recalculateLoop.bind(this), 100);
+		}
 	}
 
 	async performAction(action, addToUndoStack) {
@@ -847,7 +863,7 @@ class RenderContext {
 		});
 
 		if(this.debugMode) {
-			infoLine(`${Object.keys(Tile.getTileRenders()).length} cached tiles | ${this.drawnNodeIds.size} drawn nodes, ${this.offScreenDrawnNodeIds.size} on border`);
+			infoLine(`${Object.keys(this.tileRenders).length} cached tiles | ${this.drawnNodeIds.size} drawn nodes, ${this.offScreenDrawnNodeIds.size} on border`);
 		}
 	}
 
@@ -941,6 +957,7 @@ class RenderContext {
 
 	/** Disconnect the render context from the page and clean up listeners. */
 	disconnect() {
+		this.alive = false;
 		this.parentObserver.disconnect();
 		this.parent.removeChild(this.canvas);
 	}

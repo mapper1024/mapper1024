@@ -13,7 +13,7 @@ dirs.NE = dirs.N.add(dirs.E);
 dirs.SW = dirs.S.add(dirs.W);
 dirs.SE = dirs.S.add(dirs.E);
 
-const tileRenders = {};
+const dirKeys = Object.keys(dirs);
 
 class Tile {
 	constructor(megaTile, corner) {
@@ -74,7 +74,7 @@ class Tile {
 
 	* getNeighborTiles() {
 		const origin = this.getTilePosition();
-		for(const dirName in dirs) {
+		for(const dirName of dirKeys) {
 			const dir = dirs[dirName];
 			const otherTilePosition = origin.add(dir);
 			const otherTileX = this.context.tiles[otherTilePosition.x];
@@ -101,6 +101,7 @@ class Tile {
 		}
 
 		const keyString = key.join(" ");
+		const tileRenders = this.context.tileRenders;
 		let canvas = tileRenders[keyString];
 
 		if(canvas === undefined) {
@@ -108,13 +109,17 @@ class Tile {
 			canvas.width = Tile.SIZE;
 			canvas.height = Tile.SIZE;
 
-			const neighbors = {};
+			let neighbors;
 
-			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
-				neighbors[dirName] = {
-					dir: dir,
-					type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
-				};
+			if(!this.closestNodeIsOverpowering) {
+				neighbors = {};
+
+				for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+					neighbors[dirName] = {
+						dir: dir,
+						type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
+					};
+				}
 			}
 
 			await Tile.renderMaster(canvas, this.closestNodeType, neighbors);
@@ -125,12 +130,11 @@ class Tile {
 	}
 
 	static async renderMaster(canvas, type, neighbors) {
-		neighbors;
 		const c = canvas.getContext("2d");
 
 		const colors = {
 			grass: ["green", "forestgreen", "mediumseagreen", "seagreen"],
-			water: ["blue", "skyblue", "aqua", "deepskyblue"],
+			water: ["deepskyblue", "darkblue", "seagreen"],
 			forest: ["darkgreen", "forestgreen", "darkseagreen", "olivedrab"],
 			rocks: ["slategray", "black", "gray", "lightslategray", "darkgray"],
 			road: ["brown", "darkgoldenrod", "olive", "tan", "wheat", "sandybrown"],
@@ -155,33 +159,38 @@ class Tile {
 		}
 
 		const ourColors = getOurColors();
-		const pixelSize = pixelSizes[type.id] || 1;
+		const pixelSize = pixelSizes[type.id] || 2;
+		const hasNeighbors = !!neighbors;
 
 		for(let x = 0; x < canvas.width; x += pixelSize) {
 			for(let y = 0; y < canvas.height; y += pixelSize) {
-				const pxv = (new Vector3(x, y, 0)).subtract(Tile.HALF_SIZE_VECTOR).divideScalar(Tile.SIZE);
+				let ucolors;
 
-				let neighborColors = ourColors;
-				let closestDistance = Infinity;
+				if(hasNeighbors) {
+					const pxv = (new Vector3(x, y, 0)).subtract(Tile.HALF_SIZE_VECTOR).divideScalar(Tile.SIZE);
 
-				for(const dirName in dirs) {
-					const distance = dirs[dirName].subtract(pxv).length();
-					if(closestDistance > distance) {
-						const neighborType = neighbors[dirName].type;
-						neighborColors = neighborType ? getTypeColors(neighborType) : colors["null"];
-						closestDistance = distance;
+					let neighborColors = ourColors;
+					let closestDistance = Infinity;
+
+					for(const dirName of dirKeys) {
+						const distance = dirs[dirName].subtract(pxv).length();
+						if(closestDistance > distance) {
+							const neighborType = neighbors[dirName].type;
+							neighborColors = neighborType ? getTypeColors(neighborType) : colors["null"];
+							closestDistance = distance;
+						}
 					}
+
+					ucolors = Math.random() < closestDistance ? ourColors : neighborColors;
+				}
+				else {
+					ucolors = ourColors;
 				}
 
-				const ucolors = Math.random() < closestDistance ? ourColors : neighborColors;
 				c.fillStyle = ucolors[Math.floor(Math.random() * ucolors.length)];
 				c.fillRect(x, y, pixelSize, pixelSize);
 			}
 		}
-	}
-
-	static getTileRenders() {
-		return tileRenders;
 	}
 }
 

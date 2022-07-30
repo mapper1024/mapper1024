@@ -162,6 +162,12 @@ class SQLiteMapBackend extends MapBackend {
 			this.db = newBackend.db;
 			this.options.readOnly = false;
 		}
+		else {
+			// We don't need the saved database to be identical, so let's clean it up.
+			const saved = new SQLiteMapBackend(filename, {cleanup: true, autosave: true});
+			await saved.load();
+			await saved.flush();
+		}
 	}
 
 	baseCreateEntity(type) {
