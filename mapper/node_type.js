@@ -28,6 +28,14 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("rocks", {
 			color: "gray",
 		}));
+
+		this.registerType(new NodeType("road", {
+			color: "brown",
+		}));
+
+		this.registerType(new NodeType("buildings", {
+			color: "yellow",
+		}));
 	}
 
 	registerType(nodeType) {

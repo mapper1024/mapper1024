@@ -168,7 +168,7 @@ class RenderContext {
 			else if(event.key === "n") {
 				const nodeRef = await this.hoverSelection.getParent();
 				if(nodeRef) {
-					const where = await this.getNamePosition(nodeRef);
+					const where = (await this.getNamePosition(nodeRef)).where;
 
 					const input = document.createElement("input");
 					input.value = (await nodeRef.getPString("name")) || "";
@@ -270,20 +270,32 @@ class RenderContext {
 	}
 
 	async getNamePosition(nodeRef) {
+		const screenBox = this.screenBox();
+
 		const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
 		let best = null;
+		let bestDrawn = null;
 
 		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
 
+		let tileCount = 0;
 		for(const tile of this.drawnTiles) {
 			if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
-				if(!best || tile.getCenter().subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
-					best = tile.getCenter();
+				const tileCenter = tile.getCenter();
+				const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
+				if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
+					tileCount++;
+					if(!best || tileCenter.subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
+						best = tileCenter;
+					}
 				}
 			}
 		}
 
-		return (best || optimal).subtract(this.scrollOffset);
+		return {
+			size: Math.min(24, tileCount),
+			where: (best || optimal).subtract(this.scrollOffset)
+		};
 	}
 
 	requestZoomChange(zoom) {
@@ -783,15 +795,19 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const name = await nodeRef.getPString("name");
 			if(name !== undefined) {
-				const where = await this.getNamePosition(nodeRef);
-				c.font = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) ? "bold 24px serif" : "24px serif";
-				const measure = c.measureText(name);
-				c.globalAlpha = 0.25;
-				c.fillStyle = "black";
-				c.fillRect(where.x, where.y, measure.width, measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent);
-				c.globalAlpha = 1;
-				c.fillStyle = "white";
-				c.fillText(name, where.x, where.y);
+				const position = await this.getNamePosition(nodeRef);
+				const size = position.size;
+				if(size > 0) {
+					const where = position.where;
+					c.font = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) ? `bold ${size}px serif` : `${size}px serif`;
+					const measure = c.measureText(name);
+					c.globalAlpha = 0.25;
+					c.fillStyle = "black";
+					c.fillRect(where.x, where.y, measure.width, measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent);
+					c.globalAlpha = 1;
+					c.fillStyle = "white";
+					c.fillText(name, where.x, where.y);
+				}
 			}
 		}
 	}

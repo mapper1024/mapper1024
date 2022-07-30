@@ -3,7 +3,7 @@ class Brush {
 		this.context = context;
 
 		this.size = 1;
-		this.maxSize = 10;
+		this.maxSize = 20;
 		this.lastSizeChange = performance.now();
 	}
 
@@ -12,7 +12,7 @@ class Brush {
 	}
 
 	getRadius() {
-		return this.size * 25;
+		return this.size * 15;
 	}
 
 	sizeInMeters() {

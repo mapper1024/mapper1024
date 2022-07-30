@@ -25,6 +25,7 @@ class Tile {
 		this.closestNodeRef = null;
 		this.closestNodeType = null;
 		this.closestNodeDistance = Infinity;
+		this.closestNodeRadiusInUnits = Infinity;
 		this.closestNodeIsOverpowering = false;
 	}
 
@@ -47,15 +48,17 @@ class Tile {
 	async addNode(nodeRef) {
 		const nodeCenter = (await nodeRef.getCenter()).map((a) => this.context.unitsToPixels(a));
 		const distance = nodeCenter.subtract(this.getCenter()).length();
-		const nodeRadius = this.context.unitsToPixels(await nodeRef.getRadius());
-		if(distance <= nodeRadius + Tile.SIZE / 2) {
+		const nodeRadiusInUnits = await nodeRef.getRadius();
+		const nodeRadiusInPixels = this.context.unitsToPixels(nodeRadiusInUnits);
+		if(distance <= nodeRadiusInPixels + Tile.SIZE / 2) {
 			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);
 
-			if(distance < this.closestNodeDistance) {
+			if(distance < this.closestNodeDistance && nodeRadiusInUnits <= this.closestNodeRadiusInUnits) {
 				this.closestNodeRef = nodeRef;
+				this.closestNodeRadiusInUnits = nodeRadiusInUnits;
 				this.closestNodeType = await nodeRef.getType();
-				this.closestNodeIsOverpowering = distance < nodeRadius - Tile.SIZE / 2;
+				this.closestNodeIsOverpowering = distance < nodeRadiusInPixels - Tile.SIZE / 2;
 			}
 
 			return true;
@@ -130,6 +133,8 @@ class Tile {
 			water: ["blue", "skyblue", "aqua", "deepskyblue"],
 			forest: ["darkgreen", "forestgreen", "darkseagreen", "olivedrab"],
 			rocks: ["slategray", "black", "gray", "lightslategray", "darkgray"],
+			road: ["brown", "darkgoldenrod", "olive", "tan", "wheat", "sandybrown"],
+			buildings: ["yellow", "sandybrown", "darkgoldenrod", "gold", "orange"],
 			null: ["black", "darkgray", "darkseagreen"],
 		};
 
