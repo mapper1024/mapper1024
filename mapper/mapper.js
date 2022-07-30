@@ -817,12 +817,13 @@ class RenderContext {
 				const position = await this.getNamePosition(nodeRef);
 				const size = position.size;
 				if(size > 0) {
-					const where = position.where;
 					c.font = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) ? `bold ${size}px serif` : `${size}px serif`;
 					const measure = c.measureText(name);
+					const height = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+					const where = position.where.subtract(new Vector3(measure.width / 2, height / 2, 0, 0));
 					c.globalAlpha = 0.25;
 					c.fillStyle = "black";
-					c.fillRect(where.x, where.y, measure.width, measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent);
+					c.fillRect(where.x, where.y, measure.width, height);
 					c.globalAlpha = 1;
 					c.fillStyle = "white";
 					c.fillText(name, where.x, where.y);
