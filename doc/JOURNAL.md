@@ -29,6 +29,9 @@ The node and edge architecture is an `"Entity-Based [Model]..." (Rigaux et al., 
 # Functional Prototype: Summer 2022
 Over the course of Summer 2022 the mapping tool has developed to the point of being functional, albiet with a limited set of options.
 
+## Geometry
+Geometry is represented in 3D space with a custom [Vector3](https://mapper1024.github.io/jsdoc/Vector3.html) class to represent points and offsets in space and supporting [Line3](https://mapper1024.github.io/jsdoc/Line3.html) and [Box3](https://mapper1024.github.io/jsdoc/Box3.html) classes for lines and boxes.
+
 ## Spatial Nodes
 The map itself is still represented with a set of nodes: each node being an object in the map such as a forest, a lake, or a river. The nodes have shape and size currently defined by their children. Nodes are technically positioned in 3D space with pseudo-spherical shape, but currently the Z axis is unused so the nodes are effectively pseudo-circles on a 2D plane. The position and shape of each node is then used to determine how the entire map is rendered.
 
