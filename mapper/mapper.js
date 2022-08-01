@@ -108,6 +108,7 @@ class RenderContext {
 			const where = new Vector3(event.x, event.y, 0);
 
 			this.endMouseButtonPress(event.button, where);
+			this.requestRedraw();
 		});
 
 		this.canvas.addEventListener("mousemove", (event) => {
