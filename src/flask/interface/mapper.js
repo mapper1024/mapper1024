@@ -56,4 +56,10 @@ loadMap(new SqlJsMapBackend({
 	url: "/samples/sample_map.map",
 }));
 
+
+window.addEventListener("beforeunload", function (e) {
+	e.preventDefault();
+	e.returnValue = "Did you save any changes?";
+});
+
 // TODO: Register backend based on API calls back to Flask server.
