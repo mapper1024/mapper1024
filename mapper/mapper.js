@@ -159,6 +159,18 @@ class RenderContext {
 					});
 				}
 			}
+			else if(event.key === "ArrowUp") {
+				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(0, this.screenSize().y / 3, 0)));
+			}
+			else if(event.key === "ArrowDown") {
+				this.setScrollOffset(this.scrollOffset.add(new Vector3(0, this.screenSize().y / 3, 0)));
+			}
+			else if(event.key === "ArrowLeft") {
+				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(this.screenSize().x / 3, 0, 0)));
+			}
+			else if(event.key === "ArrowRight") {
+				this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)));
+			}
 			else if(event.key === "d") {
 				this.changeBrush(new DeleteBrush(this));
 			}
@@ -870,7 +882,7 @@ class RenderContext {
 			infoLine("Click to delete. Hold Shift to delete an entire object.");
 			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
 		}
-		infoLine("Right click to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
+		infoLine("Right click or arrow keys to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
 
 		this.hooks.call("draw_help", {
 			infoLine: infoLine,
