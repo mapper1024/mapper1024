@@ -516,10 +516,7 @@ class RenderContext {
 	}
 
 	recalculateTilesViewport() {
-		//this.recalculateViewport = true;
-		asyncFrom(this.visibleNodes()).then((nodes) => {
-			this.recalculateUpdate.push(...(nodes.filter(nodeRef => !this.drawnNodeIds.has(nodeRef.id) || this.offScreenDrawnNodeIds.has(nodeRef.id))));
-		});
+		this.recalculateViewport = true;
 	}
 
 	recalculateTilesNodeUpdate(nodeRef) {
@@ -552,7 +549,7 @@ class RenderContext {
 		}
 
 		for(const nodeId of visibleNodeIds) {
-			if(!this.drawnNodeIds.has(nodeId)) {
+			if(!this.drawnNodeIds.has(nodeId) || this.offScreenDrawnNodeIds.has(nodeId)) {
 				updatedNodeIds.add(nodeId);
 			}
 		}
