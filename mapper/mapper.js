@@ -246,7 +246,6 @@ class RenderContext {
 		});
 
 		this.tileRenders = {};
-		this.namePositionCache = {};
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
@@ -282,37 +281,31 @@ class RenderContext {
 	}
 
 	async getNamePosition(nodeRef) {
-		let cached = this.namePositionCache[nodeRef.id];
+		const screenBox = this.screenBox();
 
-		if(cached === undefined) {
-			const screenBox = this.screenBox();
+		const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
+		let best = null;
 
-			const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
-			let best = null;
+		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
 
-			const selection = await Selection.fromNodeRefs(this, [nodeRef]);
-
-			let tileCount = 0;
-			for(const tile of this.drawnTiles) {
-				if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
-					const tileCenter = tile.getCenter();
-					const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
-					if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
-						tileCount++;
-						if(!best || tileCenter.subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
-							best = tileCenter;
-						}
+		let tileCount = 0;
+		for(const tile of this.drawnTiles) {
+			if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
+				const tileCenter = tile.getCenter();
+				const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
+				if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
+					tileCount++;
+					if(!best || tileCenter.subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
+						best = tileCenter;
 					}
 				}
 			}
-
-			cached = this.namePositionCache[nodeRef.id] = {
-				size: Math.min(24, tileCount * 2),
-				where: (best || optimal).subtract(this.scrollOffset)
-			};
 		}
 
-		return cached;
+		return {
+			size: Math.min(24, tileCount * 2),
+			where: (best || optimal).subtract(this.scrollOffset)
+		};
 	}
 
 	requestZoomChange(zoom) {
@@ -681,8 +674,6 @@ class RenderContext {
 		}
 
 		this.drawnTiles = Array.from(this.freshDrawnTiles());
-
-		this.namePositionCache = {};
 
 		this.requestRedraw();
 	}
