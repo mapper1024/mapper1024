@@ -160,16 +160,16 @@ class RenderContext {
 				}
 			}
 			else if(event.key === "ArrowUp") {
-				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(0, this.screenSize().y / 3, 0)));
+				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(0, this.screenSize().y / 3, 0)).round());
 			}
 			else if(event.key === "ArrowDown") {
-				this.setScrollOffset(this.scrollOffset.add(new Vector3(0, this.screenSize().y / 3, 0)));
+				this.setScrollOffset(this.scrollOffset.add(new Vector3(0, this.screenSize().y / 3, 0)).round());
 			}
 			else if(event.key === "ArrowLeft") {
-				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(this.screenSize().x / 3, 0, 0)));
+				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(this.screenSize().x / 3, 0, 0)).round());
 			}
 			else if(event.key === "ArrowRight") {
-				this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)));
+				this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)).round());
 			}
 			else if(event.key === "d") {
 				this.changeBrush(new DeleteBrush(this));
