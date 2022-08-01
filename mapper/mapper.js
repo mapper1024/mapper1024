@@ -246,6 +246,7 @@ class RenderContext {
 		});
 
 		this.tileRenders = {};
+		this.namePositionCache = {};
 
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
@@ -257,6 +258,10 @@ class RenderContext {
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
 		setTimeout(this.applyZoom.bind(this), 10);
+	}
+
+	isPanning() {
+		return this.mouseDragEvents[2] instanceof PanEvent;
 	}
 
 	setScrollOffset(value) {
@@ -277,31 +282,37 @@ class RenderContext {
 	}
 
 	async getNamePosition(nodeRef) {
-		const screenBox = this.screenBox();
+		let cached = this.namePositionCache[nodeRef.id];
 
-		const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
-		let best = null;
+		if(cached === undefined) {
+			const screenBox = this.screenBox();
 
-		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
+			const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
+			let best = null;
 
-		let tileCount = 0;
-		for(const tile of this.drawnTiles) {
-			if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
-				const tileCenter = tile.getCenter();
-				const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
-				if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
-					tileCount++;
-					if(!best || tileCenter.subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
-						best = tileCenter;
+			const selection = await Selection.fromNodeRefs(this, [nodeRef]);
+
+			let tileCount = 0;
+			for(const tile of this.drawnTiles) {
+				if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
+					const tileCenter = tile.getCenter();
+					const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
+					if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
+						tileCount++;
+						if(!best || tileCenter.subtract(optimal).lengthSquared() < best.subtract(optimal).lengthSquared()) {
+							best = tileCenter;
+						}
 					}
 				}
 			}
+
+			cached = this.namePositionCache[nodeRef.id] = {
+				size: Math.min(24, tileCount * 2),
+				where: (best || optimal).subtract(this.scrollOffset)
+			};
 		}
 
-		return {
-			size: Math.min(24, tileCount * 2),
-			where: (best || optimal).subtract(this.scrollOffset)
-		};
+		return cached;
 	}
 
 	requestZoomChange(zoom) {
@@ -355,7 +366,7 @@ class RenderContext {
 		}
 
 		if(this.alive) {
-			setTimeout(this.recalculateSelection.bind(this), 10);
+			setTimeout(this.recalculateSelection.bind(this), 100);
 		}
 	}
 
@@ -671,6 +682,8 @@ class RenderContext {
 
 		this.drawnTiles = Array.from(this.freshDrawnTiles());
 
+		this.namePositionCache = {};
+
 		this.requestRedraw();
 	}
 
@@ -917,8 +930,10 @@ class RenderContext {
 		await this.clearCanvas();
 
 		await this.drawTiles();
-		await this.drawSelection();
-		await this.drawLabels();
+		if(!this.isPanning()) {
+			await this.drawSelection();
+			await this.drawLabels();
+		}
 		await this.drawBrush();
 
 		await this.drawHelp();
