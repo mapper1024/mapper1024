@@ -555,6 +555,7 @@ class RenderContext {
 		}
 
 		const cleared = new Set();
+		const clearedTiles = new Set();
 		const recheckTiles = {};
 
 		const clearNodeTiles = (nodeId) => {
@@ -571,15 +572,18 @@ class RenderContext {
 				const rX = recheckTiles[x];
 				const tY = this.nodeIdToTiles[nodeId][x];
 				for(const y in tY) {
-					const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
 					const tile = tY[y];
-					const megaTile = tile.megaTile;
-					rX[y] = tile;
-					delete this.tiles[x][y];
-					megaTile.removeNode(nodeId);
-					for(const nodeId of megaTile.popRedraw()) {
-						if(withinX && withinY) {
-							updatedNodeIds.add(nodeId);
+					if(!clearedTiles.has(tile)) {
+						clearedTiles.add(tile);
+						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
+						const megaTile = tile.megaTile;
+						rX[y] = tile;
+						delete this.tiles[x][y];
+						megaTile.removeNode(nodeId);
+						for(const nodeId of megaTile.popRedraw()) {
+							if(withinX && withinY) {
+								updatedNodeIds.add(nodeId);
+							}
 						}
 					}
 				}
