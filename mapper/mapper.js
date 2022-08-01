@@ -540,9 +540,14 @@ class RenderContext {
 			}
 		}
 
+		const cleared = new Set();
 		const recheckTiles = {};
 
 		const clearNodeTiles = (nodeId) => {
+			if(cleared.has(nodeId)) {
+				return;
+			}
+			cleared.add(nodeId);
 			const tX = this.nodeIdToTiles[nodeId];
 			for(const x in tX) {
 				const withinX = x >= screenBoxTiles.a.x && x <= screenBoxTiles.b.x;

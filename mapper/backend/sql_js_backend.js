@@ -175,7 +175,7 @@ class SqlJsMapBackend extends MapBackend {
 
 		for(const table of ["entity", "property", "node", "edge"]) {
 			const statement = this.db.prepare(`SELECT * FROM ${table}`);
-			const placeholders = statement.getColumnNames().map((n) => "?");
+			const placeholders = statement.getColumnNames().map(() => "?");
 			const sql = `INSERT INTO ${table} VALUES (${placeholders.join(", ")})`;
 			while(statement.step()) {
 				clone.db.run(sql, statement.get());
