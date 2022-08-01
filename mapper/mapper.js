@@ -625,7 +625,7 @@ class RenderContext {
 			const center = (await nodeRef.getCenter()).map((a) => this.unitsToPixels(a));
 			const centerTile = center.divideScalar(Tile.SIZE).round();
 			const radius = this.unitsToPixels(await nodeRef.getRadius());
-			if(radius > 0) {
+			if(radius >= Tile.SIZE / 8) {
 				const radiusTile = Math.ceil(radius / Tile.SIZE);
 
 				const cxn = centerTile.x - radiusTile;
