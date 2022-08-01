@@ -569,7 +569,7 @@ class RenderContext {
 				const tY = this.nodeIdToTiles[nodeId][x];
 				for(const y in tY) {
 					const tile = tY[y];
-					if(!clearedTiles.has(tile)) {
+					if(!clearedTiles.has(tile) && tile.closestNodeRef.id === nodeId) {
 						clearedTiles.add(tile);
 						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
 						const megaTile = tile.megaTile;
@@ -600,7 +600,7 @@ class RenderContext {
 				const tY = this.nodeIdToTiles[nodeId][x];
 				for(const y in tY) {
 					const tile = tY[y];
-					if(!clearedTiles.has(tile)) {
+					if(!clearedTiles.has(tile)  && tile.closestNodeRef.id === nodeId) {
 						clearedTiles.add(tile);
 						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
 						const megaTile = tile.megaTile;
