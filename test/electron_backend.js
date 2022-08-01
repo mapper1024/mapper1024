@@ -22,7 +22,7 @@ describe("SQLiteMapBackend", function() {
 	testGenericBackend();
 
 	it("should persist over multiple opens", async function() {
-		this.backend.global.setPString("some property", "some value");
+		await this.backend.global.setPString("some property", "some value");
 		await this.backend.flush();
 
 		this.backend2 = new SQLiteMapBackend(this.backendFilename);

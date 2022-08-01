@@ -29,20 +29,28 @@ async function SqlJs() {
 class SqlJsMapBackend extends MapBackend {
 	/** Ready the backend on a specific database filename.
 	 * The backend cannot be used until #load() finishes.
-	 * @param uri A url to be fetched and loaded as a binary sqlite database. If this is falsey, a blank map will be loaded.
+	 * Options may have keys:
+	 * - loadFrom: "none", "url", or "data"
 	 */
-	constructor(uri, options) {
+	constructor(options) {
 		super();
 
-		this.uri = uri;
-		this.options = merge({}, options);
+		this.options = merge({
+			loadFrom: "none",
+			url: null,
+			data: null,
+			buildDatabase: true,
+		}, options);
 	}
 
 	async load() {
 		const Database = (await SqlJs()).Database;
 
-		if(this.uri) {
-			this.db = new Database(new Uint8Array(await (await fetch(this.uri)).arrayBuffer()));
+		if(this.options.loadFrom === "url") {
+			this.db = new Database(new Uint8Array(await (await fetch(this.options.url)).arrayBuffer()));
+		}
+		else if(this.options.loadFrom === "data") {
+			this.db = new Database(this.options.data);
 		}
 		else {
 			this.db = new Database();
@@ -55,15 +63,22 @@ class SqlJsMapBackend extends MapBackend {
 
 		// Node table and trigger to delete the corresponding entity when a node is deleted.
 		this.db.run("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)");
-		this.db.run("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
+
+		if(this.options.buildDatabase) {
+			this.db.run("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
+		}
 
 		// Triggers to cascade invalidation
-		this.db.run("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_children AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT entityid FROM node WHERE parentid = NEW.entityid); END");
-		this.db.run("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_edges AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT edgeid FROM edge WHERE nodeid = NEW.entityid); END");
+		if(this.options.buildDatabase) {
+			this.db.run("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_children AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT entityid FROM node WHERE parentid = NEW.entityid); END");
+			this.db.run("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_edges AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT edgeid FROM edge WHERE nodeid = NEW.entityid); END");
+		}
 
 		// Similar to nodes, a edge's corresponding entity will be deleted via trigger as soon as the edge is deleted.
 		this.db.run("CREATE TABLE IF NOT EXISTS edge (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)");
-		this.db.run("CREATE TRIGGER IF NOT EXISTS r_edgedeleted AFTER DELETE ON edge FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.edgeid; END");
+		if(this.options.buildDatabase) {
+			this.db.run("CREATE TRIGGER IF NOT EXISTS r_edgedeleted AFTER DELETE ON edge FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.edgeid; END");
+		}
 
 		/* Multiple types of property are possible, all combined into one table for now.
 		 * Each property can be (with columns):
@@ -108,15 +123,17 @@ class SqlJsMapBackend extends MapBackend {
 		/* Find or create the global entity.
 		 * There can be only one.
 		 */
-		this.db.run("BEGIN EXCLUSIVE TRANSACTION");
-		let globalEntityIdRow = this.db.prepare("SELECT entityid FROM entity WHERE type = 'global'").get();
-		if(globalEntityIdRow.length === 0) {
-			this.global = this.getEntityRef(this.baseCreateEntity("global"));
+		if(this.options.buildDatabase) {
+			this.db.run("BEGIN EXCLUSIVE TRANSACTION");
+			let globalEntityIdRow = this.db.prepare("SELECT entityid FROM entity WHERE type = 'global'").get({});
+			if(globalEntityIdRow.length === 0) {
+				this.global = this.getEntityRef(this.baseCreateEntity("global"));
+			}
+			else {
+				this.global = this.getEntityRef(globalEntityIdRow[0]);
+			}
+			this.db.run("COMMIT");
 		}
-		else {
-			this.global = this.getEntityRef(globalEntityIdRow[0]);
-		}
-		this.db.run("COMMIT");
 
 		/** Create a node atomically.
 		 * @param parentId {number|null} The ID of the node's parent, or null if none.
@@ -146,6 +163,28 @@ class SqlJsMapBackend extends MapBackend {
 
 		this.loaded = true;
 		await this.hooks.call("loaded");
+	}
+
+	async getData() {
+		// sql.js must close the database before exporting, but we want to export while the database is open.
+		// Easy solution: clone the database manually before exporting.
+		const clone = new SqlJsMapBackend({buildDatabase: false});
+		await clone.load();
+
+		this.db.run("BEGIN EXCLUSIVE TRANSACTION");
+
+		for(const table of ["entity", "property", "node", "edge"]) {
+			const statement = this.db.prepare(`SELECT * FROM ${table}`);
+			const placeholders = statement.getColumnNames().map((n) => "?");
+			const sql = `INSERT INTO ${table} VALUES (${placeholders.join(", ")})`;
+			while(statement.step()) {
+				clone.db.run(sql, statement.get());
+			}
+		}
+
+		this.db.run("COMMIT");
+
+		return clone.db.export();
 	}
 
 	baseCreateEntity(type) {
