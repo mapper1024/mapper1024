@@ -542,12 +542,6 @@ class RenderContext {
 
 		const screenBoxTiles = this.screenBoxTiles();
 
-		for(const nodeId of this.drawnNodeIds) {
-			if(!visibleNodeIds.has(nodeId)) {
-				removedNodeIds.add(nodeId);
-			}
-		}
-
 		for(const nodeId of visibleNodeIds) {
 			if(!this.drawnNodeIds.has(nodeId) || this.offScreenDrawnNodeIds.has(nodeId)) {
 				updatedNodeIds.add(nodeId);
@@ -556,9 +550,8 @@ class RenderContext {
 
 		const cleared = new Set();
 		const clearedTiles = new Set();
-		const recheckTiles = {};
 
-		const clearNodeTiles = (nodeId) => {
+		const clearNodeTilesRecheck = (nodeId) => {
 			if(cleared.has(nodeId)) {
 				return;
 			}
@@ -575,42 +568,11 @@ class RenderContext {
 						const megaTile = tile.megaTile;
 						delete this.tiles[x][y];
 						megaTile.removeNode(nodeId);
-						for(const nodeId of megaTile.popRedraw()) {
-							if(withinX && withinY) {
+						if(withinX && withinY) {
+							for(const nodeId of megaTile.popRedraw()) {
 								updatedNodeIds.add(nodeId);
 							}
-						}
-					}
-				}
-			}
-		};
-
-		const clearNodeTilesRecheck = (nodeId) => {
-			if(cleared.has(nodeId)) {
-				return;
-			}
-			cleared.add(nodeId);
-			const tX = this.nodeIdToTiles[nodeId];
-			for(const x in tX) {
-				const withinX = x >= screenBoxTiles.a.x && x <= screenBoxTiles.b.x;
-				if(recheckTiles[x] === undefined) {
-					recheckTiles[x] = {};
-				}
-				const rX = recheckTiles[x];
-				const tY = this.nodeIdToTiles[nodeId][x];
-				for(const y in tY) {
-					const tile = tY[y];
-					if(!clearedTiles.has(tile)  && tile.closestNodeRef.id === nodeId) {
-						clearedTiles.add(tile);
-						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
-						const megaTile = tile.megaTile;
-						rX[y] = tile;
-						delete this.tiles[x][y];
-						megaTile.removeNode(nodeId);
-						for(const nodeId of megaTile.popRedraw()) {
-							if(withinX && withinY) {
-								updatedNodeIds.add(nodeId);
-							}
+							updatedNodeIds.add(tile.closestNodeRef.id);
 						}
 					}
 				}
@@ -624,86 +586,77 @@ class RenderContext {
 			this.offScreenDrawnNodeIds.delete(removedId);
 		}
 
-		for(const x in recheckTiles) {
-			const rX = recheckTiles[x];
-			for(const y in rX) {
-				for(const nodeRef of rX[y].getNearbyNodes()) {
-					updatedNodeIds.add(nodeRef.id);
-				}
-			}
-		}
-
 		for(const nodeId of updatedNodeIds) {
-			clearNodeTiles(nodeId);
-		}
+			if(visibleNodeIds.has(nodeId)) {
+				const nodeRef = this.mapper.backend.getNodeRef(nodeId);
 
-		for(const nodeId of removedNodeIds) {
-			updatedNodeIds.delete(nodeId);
-		}
+				this.drawnNodeIds.add(nodeId);
 
-		for(const nodeId of updatedNodeIds) {
-			this.drawnNodeIds.add(nodeId);
-
-			const nodeRef = this.mapper.backend.getNodeRef(nodeId);
-
-			if(this.nodeIdToTiles[nodeRef.id] === undefined) {
-				this.nodeIdToTiles[nodeRef.id] = {};
-			}
-
-			const center = (await nodeRef.getCenter()).map((a) => this.unitsToPixels(a));
-			const centerTile = center.divideScalar(Tile.SIZE).round();
-			const radius = this.unitsToPixels(await nodeRef.getRadius());
-			if(radius >= Tile.SIZE / 8) {
-				const radiusTile = Math.ceil(radius / Tile.SIZE);
-
-				const cxn = centerTile.x - radiusTile;
-				const cyn = centerTile.y - radiusTile;
-				const cxp = centerTile.x + radiusTile;
-				const cyp = centerTile.y + radiusTile;
-
-				const tileBox = new Box3(
-					new Vector3(Math.max(screenBoxTiles.a.x, cxn), Math.max(screenBoxTiles.a.y, cyn), 0),
-					new Vector3(Math.min(screenBoxTiles.b.x, cxp), Math.min(screenBoxTiles.b.y, cyp), 0)
-				);
-
-				if(tileBox.a.x !== cxn || tileBox.a.y !== cyn || tileBox.b.x !== cxp || tileBox.b.y !== cyp) {
-					this.offScreenDrawnNodeIds.add(nodeId);
+				if(this.nodeIdToTiles[nodeRef.id] === undefined) {
+					this.nodeIdToTiles[nodeRef.id] = {};
 				}
 
-				for(let x = tileBox.a.x; x <= tileBox.b.x; x++) {
-					if(this.tiles[x] === undefined) {
-						this.tiles[x] = {};
-					}
-					if(this.nodeIdToTiles[nodeRef.id][x] === undefined) {
-						this.nodeIdToTiles[nodeRef.id][x] = {};
-					}
-					const nodeIdToTileX = this.nodeIdToTiles[nodeRef.id][x];
-					const tilesX = this.tiles[x];
-					const megaTilePositionX = Math.floor(x / MegaTile.SIZE * Tile.SIZE);
+				const nodeIdToTiles = this.nodeIdToTiles[nodeRef.id];
 
-					if(this.megaTiles[megaTilePositionX] === undefined) {
-						this.megaTiles[megaTilePositionX] = {};
+				const center = (await nodeRef.getCenter()).map((a) => this.unitsToPixels(a));
+				const centerTile = center.divideScalar(Tile.SIZE).round();
+				const radius = this.unitsToPixels(await nodeRef.getRadius());
+				if(radius >= Tile.SIZE / 8) {
+
+					const radiusTile = Math.ceil(radius / Tile.SIZE);
+
+					const cxn = centerTile.x - radiusTile;
+					const cyn = centerTile.y - radiusTile;
+					const cxp = centerTile.x + radiusTile;
+					const cyp = centerTile.y + radiusTile;
+
+					const tileBox = new Box3(
+						new Vector3(Math.max(screenBoxTiles.a.x, cxn), Math.max(screenBoxTiles.a.y, cyn), 0),
+						new Vector3(Math.min(screenBoxTiles.b.x, cxp), Math.min(screenBoxTiles.b.y, cyp), 0)
+					);
+
+					if(tileBox.a.x !== cxn || tileBox.a.y !== cyn || tileBox.b.x !== cxp || tileBox.b.y !== cyp) {
+						this.offScreenDrawnNodeIds.add(nodeId);
+					}
+					else {
+						this.offScreenDrawnNodeIds.delete(nodeId);
 					}
 
-					const mtX = this.megaTiles[megaTilePositionX];
-					for(let y = tileBox.a.y; y <= tileBox.b.y; y++) {
-						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
+					for(let x = tileBox.a.x; x <= tileBox.b.x; x++) {
+						if(this.tiles[x] === undefined) {
+							this.tiles[x] = {};
+						}
+						if(nodeIdToTiles[x] === undefined) {
+							nodeIdToTiles[x] = {};
+						}
+						const nodeIdToTileX = nodeIdToTiles[x];
+						const tilesX = this.tiles[x];
+						const megaTilePositionX = Math.floor(x / MegaTile.SIZE * Tile.SIZE);
 
-						if(mtX[megaTilePositionY] === undefined) {
-							mtX[megaTilePositionY] = new MegaTile(this, new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(MegaTile.SIZE));
+						if(this.megaTiles[megaTilePositionX] === undefined) {
+							this.megaTiles[megaTilePositionX] = {};
 						}
 
-						const megaTile = mtX[megaTilePositionY];
+						const mtX = this.megaTiles[megaTilePositionX];
+						for(let y = tileBox.a.y; y <= tileBox.b.y; y++) {
+							const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
 
-						if(tilesX[y] === undefined) {
-							tilesX[y] = megaTile.makeTile(new Vector3(x * Tile.SIZE, y * Tile.SIZE, 0));
-						}
+							if(mtX[megaTilePositionY] === undefined) {
+								mtX[megaTilePositionY] = new MegaTile(this, new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(MegaTile.SIZE));
+							}
 
-						const tile = tilesX[y];
+							const megaTile = mtX[megaTilePositionY];
 
-						if(await tile.addNode(nodeRef)) {
-							nodeIdToTileX[y] = tile;
-							actualTiles.add(tile);
+							if(tilesX[y] === undefined) {
+								tilesX[y] = megaTile.makeTile(new Vector3(x * Tile.SIZE, y * Tile.SIZE, 0));
+							}
+
+							const tile = tilesX[y];
+
+							if(await tile.addNode(nodeRef)) {
+								nodeIdToTileX[y] = tile;
+								actualTiles.add(tile);
+							}
 						}
 					}
 				}
