@@ -52,7 +52,7 @@ echo "# Download Options" > DOWNLOAD.md
 echo "Choose any option below to get the mapping tool." >> DOWNLOAD.md
 
 echo "## Windows" >> DOWNLOAD.md
-echo "Because this app is in early development, Windows will detect that it is from an unknown publisher. You may need to give it permission to run. If you do not want to do this, you can use the live demo right in your browser instead, linked below."
+echo "Because this app is in early development, Windows will detect that it is from an unknown publisher. You may need to give it permission to run. If you do not want to do this, you can use the live demo right in your browser instead, linked below." >> DOWNLOAD.md
 echo "* [Ordinary program](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/Mapper1024.$VERSION.exe)" >> DOWNLOAD.md
 echo "  * This one doesn't need to be installed, just download it and run it. You may need to give it permission to run." >> DOWNLOAD.md
 echo "* [Installer](https://github.com/mapper1024/mapper1024/releases/download/v$VERSION/Mapper1024.Setup.$VERSION.exe)" >> DOWNLOAD.md
