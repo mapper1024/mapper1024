@@ -512,7 +512,7 @@ class RenderContext {
 	recalculateTilesViewport() {
 		//this.recalculateViewport = true;
 		asyncFrom(this.visibleNodes()).then((nodes) => {
-			this.recalculateTranslated.push(...(nodes.filter(nodeRef => !this.drawnNodeIds.has(nodeRef.id) || this.offScreenDrawnNodeIds.has(nodeRef.id))));
+			this.recalculateUpdate.push(...(nodes.filter(nodeRef => !this.drawnNodeIds.has(nodeRef.id) || this.offScreenDrawnNodeIds.has(nodeRef.id))));
 		});
 	}
 
