@@ -556,21 +556,16 @@ class RenderContext {
 				}
 				const rX = recheckTiles[x];
 				const tY = this.nodeIdToTiles[nodeId][x];
-				const mtX = this.megaTiles[Math.floor(x / MegaTile.SIZE * Tile.SIZE)];
 				for(const y in tY) {
 					const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
-					rX[y] = tY[y];
+					const tile = tY[y];
+					const megaTile = tile.megaTile;
+					rX[y] = tile;
 					delete this.tiles[x][y];
-					if(mtX !== undefined) {
-						const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
-						const megaTile = mtX[megaTilePositionY];
-						if(megaTile !== undefined) {
-							megaTile.removeNode(nodeId);
-							for(const nodeId of megaTile.popRedraw()) {
-								if(withinX && withinY) {
-									updatedNodeIds.add(nodeId);
-								}
-							}
+					megaTile.removeNode(nodeId);
+					for(const nodeId of megaTile.popRedraw()) {
+						if(withinX && withinY) {
+							updatedNodeIds.add(nodeId);
 						}
 					}
 				}
