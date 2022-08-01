@@ -69,7 +69,7 @@ echo "* [Zip file](https://github.com/mapper1024/mapper1024/releases/download/v$
 echo "  * Extract the zip file and run the program file called \`mapper1024\` found inside." >> DOWNLOAD.md
 
 echo "## MacOS" >> DOWNLOAD.md
-echo "Unfortunantely there are no desktop builds for MacOS. You can still explore the live demo linked below." >> DOWNLOAD.md
+echo "Unfortunantely there are no desktop builds for MacOS yet. You can still explore the live demo linked below." >> DOWNLOAD.md
 
 echo "## Live Demo" >> DOWNLOAD.md
 echo "* Play with the live demo in your browser at [https://mapper1024.github.io/demo](https://mapper1024.github.io/demo)" >> DOWNLOAD.md
