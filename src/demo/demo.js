@@ -1,8 +1,4 @@
-/* Load mapper and insert into main UI.
- * NOTE: We don't have to serve the mapper ourselves; we could import from the bundled library version,
- * but this way makes it easier to test changes without rebundling.
- */
-import { Mapper, SqlJsMapBackend } from "../mapper/index.js";
+import { Mapper, SqlJsMapBackend } from "./mapper/index.js";
 
 let renderedMap;
 
@@ -53,13 +49,10 @@ function loadMap(map) {
 
 loadMap(new SqlJsMapBackend({
 	loadFrom: "url",
-	url: "/samples/sample_map.map",
+	url: "./mapper/samples/sample_map.map",
 }));
-
 
 window.addEventListener("beforeunload", function (e) {
 	e.preventDefault();
 	e.returnValue = "Did you save any changes?";
 });
-
-// TODO: Register backend based on API calls back to Flask server.

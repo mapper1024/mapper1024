@@ -8,10 +8,11 @@ fi
 
 VERSION="$(jq < package.json .version -r)"
 
-mkdir -p dist/demo
-rm -r dist/demo
-mkdir -p dist/demo
+mkdir -p dist/demo/
+rm -r dist/demo/
+cp -r src/demo/ dist/demo/
+mkdir -p dist/demo/mapper/
 
 yarn run libpack
-cp dist/mapper1024.$(jq < package.json .version -r).js dist/demo/mapper.js
-cp -r samples/ dist/demo/samples/
+cp dist/mapper1024.$(jq < package.json .version -r).js dist/demo/mapper/index.js
+cp -r samples/ dist/demo/mapper/samples/

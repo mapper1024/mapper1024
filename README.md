@@ -30,7 +30,7 @@ yarn start
 ```
 
 ### Flask (Example server)
-This tool can also be embedded in a remote server, an example flask app is provided:
+This tool can also be embedded in a remote server, an example flask app is provided that currently serves the live demo:
 ```sh
 pipenv sync
 FLASK_ENV=development FLASK_APP=src.flask pipenv run flask run # Run server on 127.0.0.1:5000

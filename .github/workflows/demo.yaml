@@ -34,4 +34,4 @@ jobs:
                 external_repository: mapper1024/mapper1024.github.io
                 publish_branch: master
                 publish_dir: dist/demo
-                destination_dir: demo/mapper
+                destination_dir: demo
