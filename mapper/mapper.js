@@ -316,7 +316,7 @@ class RenderContext {
 		}
 
 		return {
-			size: Math.min(24, tileCount * 2),
+			size: Math.min(24, tileCount * 4),
 			where: (best || optimal).subtract(this.scrollOffset)
 		};
 	}
@@ -860,9 +860,10 @@ class RenderContext {
 			const name = await nodeRef.getPString("name");
 			if(name !== undefined) {
 				const position = await this.getNamePosition(nodeRef);
-				const size = position.size;
+				const selected = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef));
+				const size = selected ? 24 : position.size;
 				if(size > 0) {
-					c.font = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) ? `bold ${size}px serif` : `${size}px serif`;
+					c.font = selected ? `bold ${size}px serif` : `${size}px serif`;
 					const measure = c.measureText(name);
 					const height = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
 					const where = position.where.subtract(new Vector3(measure.width / 2, height / 2, 0, 0));
