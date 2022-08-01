@@ -566,6 +566,33 @@ class RenderContext {
 			const tX = this.nodeIdToTiles[nodeId];
 			for(const x in tX) {
 				const withinX = x >= screenBoxTiles.a.x && x <= screenBoxTiles.b.x;
+				const tY = this.nodeIdToTiles[nodeId][x];
+				for(const y in tY) {
+					const tile = tY[y];
+					if(!clearedTiles.has(tile)) {
+						clearedTiles.add(tile);
+						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
+						const megaTile = tile.megaTile;
+						delete this.tiles[x][y];
+						megaTile.removeNode(nodeId);
+						for(const nodeId of megaTile.popRedraw()) {
+							if(withinX && withinY) {
+								updatedNodeIds.add(nodeId);
+							}
+						}
+					}
+				}
+			}
+		};
+
+		const clearNodeTilesRecheck = (nodeId) => {
+			if(cleared.has(nodeId)) {
+				return;
+			}
+			cleared.add(nodeId);
+			const tX = this.nodeIdToTiles[nodeId];
+			for(const x in tX) {
+				const withinX = x >= screenBoxTiles.a.x && x <= screenBoxTiles.b.x;
 				if(recheckTiles[x] === undefined) {
 					recheckTiles[x] = {};
 				}
@@ -591,7 +618,7 @@ class RenderContext {
 		};
 
 		for(const removedId of new Set([...removedNodeIds, ...translatedNodeIds])) {
-			clearNodeTiles(removedId);
+			clearNodeTilesRecheck(removedId);
 			delete this.nodeIdToTiles[removedId];
 			this.drawnNodeIds.delete(removedId);
 			this.offScreenDrawnNodeIds.delete(removedId);
