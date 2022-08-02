@@ -372,7 +372,7 @@ class RenderContext {
 	}
 
 	forceZoom(zoom) {
-		this.zoom = this.requestedZoom = 5;
+		this.zoom = this.requestedZoom = zoom;
 		this.hooks.call("changed_zoom", this.zoom);
 		this.recalculateTilesViewport();
 	}
