@@ -123,3 +123,18 @@ jobs:
               with:
                 files: |
                     dist/*.zip
+    update-downloads-md:
+        needs: [package-libpack, package-appimage-x64, package-linux-zip-x64, package-windows-portable, package-windows-nsis, package-windows-zip32, package-windows-zip64]
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              ref: master
+            - run: bash tools/update_download.sh
+            - name: Release
+              if: startsWith(github.ref, 'refs/tags/')
+              run: |
+                git config --global user.name 'Benjamin Leskey'
+                git config --global user.email 'linewriter1024@gmail.com'
+                git add DOWNLOAD.md
+                git commit -m "Update DOWNLOAD.md after release"
+                git push

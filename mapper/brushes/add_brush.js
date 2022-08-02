@@ -38,13 +38,13 @@ class AddBrush extends Brush {
 	}
 
 	typeRecentlyChanged() {
-		return performance.now() - this.lastTypeChange < 1000;
+		return performance.now() - this.lastTypeChange < 3000;
 	}
 
 	async draw(context, position) {
 		await super.draw(context, position);
 
-		if(this.typeRecentlyChanged() && this.nodeTypes.length > 0) {
+		if((this.typeRecentlyChanged() || this.context.isKeyDown("q")) && this.nodeTypes.length > 0) {
 			const radius = Math.min(4, Math.ceil(this.nodeTypes.length / 2));
 			for(let i = -radius; i <= radius; i++) {
 				const type = this.nodeTypes[mod(this.nodeTypeIndex + i, this.nodeTypes.length)];

@@ -865,7 +865,7 @@ class RenderContext {
 		infoLine("You can (N)ame the selected object. Scroll to zoom.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
-			infoLine("Hold Q while scrolling to change brush type; hold W while scrolling to change brush size.");
+			infoLine("Hold Q while scrolling to change brush terrain/type; hold W while scrolling to change brush size.");
 		}
 		else if(this.brush instanceof SelectBrush) {
 			infoLine("Click to select, drag to move.");
