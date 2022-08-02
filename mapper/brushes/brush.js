@@ -11,6 +11,8 @@ class Brush {
 	}
 
 	displaySidebar(brushBar, container) {
+		brushBar;
+		container;
 	}
 
 	switchTo() {

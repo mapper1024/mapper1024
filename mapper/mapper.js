@@ -879,7 +879,7 @@ class RenderContext {
 			infoLineY += 24;
 		}
 
-		infoLine(`Change brush mode with (A)dd, (S)elect or (D)elete. `);
+		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. ");
 
 		// Debug help
 		infoLine("You can (N)ame the selected object. Scroll to zoom.");
