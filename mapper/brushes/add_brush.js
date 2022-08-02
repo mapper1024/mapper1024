@@ -49,7 +49,7 @@ class AddBrush extends Brush {
 			for(let i = -radius; i <= radius; i++) {
 				const type = this.nodeTypes[mod(this.nodeTypeIndex + i, this.nodeTypes.length)];
 				const text = type.getDescription();
-				context.font = (i === 0) ? "bold 12px sans" : `${12 - Math.abs(i)}px sans`;
+				context.font = (i === 0) ? "bold 16px sans" : `${16 - Math.abs(i)}px sans`;
 				context.fillText(text, position.x - this.getRadius() - context.measureText(text).width - 4, position.y + 4 + (-i) * 14);
 			}
 		}

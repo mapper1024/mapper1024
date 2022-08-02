@@ -49,7 +49,7 @@ class Brush {
 		context.fillRect(position.x - this.getRadius(), position.y - 1, this.getRadius() * 2, 2);
 
 		context.textBaseline = "alphabetic";
-		context.font = "12px mono";
+		context.font = "16px mono";
 		const sizeText = `${this.sizeInMeters() * 2}m`;
 		context.fillText(sizeText, position.x - context.measureText(sizeText).width / 2, position.y - 6);
 

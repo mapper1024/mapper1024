@@ -54,6 +54,8 @@ class RenderContext {
 
 		this.debugMode = false;
 
+		this.scrollDelta = 0;
+
 		this.scrollOffset = Vector3.ZERO;
 		this.zoom = 5;
 		this.requestedZoom = 5;
@@ -235,24 +237,33 @@ class RenderContext {
 		this.canvas.addEventListener("wheel", (event) => {
 			event.preventDefault();
 
-			if(this.isKeyDown("q")) {
-				if(event.deltaY < 0) {
-					this.brush.increment();
+			this.scrollDelta = this.scrollDelta + event.deltaY;
+
+			const delta = this.scrollDelta;
+
+			if(Math.abs(delta) >= 100) {
+
+				if(this.isKeyDown("q")) {
+					if(delta < 0) {
+						this.brush.increment();
+					}
+					else {
+						this.brush.decrement();
+					}
+				}
+				else if(this.isKeyDown("w")) {
+					if(delta < 0) {
+						this.brush.enlarge();
+					}
+					else {
+						this.brush.shrink();
+					}
 				}
 				else {
-					this.brush.decrement();
+					this.requestZoomChange(this.zoom + (delta < 0 ? -1 : 1));
 				}
-			}
-			else if(this.isKeyDown("w")) {
-				if(event.deltaY < 0) {
-					this.brush.enlarge();
-				}
-				else {
-					this.brush.shrink();
-				}
-			}
-			else {
-				this.requestZoomChange(this.zoom + (event.deltaY < 0 ? -1 : 1));
+
+				this.scrollDelta = 0;
 			}
 
 			this.requestRedraw();
