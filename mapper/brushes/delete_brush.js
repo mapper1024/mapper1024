@@ -9,6 +9,11 @@ class DeleteBrush extends Brush {
 		return `Delete (radius ${this.sizeInMeters()}m)`;
 	}
 
+	displayButton(button) {
+		button.innerText = "(D)elete";
+		button.title = "Delete Objects";
+	}
+
 	async activate(where) {
 		return new DrawEvent(this.context, where);
 	}

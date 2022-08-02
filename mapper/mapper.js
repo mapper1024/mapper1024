@@ -6,6 +6,8 @@ import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { Tile, MegaTile } from "./tile.js";
 import { ChangeNameAction } from "./actions/index.js";
+import { Brushbar } from "./brushbar.js";
+import { style } from "./style.js";
 import { version } from "./version.js";
 
 /** A render context of a mapper into a specific element.
@@ -61,10 +63,19 @@ class RenderContext {
 		this.zoom = 5;
 		this.requestedZoom = 5;
 
-		this.brush = new AddBrush(this);
+		this.brushes = {
+			add: new AddBrush(this),
+			select: new SelectBrush(this),
+			"delete": new DeleteBrush(this),
+		};
+
+		this.brush = this.brushes.add;
 
 		this.hoverSelection = new Selection(this, []);
 		this.selection = new Selection(this, []);
+
+		this.styleElement = style();
+		document.head.appendChild(this.styleElement);
 
 		// The UI is just a canvas.
 		// We will keep its size filling the parent element.
@@ -81,6 +92,8 @@ class RenderContext {
 		this.mapper.hooks.add("removeNodes", (nodeRefs) => this.recalculateTilesNodesRemove(nodeRefs));
 		this.mapper.hooks.add("translateNodes", (nodeRefs) => this.recalculateTilesNodesTranslate(nodeRefs));
 		this.mapper.hooks.add("update", this.requestUpdateSelection.bind(this));
+
+		this.brushbar = new Brushbar(this);
 
 		this.canvas.addEventListener("contextmenu", event => {
 			event.preventDefault();
@@ -175,13 +188,13 @@ class RenderContext {
 				this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)).round());
 			}
 			else if(event.key === "d") {
-				this.changeBrush(new DeleteBrush(this));
+				this.changeBrush(this.brushes["delete"]);
 			}
 			else if(event.key === "a") {
-				this.changeBrush(new AddBrush(this));
+				this.changeBrush(this.brushes.add);
 			}
 			else if(event.key === "s") {
-				this.changeBrush(new SelectBrush(this));
+				this.changeBrush(this.brushes.select);
 			}
 			else if(event.key === "`") {
 				this.debugMode = !this.debugMode;
@@ -282,6 +295,8 @@ class RenderContext {
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
 		setTimeout(this.applyZoom.bind(this), 10);
+
+		this.changeBrush(this.brushes.add);
 	}
 
 	isPanning() {
@@ -302,6 +317,8 @@ class RenderContext {
 
 	changeBrush(brush) {
 		this.brush = brush;
+		this.brush.switchTo();
+		this.hooks.call("changed_brush", brush);
 		this.requestRedraw();
 	}
 
@@ -523,6 +540,8 @@ class RenderContext {
 		// Keep the canvas matching the parent size.
 		this.canvas.width = this.parent.clientWidth;
 		this.canvas.height = this.parent.clientHeight;
+
+		this.hooks.call("size_change");
 
 		this.recalculateTilesViewport();
 	}
@@ -830,7 +849,7 @@ class RenderContext {
 				if(size > 0) {
 					c.font = selected ? `bold ${size}px serif` : `${size}px serif`;
 					const measure = c.measureText(name);
-					const height = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+					const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
 					const where = position.where.subtract(new Vector3(measure.width / 2, height / 2, 0, 0));
 					c.globalAlpha = 0.25;
 					c.fillStyle = "black";
@@ -853,14 +872,14 @@ class RenderContext {
 			const measure = c.measureText(l);
 			c.globalAlpha = 0.25;
 			c.fillStyle = "black";
-			c.fillRect(18, infoLineY - 2, measure.width, measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent + 4);
+			c.fillRect(18, infoLineY - 2, measure.width, Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent) + 4);
 			c.globalAlpha = 1;
 			c.fillStyle = "white";
 			c.fillText(l, 18, infoLineY);
 			infoLineY += 24;
 		}
 
-		infoLine(`Brush: ${this.brush.getDescription()} | Change brush mode with (A)dd, (S)elect or (D)elete. `);
+		infoLine(`Change brush mode with (A)dd, (S)elect or (D)elete. `);
 
 		// Debug help
 		infoLine("You can (N)ame the selected object. Scroll to zoom.");
@@ -878,7 +897,7 @@ class RenderContext {
 		}
 		infoLine("Right click or arrow keys to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
 
-		this.hooks.call("draw_help", {
+		await this.hooks.call("draw_help", {
 			infoLine: infoLine,
 		});
 
@@ -933,7 +952,7 @@ class RenderContext {
 		const measure = c.measureText(text);
 
 		const x = this.screenBox().b.x - measure.width;
-		const height = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+		const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
 
 		c.globalAlpha = 0.25;
 		c.fillStyle = "black";
@@ -1004,8 +1023,11 @@ class RenderContext {
 	/** Disconnect the render context from the page and clean up listeners. */
 	disconnect() {
 		this.alive = false;
-		this.parentObserver.disconnect();
-		this.parent.removeChild(this.canvas);
+		this.hooks.call("disconnect").then(() => {
+			this.styleElement.remove();
+			this.parentObserver.disconnect();
+			this.canvas.remove();
+		});
 	}
 }
 

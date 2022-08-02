@@ -4,6 +4,16 @@ class Brush {
 
 		this.size = 1;
 		this.maxSize = 20;
+	}
+
+	displayButton(button) {
+		button.innerText = this.constructor.name;
+	}
+
+	displaySidebar(brushBar, container) {
+	}
+
+	switchTo() {
 		this.lastSizeChange = performance.now();
 	}
 
@@ -26,11 +36,13 @@ class Brush {
 	shrink() {
 		this.size = Math.max(1, this.size - 1);
 		this.lastSizeChange = performance.now();
+		this.context.hooks.call("brush_size_change", this);
 	}
 
 	enlarge() {
 		this.size = Math.min(this.maxSize, this.size + 1);
 		this.lastSizeChange = performance.now();
+		this.context.hooks.call("brush_size_change", this);
 	}
 
 	sizeRecentlyChanged() {

@@ -7,6 +7,11 @@ class SelectBrush extends Brush {
 		super(context);
 	}
 
+	displayButton(button) {
+		button.innerText = "(S)elect";
+		button.title = "Select Objects";
+	}
+
 	getDescription() {
 		return "Select/Move";
 	}
