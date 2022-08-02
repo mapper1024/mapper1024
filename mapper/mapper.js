@@ -170,7 +170,7 @@ class RenderContext {
 				else if(event.key === "c") {
 					asyncFrom(this.drawnNodes()).then((drawnNodes) => {
 						this.scrollOffset = Vector3.ZERO;
-						this.zoom = this.requestedZoom = 5;
+						this.forceZoom(5);
 						this.recalculateTilesNodesTranslate(drawnNodes);
 					});
 				}
@@ -359,6 +359,7 @@ class RenderContext {
 			asyncFrom(this.drawnNodes()).then((drawnNodes) => {
 				const oldLandmark = this.canvasPointToMap(this.mousePosition);
 				this.zoom = this.requestedZoom;
+				this.hooks.call("changed_zoom", this.zoom);
 				const newLandmark = this.canvasPointToMap(this.mousePosition);
 				this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
 				this.recalculateTilesNodesTranslate(drawnNodes);
@@ -368,6 +369,12 @@ class RenderContext {
 		if(this.alive) {
 			setTimeout(this.applyZoom.bind(this), 10);
 		}
+	}
+
+	forceZoom(zoom) {
+		this.zoom = this.requestedZoom = 5;
+		this.hooks.call("changed_zoom", this.zoom);
+		this.recalculateTilesViewport();
 	}
 
 	async redrawLoop() {

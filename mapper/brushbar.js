@@ -5,9 +5,11 @@ class Brushbar {
 	constructor(context) {
 		this.context = context;
 
+		this.targetWidth = 64;
 		this.hooks = new HookContainer();
 
 		this.element = document.createElement("div");
+		this.element.setAttribute("class", "mapper1024_brush_bar");
 		this.element.style.position = "absolute";
 		this.context.parent.appendChild(this.element);
 
@@ -27,7 +29,11 @@ class Brushbar {
 
 		updateSize(this.context.brush);
 
+		this.element.appendChild(document.createElement("br"));
+
 		this.context.hooks.add("brush_size_change", updateSize);
+		this.context.hooks.add("changed_brush", updateSize);
+		this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
 
 		const sizeUp = document.createElement("button");
 		sizeUp.setAttribute("class", "mapper1024_brush_size_button");
@@ -97,14 +103,19 @@ class Brushbar {
 		const padding = 32;
 		const hPadding = 8;
 		const screenSize = this.context.screenSize();
-		const size = new Vector3(64, screenSize.y - padding * 2);
-		const where = new Vector3(screenSize.x - size.x - hPadding, padding);
-		this.element.style.left = `${where.x}px`;
-		this.element.style.top = `${where.y}px`;
+		const size = new Vector3(this.targetWidth, screenSize.y - padding * 2, 0);
 		this.element.style.width = `${size.x}px`;
 		this.element.style.height = `${size.y}px`;
 		this.element.style.backgroundColor = "#eeeeeebb";
 		this.size = size;
+
+		const actualXSize = size.x + (this.element.offsetWidth - this.element.clientWidth);
+
+		const where = new Vector3(screenSize.x - actualXSize - hPadding, padding, 0);
+		this.element.style.left = `${where.x}px`;
+		this.element.style.top = `${where.y}px`;
+
+		this.element.style.width = `${actualXSize}px`;
 
 		await this.hooks.call("size_change", size);
 	}

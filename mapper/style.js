@@ -1,6 +1,11 @@
 function style() {
 	const styleElement = document.createElement("style");
 	styleElement.innerHTML = `
+.mapper1024_brush_bar {
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
 .mapper1024_brush_strip {
 	word-wrap: break-word;
 }
