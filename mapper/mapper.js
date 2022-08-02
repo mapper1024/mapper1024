@@ -6,6 +6,7 @@ import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { Tile, MegaTile } from "./tile.js";
 import { ChangeNameAction } from "./actions/index.js";
+import { version } from "./version.js";
 
 /** A render context of a mapper into a specific element.
  * Handles keeping the UI connected to an element on a page.
@@ -911,7 +912,7 @@ class RenderContext {
 		c.fillStyle = "black";
 		c.fillRect(barX, barY, barWidth, barHeight);
 
-		c.font = "12px mono";
+		c.font = "16px mono";
 		c.fillStyle = "white";
 
 		for(let point = 0; point < 6; point++) {
@@ -920,6 +921,28 @@ class RenderContext {
 			c.fillText(`${Math.floor(this.mapper.unitsToMeters(this.pixelsToUnits(pixel)) + 0.5)}m`, barX + pixel, y);
 			c.fillRect(barX + pixel, barY, 2, barHeight);
 		}
+	}
+
+	async drawVersion() {
+		const c = this.canvas.getContext("2d");
+
+		c.textBaseline = "top";
+		c.font = "14px sans";
+
+		const text = `v${version}`;
+		const measure = c.measureText(text);
+
+		const x = this.screenBox().b.x - measure.width;
+		const height = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+
+		c.globalAlpha = 0.25;
+		c.fillStyle = "black";
+		c.fillRect(x, 0, measure.width, height);
+
+		c.fillStyle = "white";
+		c.globalAlpha = 1;
+
+		c.fillText(text, x, 0);
 	}
 
 	/** Completely redraw the displayed UI. */
@@ -939,6 +962,8 @@ class RenderContext {
 		if(this.debugMode) {
 			await this.drawDebug();
 		}
+
+		await this.drawVersion();
 	}
 
 	async * visibleNodes() {
