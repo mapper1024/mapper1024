@@ -137,5 +137,5 @@ jobs:
                 git config --global user.name 'Benjamin Leskey'
                 git config --global user.email 'linewriter1024@gmail.com'
                 git add DOWNLOAD.md
-                git commit -m "Update DOWNLOAD.md after release"
+                git commit -m "Automatically update DOWNLOAD.md after release"
                 git push
