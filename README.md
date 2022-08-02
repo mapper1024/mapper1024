@@ -4,6 +4,8 @@ Under rapid development.
 ## Release Downloads
 See [DOWNLOAD.md](DOWNLOAD.md) for download information.
 
+[![A screenshot of the mapping tool](https://mapper1024.github.io/screenshots/default.thumb.png)](https://mapper1024.github.io/screenshots/default.png)
+
 ## Documentation
 * [https://mapper1024.github.io/jsdoc](https://mapper1024.github.io/jsdoc): auto-generated API documentation
 * [doc/JOURNAL.md](doc/JOURNAL.md): development process and decisions journal
