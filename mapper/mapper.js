@@ -889,7 +889,7 @@ class RenderContext {
 		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. ");
 
 		// Debug help
-		infoLine("You can (N)ame the selected object. Scroll to zoom.");
+		infoLine("Press N to set or edit an object's name. Scroll to zoom.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 			infoLine("Hold Q while scrolling to change brush terrain/type; hold W while scrolling to change brush size.");
