@@ -8,12 +8,12 @@ class BulkAction extends Action {
 	async perform() {
 		const actions = [];
 
-		for(const action of this.options.actions.reverse()) {
+		for(const action of this.options.actions) {
 			actions.push(await this.context.performAction(action, false));
 		}
 
 		return new BulkAction(this.context, {
-			actions: actions,
+			actions: actions.reverse(),
 		});
 	}
 

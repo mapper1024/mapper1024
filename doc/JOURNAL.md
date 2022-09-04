@@ -76,5 +76,14 @@ The prototype algorithm just randomly generates appropriate pixel art with some 
 ## Performance
 I've cut down on the slowest parts of the code by using Chromium's performance profiling feature and introducing caching or changing the algorithms I use. Rendering the map as tiles is still quite slow, and the ad-hoc approach to redrawing the screen produces some "glitchy" rendering when panning the map or zooming in or out. Future optimization will focus on making the program feel smoother, which is important to the user experience.
 
+# Database Evolution: Early 2022-09
+## Node Shapes
+In the database, nodes now have a type which can be "object" or "point". "object" nodes correspond to map objects like a forest, a wall, a rock, or a mountain. Individual "object" nodes now have an arbitrary shape defined by a set of connected "point" nodes.
+
+## Defining terms
+* Node: An object in the database that is any spatial entitity.
+* \[Map\] Object: A node that corresponds to a "real" map object like a tree or a forest or a mountain. Has "point" nodes as children to define its area.
+* \[Map\] Point: A node that defines a map object's spatial area/region. Has an "object" node as a parent.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

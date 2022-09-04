@@ -1,54 +1,45 @@
-import { Action, RemoveAction } from "./index.js";
+import { Action, RemoveAction, SetNodeSpaceAction } from "./index.js";
 import { asyncFrom } from "../utils.js";
 import { Vector3 } from "../geometry.js";
 
 class NodeCleanupAction extends Action {
 	async perform() {
-		const toRemove = new Set();
+		const vertices = await asyncFrom(this.getAllVertices());
 
-		const vertices = (await asyncFrom(this.getAllVertices())).sort((a, b) => b.radius - a.radius);
-
-		let count = 0;
 		let sum = Vector3.ZERO;
 
 		for(const vertex of vertices) {
-			if(!toRemove.has(vertex.nodeRef.id)) {
-				count += 1;
-				sum = sum.add(vertex.point);
-				for(const otherVertex of vertices) {
-					if(otherVertex.removable && otherVertex.nodeRef.id !== vertex.nodeRef.id && otherVertex.point.subtract(vertex.point).length() < (vertex.radius + otherVertex.radius) / 4) {
-						toRemove.add(otherVertex.nodeRef.id);
-					}
-				}
+			sum = sum.add(vertex.point);
+		}
+
+		let center = Vector3.ZERO;
+
+		if(vertices.length > 0) {
+			center = sum.divideScalar(vertices.length);
+		}
+
+		let furthest = center;
+		for(const vertex of vertices) {
+			if(vertex.point.subtract(center).lengthSquared() >= furthest.subtract(center).lengthSquared()) {
+				furthest = vertex.point;
 			}
 		}
 
-		if(await this.options.nodeRef.getRadius() === 0 && count > 0) {
-			this.options.nodeRef.setCenter(sum.divideScalar(count));
-		}
-
-		return await this.context.performAction(new RemoveAction(this.context, {nodeRefs: [...toRemove].map((id) => this.context.mapper.backend.getNodeRef(id))}), false);
+		return this.context.performAction(new SetNodeSpaceAction(this.context, {nodeRef: this.options.nodeRef, center: center, radius: furthest.subtract(center).length()}), false);
 	}
 
 	async * getAllNodes() {
-		for await (const nodeRef of this.options.nodeRef.getSelfAndAllDescendants()) {
-			if((await nodeRef.getType()).id === this.options.type.id) {
-				yield nodeRef;
-			}
+		for await (const nodeRef of this.options.nodeRef.getAllDescendants()) {
+			yield nodeRef;
 		}
 	}
 
 	async * getAllVertices() {
 		for await (const nodeRef of this.getAllNodes()) {
-			const radius = await nodeRef.getRadius();
-			if(radius > 0) {
-				yield {
-					nodeRef: nodeRef,
-					removable: !(await nodeRef.hasChildren()),
-					point: await nodeRef.getCenter(),
-					radius: radius,
-				};
-			}
+			yield {
+				nodeRef: nodeRef,
+				point: await nodeRef.getCenter(),
+			};
 		}
 	}
 }

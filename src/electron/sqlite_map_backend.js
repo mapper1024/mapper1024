@@ -47,12 +47,11 @@ class SQLiteMapBackend extends MapBackend {
 		this.db.prepare("CREATE TABLE IF NOT EXISTS entity (entityid INTEGER PRIMARY KEY, type TEXT, valid BOOLEAN)").run();
 
 		// Node table and trigger to delete the corresponding entity when a node is deleted.
-		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
+		this.db.prepare("CREATE TABLE IF NOT EXISTS node (entityid INT PRIMARY KEY, nodetype TEXT, parentid INT, FOREIGN KEY (entityid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (parentid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
 		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodedeleted AFTER DELETE ON node FOR EACH ROW BEGIN DELETE FROM entity WHERE entityid = OLD.entityid; END");
 
 		// Triggers to cascade invalidation
 		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_children AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT entityid FROM node WHERE parentid = NEW.entityid); END");
-		this.db.exec("CREATE TRIGGER IF NOT EXISTS r_nodeinvalidated_edges AFTER UPDATE OF valid ON entity WHEN NEW.type = 'node' AND NEW.valid = false BEGIN UPDATE entity SET valid = FALSE WHERE entityid IN (SELECT edgeid FROM edge WHERE nodeid = NEW.entityid); END");
 
 		// Similar to nodes, a edge's corresponding entity will be deleted via trigger as soon as the edge is deleted.
 		this.db.prepare("CREATE TABLE IF NOT EXISTS edge (edgeid INT, nodeid INT, PRIMARY KEY (edgeid, nodeid) FOREIGN KEY (edgeid) REFERENCES entity(entityid) ON DELETE CASCADE, FOREIGN KEY (nodeid) REFERENCES node(entityid) ON DELETE CASCADE)").run();
@@ -79,7 +78,7 @@ class SQLiteMapBackend extends MapBackend {
 		this.s_entityValid = this.db.prepare("SELECT entityid FROM entity WHERE entityid = $entityId AND valid = TRUE");
 
 		this.s_createEntity = this.db.prepare("INSERT INTO entity (type, valid) VALUES ($type, TRUE)");
-		this.s_createNode = this.db.prepare("INSERT INTO node (entityid, parentId) VALUES ($entityId, $parentId)");
+		this.s_createNode = this.db.prepare("INSERT INTO node (entityid, parentId, nodeType) VALUES ($entityId, $parentId, $nodeType)");
 		this.s_createConnection = this.db.prepare("INSERT INTO edge (edgeid, nodeid) VALUES ($edgeId, $nodeId)");
 
 		this.s_getNodeParent = this.db.prepare("SELECT nodep.entityid AS parentid FROM node AS nodep INNER JOIN node AS nodec ON nodep.entityid = nodec.parentid INNER JOIN entity ON entity.entityid = nodep.entityid WHERE entity.valid = true AND nodec.entityid = $nodeId");
@@ -89,9 +88,9 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.s_getEdgeBetween = this.db.prepare("SELECT edge1.edgeid AS edgeid FROM edge edge1 INNER JOIN edge edge2 ON (edge1.edgeid = edge2.edgeid AND edge1.nodeid != edge2.nodeid) WHERE edge1.nodeid = $nodeAId AND edge2.nodeid = $nodeBId");
 
-		this.s_getNodesInArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid WHERE entity.valid = TRUE AND property.property = 'center' AND property.x >= $ax AND property.x <= $bx AND property.y >= $ay AND property.y <= $by AND property.z >= $az AND property.z <= $bz");
+		this.s_getObjectNodesInArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid WHERE entity.valid = TRUE AND node.nodetype = 'object' AND property.property = 'center' AND property.x >= $ax AND property.x <= $bx AND property.y >= $ay AND property.y <= $by AND property.z >= $az AND property.z <= $bz");
 
-		this.s_getNodesTouchingArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid INNER JOIN property AS radiusproperty ON node.entityid = radiusproperty.entityid WHERE entity.valid = TRUE AND property.property = 'center' AND radiusproperty.property = 'radius' AND property.x >= $ax - radiusproperty.v_number AND property.x <= $bx + radiusproperty.v_number AND property.y >= $ay - radiusproperty.v_number AND property.y <= $by + radiusproperty.v_number AND property.z >= $az - radiusproperty.v_number AND property.z <= $bz + radiusproperty.v_number");
+		this.s_getObjectNodesTouchingArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid INNER JOIN property AS radiusproperty ON node.entityid = radiusproperty.entityid WHERE entity.valid = TRUE AND node.nodetype = 'object' AND property.property = 'center' AND radiusproperty.property = 'radius' AND property.x >= $ax - radiusproperty.v_number AND property.x <= $bx + radiusproperty.v_number AND property.y >= $ay - radiusproperty.v_number AND property.y <= $by + radiusproperty.v_number AND property.z >= $az - radiusproperty.v_number AND property.z <= $bz + radiusproperty.v_number");
 
 		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
 		this.s_deleteEntity = this.db.prepare("DELETE FROM entity WHERE entityid = $entityId");
@@ -113,11 +112,12 @@ class SQLiteMapBackend extends MapBackend {
 
 		/** Create a node atomically.
 		 * @param parentId {number|null} The ID of the node's parent, or null if none.
+		 * @param nodeType {string} The type of node. "object" or "point"
 		 * @returns {number} The ID of the new node.
 		 */
-		this.baseCreateNode = this.db.transaction((parentId) => {
+		this.baseCreateNode = this.db.transaction((parentId, nodeType) => {
 			const id = this.baseCreateEntity("node");
-			this.s_createNode.run({entityId: id, parentId: parentId});
+			this.s_createNode.run({entityId: id, parentId: parentId, nodeType: nodeType});
 			return id;
 		});
 
@@ -186,8 +186,8 @@ class SQLiteMapBackend extends MapBackend {
 		return this.getEntityRef(this.baseCreateEntity(type));
 	}
 
-	async createNode(parentId) {
-		const nodeRef = this.getNodeRef(this.baseCreateNode(parentId));
+	async createNode(parentId, nodeType) {
+		const nodeRef = this.getNodeRef(this.baseCreateNode(parentId, nodeType));
 		await nodeRef.create();
 		return nodeRef;
 	}
@@ -281,14 +281,14 @@ class SQLiteMapBackend extends MapBackend {
 		return (row === undefined) ? null : this.getEdgeRef(row.edgeid);
 	}
 
-	async * getNodesInArea(box) {
-		for(const row of this.s_getNodesInArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z})) {
+	async * getObjectNodesInArea(box) {
+		for(const row of this.s_getObjectNodesInArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z})) {
 			yield this.getNodeRef(row.entityid);
 		}
 	}
 
-	async * getNodesTouchingArea(box) {
-		for(const row of this.s_getNodesTouchingArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z})) {
+	async * getObjectNodesTouchingArea(box) {
+		for(const row of this.s_getObjectNodesTouchingArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z})) {
 			yield this.getNodeRef(row.entityid);
 		}
 	}

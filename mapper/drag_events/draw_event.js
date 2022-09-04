@@ -6,6 +6,19 @@ class DrawEvent extends DragEvent {
 		super(context, startPoint);
 
 		this.undoActions = [];
+		this.state = [];
+	}
+
+	getFirstState() {
+		return this.state.length > 0 ? this.state[0] : undefined;
+	}
+
+	getLastState() {
+		return this.state.length > 0 ? this.state[this.state.length - 1] : undefined;
+	}
+
+	pushState(state) {
+		this.state.push(state);
 	}
 
 	getUndoAction() {
@@ -17,19 +30,19 @@ class DrawEvent extends DragEvent {
 	async next(nextPoint) {
 		super.next(nextPoint);
 
-		this.undoActions.push(await this.trigger(this.path.asMostRecent()));
+		this.undoActions.push(await this.trigger());
 	}
 
 	async end(endPoint) {
 		super.end(endPoint);
 
-		this.undoActions.push(await this.trigger(this.path.asMostRecent()));
+		this.undoActions.push(await this.trigger());
 
 		this.context.pushUndo(this.getUndoAction());
 	}
 
-	async trigger(path) {
-		return await this.context.brush.trigger(path, this);
+	async trigger() {
+		return await this.context.brush.trigger(this);
 	}
 
 	cancel() {

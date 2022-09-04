@@ -1,4 +1,5 @@
-import { Action, NodeCleanupAction, RemoveAction } from "./index.js";
+import { Action, BulkAction, NodeCleanupAction, RemoveAction } from "./index.js";
+import { Vector3 } from "../geometry.js";
 
 class DrawPathAction extends Action {
 	getPathOnMap() {
@@ -9,27 +10,114 @@ class DrawPathAction extends Action {
 		return this.context.pixelsToUnits(this.options.radius);
 	}
 
+	getPointOnMap() {
+		return this.context.canvasPointToMap(this.options.path.lastVertex());
+	}
+
 	async perform() {
+		const drawEvent = this.options.drawEvent;
 		const placedNodes = [];
 
-		for(const vertex of this.getPathOnMap().vertices()) {
-			placedNodes.push(await this.context.mapper.insertNode(vertex, {
-				type: this.options.nodeType,
-				radius: this.getRadiusOnMap(),
-				parent: this.options.parent,
-			}));
+		const radius = this.getRadiusOnMap();
+		const where = this.getPointOnMap();
+		const wherePixel = this.options.path.lastVertex();
+
+		// Calculate
+		let dir = Vector3.ZERO;
+		let angle = Math.PI / 2;
+		let ok = true; // OK to add more nodes, or should we wait instead?
+		const lastState = drawEvent.getLastState();
+		if(lastState !== undefined) {
+			// We've drawn something before, let's find out which way the user is drawing.
+			const diff = wherePixel.subtract(lastState.wherePixel);
+			if(diff.lengthSquared() > 1) {
+				// The user has drawn more than 1 pixel, let's go!
+				dir = diff.normalize();
+				angle = Math.atan2(-dir.y, dir.x) + Math.PI / 2;
+			}
+			else if(!drawEvent.done) {
+				// The user hasn't really moved or stopped drawing, let's not do anything until next time.
+				ok = false;
+			}
 		}
 
-		if(this.options.fullCalculation) {
+		// Draw border nodes at a particular travel rotation.
+		const drawAtAngle = async (angle) => {
+			const borderAOffset = new Vector3(Math.cos(angle), -Math.sin(angle), 0).multiplyScalar(radius);
+			const borderBOffset = borderAOffset.multiplyScalar(-1);
+
+			const borderAPoint = where.add(borderAOffset);
+			const borderA = await this.context.mapper.insertNode(borderAPoint, "point", {
+				type: this.options.nodeType,
+				radius: 0,
+				parent: this.options.parent,
+			});
+
+			const borderBPoint = where.add(borderBOffset);
+			const borderB = await this.context.mapper.insertNode(borderBPoint, "point", {
+				type: this.options.nodeType,
+				radius: 0,
+				parent: this.options.parent,
+			});
+
+			placedNodes.push(borderA, borderB);
+		};
+
+		const connectNodes = async (nodesA, nodesB) => {
+			const seen = new Set();
+			for(const a of nodesA) {
+				seen.add(a.id);
+				for(const b of nodesB) {
+					if(!seen.has(b.id)) {
+						await this.context.mapper.backend.createEdge(a.id, b.id);
+					}
+				}
+			}
+		};
+
+		if(ok) {
+			if(drawEvent.done || lastState === undefined) {
+				// This is the beginning or end of a stroke, draw all four "sides".
+				await drawAtAngle(0);
+				await drawAtAngle(Math.PI / 2);
+			}
+			else {
+				// We're in the middle of a stroke, just continue the path.
+				await drawAtAngle(angle);
+			}
+		}
+
+		// Connect borders across the drawn area.
+		await connectNodes(placedNodes, placedNodes);
+
+		// Connect edges to the last drawn position.
+		if(lastState !== undefined) {
+			await connectNodes(placedNodes, lastState.borders);
+		}
+
+		// Record drawing event for calculating the full path.
+		drawEvent.pushState({
+			where: where,
+			wherePixel: wherePixel,
+			angle: angle,
+			borders: placedNodes,
+		});
+
+		const undoActions = [];
+
+		if(drawEvent.done) {
 			if(this.options.undoParent) {
 				placedNodes.push(this.options.parent);
 			}
-			await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false);
+
+			undoActions.push(await this.context.performAction(new NodeCleanupAction(this.context, {nodeRef: this.options.parent, type: this.options.nodeType}), false));
 		}
 
-		return new RemoveAction(this.context, {
+		undoActions.push(new RemoveAction(this.context, {
 			nodeRefs: placedNodes,
-		});
+		}));
+
+		return new BulkAction(this.context, {actions: undoActions});
 	}
 
 	empty() {

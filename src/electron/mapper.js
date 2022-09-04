@@ -145,9 +145,10 @@ const argv = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
 
 // If there are no arguments, load the sample map. Otherwise, load the map specified on the command line.
 window.addEventListener("DOMContentLoaded", async () => {
-	await loadMap(argv.length === 0 ? await new SQLiteMapBackend((app.isPackaged ? path.dirname(app.getAppPath()) : app.getAppPath()) + "/samples/sample_map.map", {
+	const sampleMap = async () => await new SQLiteMapBackend((app.isPackaged ? path.dirname(app.getAppPath()) : app.getAppPath()) + "/samples/sample_map.map", {
 		readOnly: true,
-	}) : new SQLiteMapBackend(argv[0]));
+	});
+	await loadMap(argv.length === 0 ? await blankMap() : new SQLiteMapBackend(argv[0]));
 });
 
 

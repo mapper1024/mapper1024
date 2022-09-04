@@ -915,11 +915,45 @@ class RenderContext {
 
 	async drawDebug() {
 		const c = this.canvas.getContext("2d");
-		for await (const nodeRef of this.drawnNodes()) {
+
+		const drawnEdge = new Set();
+
+		const drawNodePoint = async (nodeRef) => {
 			const position = this.mapPointToCanvas(await nodeRef.getCenter());
 			c.beginPath();
 			c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
 			c.strokeStyle = "white";
+			c.stroke();
+
+			// Draw edges.
+			for await (const dirEdgeRef of nodeRef.getEdges()) {
+				if(!drawnEdge.has(dirEdgeRef.id)) {
+					drawnEdge.add(dirEdgeRef.id);
+					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+					const otherPosition = this.mapPointToCanvas(await otherNodeRef.getCenter());
+					c.strokeStyle = "white";
+					c.beginPath();
+					c.moveTo(position.x, position.y);
+					c.lineTo(otherPosition.x, otherPosition.y);
+					c.stroke();
+				}
+			}
+		};
+
+		for await (const nodeRef of this.drawnNodes()) {
+			// Draw center.
+			await drawNodePoint(nodeRef);
+
+			// Draw border path.
+			for await (const child of nodeRef.getChildren()) {
+				await drawNodePoint(child);
+			}
+
+			// Draw bounding radius.
+			const position = this.mapPointToCanvas(await nodeRef.getCenter());
+			c.beginPath();
+			c.arc(position.x, position.y, this.unitsToPixels(await nodeRef.getRadius()), 0, 2 * Math.PI, false);
+			c.strokeStyle = "gray";
 			c.stroke();
 		}
 	}
@@ -994,7 +1028,7 @@ class RenderContext {
 
 	async * visibleNodes() {
 		const screenBox = this.screenBox();
-		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
+		yield* this.mapper.getObjectNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
 	}
 
 	async * drawnNodes() {
@@ -1092,16 +1126,16 @@ class Mapper {
 	 * @param box {Box3}
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	async * getNodesInArea(box) {
-		yield* this.backend.getNodesInArea(box);
+	async * getObjectNodesInArea(box) {
+		yield* this.backend.getObjectNodesInArea(box);
 	}
 
 	/** Get all nodes in or near a spatial box (according to their radii).
 	 * @param box {Box3}
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	async * getNodesTouchingArea(box) {
-		yield* this.backend.getNodesTouchingArea(box);
+	async * getObjectNodesTouchingArea(box) {
+		yield* this.backend.getObjectNodesTouchingArea(box);
 	}
 
 	/** Get all edges attached to the specified node.
@@ -1120,13 +1154,11 @@ class Mapper {
 		return new RenderContext(element, this);
 	}
 
-	async insertNode(point, options) {
-		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null);
+	async insertNode(point, nodeType, options) {
+		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null, nodeType);
 		await nodeRef.setCenter(point);
 		await nodeRef.setType(options.type);
 		await nodeRef.setRadius(options.radius);
-		// TODO: connect nodes
-		//await this.connectNode(nodeRef, this.options);
 		await this.hooks.call("insertNode", nodeRef);
 		return nodeRef;
 	}
@@ -1161,44 +1193,6 @@ class Mapper {
 		for(const nodeRef of nodeRefs) {
 			await nodeRef.unremove();
 			await this.hooks.call("insertNode", nodeRef);
-		}
-	}
-
-	async connectNode(nodeRef, options) {
-		await this.connectNodeToParent(nodeRef);
-		await this.connectNodeToNearbyNodes(nodeRef, options);
-		await this.cleanNodeConnectionsAround(nodeRef, options);
-	}
-
-	async connectNodeToParent(nodeRef) {
-		// TODO: Parents
-		nodeRef;
-	}
-
-	async connectNodeToNearbyNodes(nodeRef, options) {
-		for (const otherNodeRef of await asyncFrom(this.backend.getNearbyNodes(nodeRef, options.blendDistance))) {
-			await this.backend.createEdge(nodeRef.id, otherNodeRef.id);
-		}
-	}
-
-	async cleanNodeConnectionsAround(nodeRef, options) {
-		options;
-
-		const removed = {};
-
-		for (const dirEdgeRef of await asyncFrom(this.backend.getNodeEdges(nodeRef.id))) {
-			if(!removed[dirEdgeRef.id]) {
-				for (const intersectingEdgeRef of await asyncFrom(this.backend.getIntersectingEdges(dirEdgeRef, options.blendDistance))) {
-					if((await dirEdgeRef.getLine()).distanceSquared() < (await intersectingEdgeRef.getLine()).distanceSquared()) {
-						intersectingEdgeRef.remove();
-						removed[intersectingEdgeRef.id] = true;
-					}
-					else {
-						dirEdgeRef.remove();
-						break;
-					}
-				}
-			}
 		}
 	}
 }
