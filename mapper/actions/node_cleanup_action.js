@@ -1,4 +1,4 @@
-import { Action, RemoveAction, SetNodeSpaceAction } from "./index.js";
+import { Action, SetNodeSpaceAction } from "./index.js";
 import { asyncFrom } from "../utils.js";
 import { Vector3 } from "../geometry.js";
 

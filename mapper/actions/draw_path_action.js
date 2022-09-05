@@ -16,89 +16,99 @@ class DrawPathAction extends Action {
 
 		const radius = this.getRadiusOnMap();
 
-		for (const where of this.getPathOnMap().vertices()) {
+		// Draw border nodes at a particular travel rotation.
+		const drawAtAngle = async (where, angle) => {
+			const borderAOffset = new Vector3(Math.cos(angle), -Math.sin(angle), 0).multiplyScalar(radius);
+			const borderBOffset = borderAOffset.multiplyScalar(-1);
+
+			const borderAPoint = where.add(borderAOffset);
+			const borderA = await this.context.mapper.insertNode(borderAPoint, "point", {
+				type: this.options.nodeType,
+				radius: 0,
+				parent: this.options.parent,
+			});
+
+			const borderBPoint = where.add(borderBOffset);
+			const borderB = await this.context.mapper.insertNode(borderBPoint, "point", {
+				type: this.options.nodeType,
+				radius: 0,
+				parent: this.options.parent,
+			});
+
+			return [borderA, borderB];
+		};
+
+		const connectNodes = async (nodesA, nodesB) => {
+			const seen = new Set();
+			for(const a of nodesA) {
+				seen.add(a.id);
+				for(const b of nodesB) {
+					if(!seen.has(b.id)) {
+						await this.context.mapper.backend.createEdge(a.id, b.id);
+					}
+				}
+			}
+		};
+
+		const vertices = Array.from(this.getPathOnMap().vertices());
+
+		for(let i = 0; i < vertices.length; i++) {
+			const where = vertices[i];
 			const wherePixel = this.context.mapPointToCanvas(where);
+
+			const lastState = drawEvent.getLastState();
+			const first = lastState === undefined;
+			const last = drawEvent.done && i === vertices.length - 1;
+
+			const placedForVertex = [];
 
 			// Calculate
 			let dir = Vector3.ZERO;
 			let angle = Math.PI / 2;
 			let ok = true; // OK to add more nodes, or should we wait instead?
-			const lastState = drawEvent.getLastState();
-			if(lastState !== undefined) {
+			if(!first) {
 				// We've drawn something before, let's find out which way the user is drawing.
 				const diff = wherePixel.subtract(lastState.wherePixel);
-				if(diff.lengthSquared() > this.options.radius / 2) {
+				if(diff.length() > this.options.radius / 4) {
 					// The user has drawn enough, let's go!
 					dir = diff.normalize();
 					angle = Math.atan2(-dir.y, dir.x) + Math.PI / 2;
 				}
-				else if(!drawEvent.done) {
+				else if(!last) {
 					// The user hasn't really moved or stopped drawing, let's not do anything until next time.
 					ok = false;
 				}
 			}
 
-			// Draw border nodes at a particular travel rotation.
-			const drawAtAngle = async (angle) => {
-				const borderAOffset = new Vector3(Math.cos(angle), -Math.sin(angle), 0).multiplyScalar(radius);
-				const borderBOffset = borderAOffset.multiplyScalar(-1);
-
-				const borderAPoint = where.add(borderAOffset);
-				const borderA = await this.context.mapper.insertNode(borderAPoint, "point", {
-					type: this.options.nodeType,
-					radius: 0,
-					parent: this.options.parent,
-				});
-
-				const borderBPoint = where.add(borderBOffset);
-				const borderB = await this.context.mapper.insertNode(borderBPoint, "point", {
-					type: this.options.nodeType,
-					radius: 0,
-					parent: this.options.parent,
-				});
-
-				placedNodes.push(borderA, borderB);
-			};
-
-			const connectNodes = async (nodesA, nodesB) => {
-				const seen = new Set();
-				for(const a of nodesA) {
-					seen.add(a.id);
-					for(const b of nodesB) {
-						if(!seen.has(b.id)) {
-							await this.context.mapper.backend.createEdge(a.id, b.id);
-						}
-					}
-				}
-			};
-
 			if(ok) {
-				if(drawEvent.done || lastState === undefined) {
+				if(last || first) {
 					// This is the beginning or end of a stroke, draw all four "sides".
-					await drawAtAngle(0);
-					await drawAtAngle(Math.PI / 2);
+					placedForVertex.push(...(await drawAtAngle(where, 0)));
+					placedForVertex.push(...(await drawAtAngle(where, Math.PI / 2)));
 				}
 				else {
 					// We're in the middle of a stroke, just continue the path.
-					await drawAtAngle(angle);
+					placedForVertex.push(...(await drawAtAngle(where, angle)));
 				}
+
+				placedNodes.push(...placedForVertex);
+
+				// Record drawing event for calculating the full path.
+				drawEvent.pushState({
+					where: where,
+					wherePixel: wherePixel,
+					angle: angle,
+					borders: placedForVertex,
+				});
 			}
 
 			// Connect borders across the drawn area.
-			await connectNodes(placedNodes, placedNodes);
+			await connectNodes(placedForVertex, placedForVertex);
 
 			// Connect edges to the last drawn position.
 			if(lastState !== undefined) {
-				await connectNodes(placedNodes, lastState.borders);
+				await connectNodes(placedForVertex, lastState.borders);
 			}
-
-			// Record drawing event for calculating the full path.
-			drawEvent.pushState({
-				where: where,
-				wherePixel: wherePixel,
-				angle: angle,
-				borders: placedNodes,
-			});
 		}
 
 		for(const nodeRef of placedNodes) {
