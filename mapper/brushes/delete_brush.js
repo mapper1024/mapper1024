@@ -20,35 +20,25 @@ class DeleteBrush extends Brush {
 
 	async * getNodesInBrush(brushPosition) {
 		for await (const nodeRef of this.context.drawnNodes()) {
-			if(this.context.mapPointToCanvas((await nodeRef.getCenter())).subtract(brushPosition).length() <= this.getRadius() && await nodeRef.getPNumber("radius") > 0) {
+			if(this.context.mapPointToCanvas((await nodeRef.getEffectiveCenter())).subtract(brushPosition).length() <= this.getRadius() && !(await nodeRef.hasChildren())) {
 				yield nodeRef;
 			}
 		}
 	}
 
 	async draw(context, position) {
-		if(this.context.isKeyDown("Control") || this.sizeRecentlyChanged()) {
-			await this.drawAsCircle(context, position);
-		}
+		await this.drawAsCircle(context, position);
 	}
 
 	async triggerAtPosition(brushPosition) {
 		let toRemove;
 
-		if(this.context.isKeyDown("Control")) {
-			toRemove = await asyncFrom(this.getNodesInBrush(brushPosition));
+		if(this.context.isKeyDown("Shift")) {
+			const selection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
+			toRemove = Array.from(selection.getOrigins());
 		}
 		else {
-			let selection;
-
-			if(this.context.isKeyDown("Shift")) {
-				selection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
-			}
-			else {
-				selection = this.context.hoverSelection;
-			}
-
-			toRemove = Array.from(selection.getOrigins());
+			toRemove = await asyncFrom(this.getNodesInBrush(brushPosition));
 		}
 
 		return new RemoveAction(this.context, {nodeRefs: toRemove});

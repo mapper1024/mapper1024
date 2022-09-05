@@ -127,13 +127,13 @@ class RenderContext {
 			this.requestRedraw();
 		});
 
-		this.canvas.addEventListener("mousemove", (event) => {
+		this.canvas.addEventListener("mousemove", async (event) => {
 			this.oldMousePosition = this.mousePosition;
 			this.mousePosition = new Vector3(event.x, event.y, 0);
 
 			for(const button in this.mouseDragEvents) {
 				const mouseDragEvent = this.mouseDragEvents[button];
-				mouseDragEvent.next(this.mousePosition);
+				await mouseDragEvent.next(this.mousePosition);
 			}
 
 			this.requestRecheckSelection();
@@ -732,9 +732,7 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const inSelection = this.selection.hasNodeRef(nodeRef);
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
-			const sibling = this.hoverSelection.nodeRefIsSibling(nodeRef) || this.selection.nodeRefIsSibling(nodeRef);
-			const notSibling = (inSelection && !this.selection.nodeRefIsSibling(nodeRef)) || (inHoverSelection && !this.hoverSelection.nodeRefIsSibling(nodeRef));
-			const alpha = (sibling && !notSibling) ? 0.25 : 0.75;
+			const alpha = 0.75;
 
 			if(inSelection || inHoverSelection) {
 				const nodeTiles = this.nodeIdToTiles[nodeRef.id];
@@ -896,11 +894,11 @@ class RenderContext {
 		}
 		else if(this.brush instanceof SelectBrush) {
 			infoLine("Click to select, drag to move.");
-			infoLine("Hold Shift to select an entire object, hold Control to add to an existing selection.");
+			infoLine("Hold Control to add to an existing selection.");
 		}
 		else if(this.brush instanceof DeleteBrush) {
-			infoLine("Click to delete. Hold Shift to delete an entire object.");
-			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
+			infoLine("Click to delete an area. Hold Shift to delete an entire object.");
+			infoLine("Hold W while scrolling to change brush size.");
 		}
 		infoLine("Right click or arrow keys to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
 
@@ -1183,10 +1181,24 @@ class Mapper {
 		}
 
 		const nodeRefsWithChildren = Array.from(nodeIds, (nodeId) => this.backend.getNodeRef(nodeId));
+		const parentNodeIds = new Set();
 
 		await this.hooks.call("removeNodes", nodeRefsWithChildren);
+
 		for(const nodeRef of nodeRefsWithChildren) {
+			const parent = await nodeRef.getParent();
+			if(parent && !nodeIds.has(parent.id)) {
+				parentNodeIds.add(parent.id);
+			}
 			await nodeRef.remove();
+		}
+
+		for(const nodeId of parentNodeIds) {
+			const nodeRef = this.backend.getNodeRef(nodeId);
+			if(!(await nodeRef.hasChildren())) {
+				await nodeRef.remove();
+				nodeRefsWithChildren.push(nodeRef);
+			}
 		}
 
 		return nodeRefsWithChildren;
