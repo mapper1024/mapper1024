@@ -416,13 +416,11 @@ class RenderContext {
 		let closestNodeRef = null;
 		let closestDistanceSquared = null;
 		for await (const nodeRef of this.drawnNodes()) {
-			if(!(await nodeRef.hasChildren())) {
-				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
-				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
-					closestNodeRef = nodeRef;
-					closestDistanceSquared = distanceSquared;
-				}
+			const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
+			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
+			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
+				closestNodeRef = nodeRef;
+				closestDistanceSquared = distanceSquared;
 			}
 		}
 		return closestNodeRef;
@@ -1132,14 +1130,6 @@ class Mapper {
 
 	hasUnsavedChanges() {
 		return this.unsavedChanges;
-	}
-
-	/** Get all nodes inside a specified spatial box.
-	 * @param box {Box3}
-	 * @returns {AsyncIterable.<NodeRef>}
-	 */
-	async * getNodesInArea(box) {
-		yield* this.backend.getNodesInArea(box);
 	}
 
 	/** Get all nodes in or near a spatial box (according to their radii).
