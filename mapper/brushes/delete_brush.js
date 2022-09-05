@@ -62,8 +62,8 @@ class DeleteBrush extends Brush {
 		return new BulkAction(this.context, {actions: actions});
 	}
 
-	async trigger(path) {
-		const action = await this.triggerOnPath(path);
+	async trigger(drawEvent) {
+		const action = await this.triggerOnPath(drawEvent.path.asMostRecent());
 		const undoAction = await this.context.performAction(action);
 		return undoAction;
 	}
