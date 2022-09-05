@@ -416,11 +416,13 @@ class RenderContext {
 		let closestNodeRef = null;
 		let closestDistanceSquared = null;
 		for await (const nodeRef of this.drawnNodes()) {
-			const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
-			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
-				closestNodeRef = nodeRef;
-				closestDistanceSquared = distanceSquared;
+			if(!(await nodeRef.hasChildren())) {
+				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
+				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
+				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
+					closestNodeRef = nodeRef;
+					closestDistanceSquared = distanceSquared;
+				}
 			}
 		}
 		return closestNodeRef;
@@ -629,6 +631,10 @@ class RenderContext {
 				const nodeRef = this.mapper.backend.getNodeRef(nodeId);
 
 				this.drawnNodeIds.add(nodeId);
+
+				if(await nodeRef.hasChildren()) {
+					continue;
+				}
 
 				if(this.nodeIdToTiles[nodeRef.id] === undefined) {
 					this.nodeIdToTiles[nodeRef.id] = {};
@@ -1168,6 +1174,7 @@ class Mapper {
 		const nodeRefs = await asyncFrom(originNodeRef.getSelfAndAllDescendants());
 		for(const nodeRef of nodeRefs) {
 			await nodeRef.setCenter((await nodeRef.getCenter()).add(offset));
+			await nodeRef.setEffectiveCenter((await nodeRef.getEffectiveCenter()).add(offset));
 		}
 		await this.hooks.call("translateNodes", nodeRefs);
 	}
