@@ -3,7 +3,7 @@ import { Vector3 } from "../geometry.js";
 
 class DrawPathAction extends Action {
 	getPathOnMap() {
-		return this.context.canvasPathToMap(this.options.path).asMostRecent().withBisectedLines(this.getRadiusOnMap());
+		return this.context.canvasPathToMap(this.options.path.asMostRecent()).withBisectedLines(this.getRadiusOnMap());
 	}
 
 	getRadiusOnMap() {
@@ -69,7 +69,7 @@ class DrawPathAction extends Action {
 			if(!first) {
 				// We've drawn something before, let's find out which way the user is drawing.
 				const diff = wherePixel.subtract(lastState.wherePixel);
-				if(diff.length() > this.options.radius / 4) {
+				if(diff.length() > this.options.radius / 2) {
 					// The user has drawn enough, let's go!
 					dir = diff.normalize();
 					angle = Math.atan2(-dir.y, dir.x) + Math.PI / 2;
