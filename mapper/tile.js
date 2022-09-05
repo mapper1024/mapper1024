@@ -46,7 +46,7 @@ class Tile {
 	}
 
 	async addNode(nodeRef) {
-		const nodeCenter = (await nodeRef.getCenter()).map((a) => this.context.unitsToPixels(a));
+		const nodeCenter = (await nodeRef.getEffectiveCenter()).map((a) => this.context.unitsToPixels(a));
 		const distance = nodeCenter.subtract(this.getCenter()).length();
 		const nodeRadiusInUnits = await nodeRef.getRadius();
 		const nodeRadiusInPixels = this.context.unitsToPixels(nodeRadiusInUnits);

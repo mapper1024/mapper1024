@@ -142,6 +142,17 @@ class NodeRef extends EntityRef {
 		}
 	}
 
+	async * getNeighbors() {
+		for await (const dirEdgeRef of this.getEdges()) {
+			yield dirEdgeRef.getDirOtherNode();
+		}
+	}
+
+	async * getSelfAndNeighbors() {
+		yield this;
+		yield* this.getNeighbors();
+	}
+
 	/** Set the "center" property of this node.
 	 * @param v {Vector3}
 	 */
@@ -154,6 +165,14 @@ class NodeRef extends EntityRef {
 	 */
 	async getCenter() {
 		return this.getPVector3("center");
+	}
+
+	async setEffectiveCenter(v) {
+		return this.setPVector3("eCenter", v);
+	}
+
+	async getEffectiveCenter() {
+		return this.getPVector3("eCenter");
 	}
 
 	async setType(type) {

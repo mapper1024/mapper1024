@@ -636,7 +636,7 @@ class RenderContext {
 
 				const nodeIdToTiles = this.nodeIdToTiles[nodeRef.id];
 
-				const center = (await nodeRef.getCenter()).map((a) => this.unitsToPixels(a));
+				const center = (await nodeRef.getEffectiveCenter()).map((a) => this.unitsToPixels(a));
 				const centerTile = center.divideScalar(Tile.SIZE).round();
 				const radius = this.unitsToPixels(await nodeRef.getRadius());
 				if(radius >= Tile.SIZE / 8) {
@@ -916,27 +916,37 @@ class RenderContext {
 	async drawDebug() {
 		const c = this.canvas.getContext("2d");
 
-		const drawnEdge = new Set();
+		const drawn = new Set();
 
 		const drawNodePoint = async (nodeRef) => {
-			const position = this.mapPointToCanvas(await nodeRef.getCenter());
-			c.beginPath();
-			c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
-			c.strokeStyle = "white";
-			c.stroke();
+			if(!drawn.has(nodeRef.id)) {
+				drawn.add(nodeRef.id);
+				const position = this.mapPointToCanvas(await nodeRef.getCenter());
+				c.beginPath();
+				c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
+				c.strokeStyle = "white";
+				c.stroke();
 
-			// Draw edges.
-			for await (const dirEdgeRef of nodeRef.getEdges()) {
-				if(!drawnEdge.has(dirEdgeRef.id)) {
-					drawnEdge.add(dirEdgeRef.id);
-					const otherNodeRef = await dirEdgeRef.getDirOtherNode();
-					const otherPosition = this.mapPointToCanvas(await otherNodeRef.getCenter());
-					c.strokeStyle = "white";
-					c.beginPath();
-					c.moveTo(position.x, position.y);
-					c.lineTo(otherPosition.x, otherPosition.y);
-					c.stroke();
+				// Draw edges.
+				for await (const dirEdgeRef of nodeRef.getEdges()) {
+					if(!drawn.has(dirEdgeRef.id)) {
+						drawn.add(dirEdgeRef.id);
+						const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+						const otherPosition = this.mapPointToCanvas(await otherNodeRef.getCenter());
+						c.strokeStyle = "white";
+						c.beginPath();
+						c.moveTo(position.x, position.y);
+						c.lineTo(otherPosition.x, otherPosition.y);
+						c.stroke();
+					}
 				}
+
+				// Draw effective bounding radius.
+				const effectivePosition = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
+				c.beginPath();
+				c.arc(effectivePosition.x, effectivePosition.y, this.unitsToPixels(await nodeRef.getRadius()), 0, 2 * Math.PI, false);
+				c.strokeStyle = "gray";
+				c.stroke();
 			}
 		};
 
@@ -1028,7 +1038,7 @@ class RenderContext {
 
 	async * visibleNodes() {
 		const screenBox = this.screenBox();
-		yield* this.mapper.getObjectNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
+		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
 	}
 
 	async * drawnNodes() {
@@ -1126,16 +1136,16 @@ class Mapper {
 	 * @param box {Box3}
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	async * getObjectNodesInArea(box) {
-		yield* this.backend.getObjectNodesInArea(box);
+	async * getNodesInArea(box) {
+		yield* this.backend.getNodesInArea(box);
 	}
 
 	/** Get all nodes in or near a spatial box (according to their radii).
 	 * @param box {Box3}
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	async * getObjectNodesTouchingArea(box) {
-		yield* this.backend.getObjectNodesTouchingArea(box);
+	async * getNodesTouchingArea(box) {
+		yield* this.backend.getNodesTouchingArea(box);
 	}
 
 	/** Get all edges attached to the specified node.
@@ -1157,6 +1167,7 @@ class Mapper {
 	async insertNode(point, nodeType, options) {
 		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null, nodeType);
 		await nodeRef.setCenter(point);
+		await nodeRef.setEffectiveCenter(point);
 		await nodeRef.setType(options.type);
 		await nodeRef.setRadius(options.radius);
 		await this.hooks.call("insertNode", nodeRef);
