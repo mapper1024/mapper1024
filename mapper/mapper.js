@@ -416,11 +416,13 @@ class RenderContext {
 		let closestNodeRef = null;
 		let closestDistanceSquared = null;
 		for await (const nodeRef of this.drawnNodes()) {
-			const center = this.mapPointToCanvas(await nodeRef.getCenter());
-			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
-				closestNodeRef = nodeRef;
-				closestDistanceSquared = distanceSquared;
+			if(!(await nodeRef.hasChildren())) {
+				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
+				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
+				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
+					closestNodeRef = nodeRef;
+					closestDistanceSquared = distanceSquared;
+				}
 			}
 		}
 		return closestNodeRef;
