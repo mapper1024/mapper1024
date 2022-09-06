@@ -393,7 +393,7 @@ class RenderContext {
 	async recalculateSelection() {
 		if(this.wantRecheckSelection) {
 			this.wantRecheckSelection = false;
-			const closestNodeRef = await this.getClosestNodeRef(this.mousePosition);
+			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition);
 			if(closestNodeRef) {
 				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
@@ -422,36 +422,17 @@ class RenderContext {
 		return 0;
 	}
 
-	async getClosestNodeRef(canvasPosition) {
-		let closestNodeRef = null;
-		let closestDistanceSquared = null;
-		for await (const nodeRef of this.drawnNodes()) {
-			if(!(await nodeRef.hasChildren())) {
-				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
-				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
-					closestNodeRef = nodeRef;
-					closestDistanceSquared = distanceSquared;
-				}
+	async getDrawnNodeAtCanvasPoint(point) {
+		const tilePosition = point.add(this.scrollOffset).map((c) => Math.floor(c / Tile.SIZE));
+		const tX = this.tiles[tilePosition.x];
+		if(tX) {
+			const tile = tX[tilePosition.y];
+			if(tile) {
+				return tile.closestNodeRef;
 			}
 		}
-		return closestNodeRef;
-	}
 
-	async getClosestNodeRefFilter(canvasPosition, filter) {
-		let closestNodeRef = null;
-		let closestDistanceSquared = null;
-		for await (const nodeRef of this.drawnNodes()) {
-			if(!(await nodeRef.hasChildren()) && await filter(nodeRef)) {
-				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
-				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
-					closestNodeRef = nodeRef;
-					closestDistanceSquared = distanceSquared;
-				}
-			}
-		}
-		return closestNodeRef;
+		return null;
 	}
 
 	async recalculateLoop() {
