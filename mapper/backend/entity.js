@@ -89,6 +89,8 @@ class NodeRef extends EntityRef {
 
 	/** Called when the node is created. */
 	async create() {
+		this.cache.edges = [];
+		this.cache.neighbors = [];
 		await this.clearParentCache();
 	}
 
@@ -241,7 +243,24 @@ class NodeRef extends EntityRef {
 class EdgeRef extends EntityRef {
 	/** Called when the node is created. */
 	async create() {
-		await this.clearNeighborCache();
+		await this.addToNeighborCache();
+	}
+
+	async addToNeighborCache() {
+		const nodes = await asyncFrom(this.getNodes());
+		for(let i = 0; i < nodes.length; i++) {
+			const nodeRef = nodes[i];
+
+			const edges = nodeRef.cache.edges;
+			if(edges) {
+				edges.push(this.backend.getDirEdgeRef(this.id, nodeRef.id));
+			}
+
+			const neighbors = nodeRef.cache.neighbors;
+			if(neighbors) {
+				neighbors.push(nodes[(i + 1) % 2]);
+			}
+		}
 	}
 
 	async clearNeighborCache() {
