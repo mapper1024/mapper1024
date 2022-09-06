@@ -9,9 +9,11 @@ class NodeCleanupAction extends Action {
 		const vertices = await asyncFrom(this.getAllVertices());
 
 		let sum = Vector3.ZERO;
+		let count = 0;
 
 		for(const vertex of vertices) {
 			if(!toRemove.has(vertex.nodeRef.id)) {
+				++count;
 				sum = sum.add(vertex.point);
 				for(const otherVertex of vertices) {
 					if(otherVertex.nodeRef.id !== vertex.nodeRef.id && otherVertex.point.subtract(vertex.point).length() < (vertex.radius + otherVertex.radius) / 4) {
@@ -24,8 +26,8 @@ class NodeCleanupAction extends Action {
 
 		let center = Vector3.ZERO;
 
-		if(vertices.length > 0) {
-			center = sum.divideScalar(vertices.length);
+		if(count > 0) {
+			center = sum.divideScalar(count);
 		}
 
 		let furthest = center;
@@ -52,7 +54,7 @@ class NodeCleanupAction extends Action {
 
 		const undoNodeAction = await this.context.performAction(new BulkAction(this.context, {actions: [
 			new RemoveAction(this.context, {nodeRefs: [...toRemove].map((id) => this.context.mapper.backend.getNodeRef(id))}),
-			new SetNodeSpaceAction(this.context, {nodeRef: this.options.nodeRef, center: center, radius: furthest.subtract(center).length()}),
+			new SetNodeSpaceAction(this.context, {nodeRef: this.options.nodeRef, center: center, effectiveCenter: center, radius: furthest.subtract(center).length()}),
 		]}), false);
 
 		return new BulkAction(this.context, {actions: [undoNodeAction, new RemoveEdgeAction(this.context, {edgeRefs: newEdges})]});
