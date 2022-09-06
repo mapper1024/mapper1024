@@ -92,10 +92,12 @@ class MapBackend {
 
 	/** Creates a new "node" entity.
 	 * @param parentId {number|undefined} ID of the parent node, or undefined if the node has no parent.
+	 * @param nodeType {string} Type of the node. "object" or "point".
 	 * @returns {NodeRef}
 	 */
-	async createNode(parentId) {
+	async createNode(parentId, nodeType) {
 		parentId;
+		nodeType;
 		throw "createNode not implemented";
 	}
 
@@ -121,6 +123,14 @@ class MapBackend {
 	 */
 	async nodeHasChildren(nodeId) {
 		return (await asyncFrom(this.getNodeChildren(nodeId))).length > 0;
+	}
+
+	/** Get a node's type.
+	 * @returns {string}
+	 */
+	async getNodeType(nodeId) {
+		nodeId;
+		throw "getNodeType not implemented";
 	}
 
 	/** Create a new edge between two nodes.

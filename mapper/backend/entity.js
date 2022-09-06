@@ -99,6 +99,17 @@ class NodeRef extends EntityRef {
 		}
 	}
 
+	/** Get the base type of this node. See backend getNodeType().
+	 * @returns {string}
+	 */
+	async getNodeType() {
+		let type = this.cache.type;
+		if(type === undefined) {
+			type = this.cache.type = await this.backend.getNodeType(this.id);
+		}
+		return type;
+	}
+
 	/** Get the parent node of this node, if it exists.
 	 * @returns {NodeRef|null} The parent node, or null if there is no parent.
 	 */
