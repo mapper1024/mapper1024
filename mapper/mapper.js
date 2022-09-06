@@ -1217,6 +1217,24 @@ class Mapper {
 			await this.hooks.call("insertNode", nodeRef);
 		}
 	}
+
+	async removeEdges(edgeRefs) {
+		for(const edgeRef of edgeRefs) {
+			for await (const nodeRef of edgeRef.getNodes()) {
+				await this.hooks.call("updateNode", nodeRef);
+			}
+			await edgeRef.remove();
+		}
+	}
+
+	async unremoveEdges(edgeRefs) {
+		for(const edgeRef of edgeRefs) {
+			await edgeRef.unremove();
+			for await (const nodeRef of edgeRef.getNodes()) {
+				await this.hooks.call("updateNode", nodeRef);
+			}
+		}
+	}
 }
 
 export { Mapper };
