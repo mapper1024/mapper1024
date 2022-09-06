@@ -33,6 +33,21 @@ class MapBackend {
 		return cache;
 	}
 
+	/** Get the database version number. Implementation defined.
+	 * @returns {number}
+	 */
+	getVersionNumber() {
+		throw "getVersionNumber not defined";
+	}
+
+	/** Get the latest backend version number. Implementation defined. Must be greater than zero.
+	 * @returns {number}
+	 */
+	getBackendVersionNumber() {
+		throw "getBackendVersionNumber not defined";
+
+	}
+
 	/** Get a number property on an entity.
 	 * Has a default implementation based on string properties.
 	 * @returns {number}

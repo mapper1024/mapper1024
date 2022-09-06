@@ -56,6 +56,24 @@ class SqlJsMapBackend extends MapBackend {
 			this.db = new Database();
 		}
 
+		this.s_getVersionNumber = this.db.prepare("PRAGMA user_version");
+
+		let gotVersion = this.getVersionNumber();
+		const wantVersion = this.getBackendVersionNumber();
+
+		// No version yet, let's see if there are any tables or else this is a fresh DB.
+		if(gotVersion === 0) {
+			if(this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entity'").get({}).length === 0) {
+				this.db.run("PRAGMA user_version = " + wantVersion);
+			}
+		}
+
+		gotVersion = this.getVersionNumber();
+
+		if(gotVersion !== wantVersion) {
+			throw new Error("version number does not match (got " + gotVersion + ", wanted " + wantVersion + ")");
+		}
+
 		this.db.run("PRAGMA foreign_keys = ON");
 		this.db.run("PRAGMA recursive_triggers = ON");
 
@@ -163,6 +181,15 @@ class SqlJsMapBackend extends MapBackend {
 
 		this.loaded = true;
 		await this.hooks.call("loaded");
+	}
+
+	getBackendVersionNumber() {
+		return 2;
+	}
+
+	getVersionNumber() {
+		const row = this.s_getVersionNumber.get({});
+		return row[0];
 	}
 
 	async getData() {

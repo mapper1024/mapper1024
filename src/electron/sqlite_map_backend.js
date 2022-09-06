@@ -40,6 +40,24 @@ class SQLiteMapBackend extends MapBackend {
 			db.close();
 		}
 
+		this.s_getVersionNumber = this.db.prepare("PRAGMA user_version");
+
+		let gotVersion = this.getVersionNumber();
+		const wantVersion = this.getBackendVersionNumber();
+
+		// No version yet, let's see if there are any tables or else this is a fresh DB.
+		if(gotVersion === 0) {
+			if(this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entity'").get() === undefined) {
+				this.db.pragma("user_version = " + wantVersion);
+			}
+		}
+
+		gotVersion = this.getVersionNumber();
+
+		if(gotVersion !== wantVersion) {
+			throw new Error("version number does not match (got " + gotVersion + ", wanted " + wantVersion + ")");
+		}
+
 		// We use foreign keys and recursive triggers to delete child nodes and edges.
 		this.db.pragma("foreign_keys = ON");
 		this.db.pragma("recursive_triggers = ON");
@@ -140,6 +158,15 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.loaded = true;
 		await this.hooks.call("loaded");
+	}
+
+	getBackendVersionNumber() {
+		return 2;
+	}
+
+	getVersionNumber() {
+		const row = this.s_getVersionNumber.get();
+		return row.user_version;
 	}
 
 	async flush() {

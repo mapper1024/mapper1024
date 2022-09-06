@@ -3,6 +3,11 @@ const _require = require("esm")(module);
 const { Vector3, asyncFrom } = _require("../mapper/index.js");
 
 export function testGenericBackend() {
+	it("should have a version number", function() {
+		expect(this.backend.getBackendVersionNumber()).to.be.above(0);
+		expect(this.backend.getVersionNumber()).to.equal(this.backend.getBackendVersionNumber());
+	});
+
 	describe("properties", function() {
 		const string = "the test string";
 		const number = 0xCAFF00D;
