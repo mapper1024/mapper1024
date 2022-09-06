@@ -262,10 +262,12 @@ class MapBackend {
 
 	/** Get all nodes in or near a spatial box (according to their radii).
 	 * @param box {Box3} The box to find nodes within or near.
+	 * @param minRadius {number} The minimum radius of nodes to return.
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	getNodesTouchingArea(box) {
+	getNodesTouchingArea(box, minRadius) {
 		box;
+		minRadius;
 		throw "getNodesTouchingArea not implemented";
 	}
 

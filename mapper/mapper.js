@@ -1049,7 +1049,7 @@ class RenderContext {
 
 	async * visibleNodes() {
 		const screenBox = this.screenBox();
-		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
+		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)), this.pixelsToUnits(1));
 	}
 
 	async * drawnNodes() {
@@ -1145,10 +1145,11 @@ class Mapper {
 
 	/** Get all nodes in or near a spatial box (according to their radii).
 	 * @param box {Box3}
+	 * @param minRadius {number}
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	async * getNodesTouchingArea(box) {
-		yield* this.backend.getNodesTouchingArea(box);
+	async * getNodesTouchingArea(box, minRadius) {
+		yield* this.backend.getNodesTouchingArea(box, minRadius);
 	}
 
 	/** Get all edges attached to the specified node.
