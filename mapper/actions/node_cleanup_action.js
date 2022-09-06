@@ -43,8 +43,7 @@ class NodeCleanupAction extends Action {
 
 		for(const mergePair of mergePairs) {
 			const target = mergePair[0];
-			for(const dirEdgeRef of await(asyncFrom(mergePair[1].getEdges()))) {
-				const neighbor = await dirEdgeRef.getDirOtherNode();
+			for(const neighbor of await(asyncFrom(mergePair[1].getNeighbors()))) {
 				if(target.id !== neighbor.id && !(await this.context.mapper.backend.getEdgeBetween(target.id, neighbor.id))) {
 					const edgeRef = await this.context.mapper.backend.createEdge(target.id, neighbor.id);
 					newEdges.push(edgeRef);

@@ -639,7 +639,7 @@ class RenderContext {
 
 				this.drawnNodeIds.add(nodeId);
 
-				if(await nodeRef.hasChildren()) {
+				if(await nodeRef.getNodeType() !== "point") {
 					continue;
 				}
 
