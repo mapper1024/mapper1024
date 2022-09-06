@@ -230,9 +230,9 @@ class NodeRef extends EntityRef {
 	}
 
 	async unremove() {
+		super.unremove();
 		await this.clearParentCache();
 		await this.clearNeighborCache();
-		return super.unremove();
 	}
 }
 
@@ -280,8 +280,8 @@ class EdgeRef extends EntityRef {
 	}
 
 	async unremove() {
+		super.unremove();
 		await this.clearNeighborCache();
-		return super.unremove();
 	}
 }
 
