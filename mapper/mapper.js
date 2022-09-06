@@ -63,6 +63,8 @@ class RenderContext {
 		this.zoom = 5;
 		this.requestedZoom = 5;
 
+		this.altitudeIncrement = this.mapper.metersToUnits(100);
+
 		this.brushes = {
 			add: new AddBrush(this),
 			select: new SelectBrush(this),
@@ -412,11 +414,35 @@ class RenderContext {
 		}
 	}
 
+	async getCursorAltitude() {
+		for (const origin of this.hoverSelection.getOrigins()) {
+			return (await origin.getCenter()).z;
+		}
+
+		return 0;
+	}
+
 	async getClosestNodeRef(canvasPosition) {
 		let closestNodeRef = null;
 		let closestDistanceSquared = null;
 		for await (const nodeRef of this.drawnNodes()) {
 			if(!(await nodeRef.hasChildren())) {
+				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
+				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
+				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
+					closestNodeRef = nodeRef;
+					closestDistanceSquared = distanceSquared;
+				}
+			}
+		}
+		return closestNodeRef;
+	}
+
+	async getClosestNodeRefFilter(canvasPosition, filter) {
+		let closestNodeRef = null;
+		let closestDistanceSquared = null;
+		for await (const nodeRef of this.drawnNodes()) {
+			if(!(await nodeRef.hasChildren()) && await filter(nodeRef)) {
 				const center = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
 				const distanceSquared = center.subtract(canvasPosition).lengthSquared();
 				if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {

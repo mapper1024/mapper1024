@@ -16,19 +16,35 @@ class DrawPathAction extends Action {
 
 		const radius = this.getRadiusOnMap();
 
+		const getAltitudeAdd = async (point) => {
+			const closestNodeRef = await this.context.getClosestNodeRefFilter(this.context.mapPointToCanvas(point), async (nodeRef) => {
+				return !(await nodeRef.getParent()) || (await nodeRef.getParent().id !== this.options.parent.id);
+			});
+			if(closestNodeRef) {
+				return (await closestNodeRef.getCenter()).z + this.context.altitudeIncrement;
+			}
+			else {
+				return 0;
+			}
+		};
+
 		// Draw border nodes at a particular travel rotation.
 		const drawAtAngle = async (where, angle) => {
 			const borderAOffset = new Vector3(Math.cos(angle), -Math.sin(angle), 0).multiplyScalar(radius);
 			const borderBOffset = borderAOffset.multiplyScalar(-1);
 
-			const borderAPoint = where.add(borderAOffset);
+			let borderAPoint = where.add(borderAOffset);
+			borderAPoint = borderAPoint.add(new Vector3(0, 0, await getAltitudeAdd(borderAPoint)));
+
+			let borderBPoint = where.add(borderBOffset);
+			borderBPoint = borderBPoint.add(new Vector3(0, 0, await getAltitudeAdd(borderBPoint)));
+
 			const borderA = await this.context.mapper.insertNode(borderAPoint, "point", {
 				type: this.options.nodeType,
 				radius: 0,
 				parent: this.options.parent,
 			});
 
-			const borderBPoint = where.add(borderBOffset);
 			const borderB = await this.context.mapper.insertNode(borderBPoint, "point", {
 				type: this.options.nodeType,
 				radius: 0,

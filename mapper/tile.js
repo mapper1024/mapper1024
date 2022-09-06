@@ -26,6 +26,7 @@ class Tile {
 		this.closestNodeType = null;
 		this.closestNodeDistance = Infinity;
 		this.closestNodeRadiusInUnits = Infinity;
+		this.closestNodeAltitude = -Infinity;
 		this.closestNodeIsOverpowering = false;
 	}
 
@@ -46,17 +47,19 @@ class Tile {
 	}
 
 	async addNode(nodeRef) {
-		const nodeCenter = (await nodeRef.getEffectiveCenter()).map((a) => this.context.unitsToPixels(a));
-		const distance = nodeCenter.subtract(this.getCenter()).length();
+		const nodeCenterInUnits = await nodeRef.getEffectiveCenter();
+		const nodeCenterInPixels = nodeCenterInUnits.map((a) => this.context.unitsToPixels(a));
+		const distance = nodeCenterInPixels.subtract(this.getCenter()).length();
 		const nodeRadiusInUnits = await nodeRef.getRadius();
 		const nodeRadiusInPixels = this.context.unitsToPixels(nodeRadiusInUnits);
 		if(distance <= nodeRadiusInPixels + Tile.SIZE / 2 && nodeRadiusInPixels >= Tile.SIZE / 8) {
 			this.nearbyNodes.set(nodeRef.id, nodeRef);
 			this.megaTile.addNode(nodeRef.id);
 
-			if(distance < this.closestNodeDistance && nodeRadiusInUnits <= this.closestNodeRadiusInUnits) {
+			if(distance < this.closestNodeDistance && (nodeCenterInUnits.z > this.closestNodeAltitude || (nodeCenterInUnits.z === this.closestNodeAltitude && nodeRadiusInUnits <= this.closestNodeRadiusInUnits))) {
 				this.closestNodeRef = nodeRef;
 				this.closestNodeRadiusInUnits = nodeRadiusInUnits;
+				this.closestNodeAltitude = nodeCenterInUnits.z;
 				this.closestNodeType = await nodeRef.getType();
 				this.closestNodeIsOverpowering = distance < nodeRadiusInPixels - Tile.SIZE / 2;
 			}
