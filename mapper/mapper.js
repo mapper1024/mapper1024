@@ -63,7 +63,7 @@ class RenderContext {
 		this.zoom = 5;
 		this.requestedZoom = 5;
 
-		this.altitudeIncrement = this.mapper.metersToUnits(100);
+		this.altitudeIncrement = this.mapper.metersToUnits(5);
 
 		this.brushes = {
 			add: new AddBrush(this),
