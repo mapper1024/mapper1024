@@ -238,7 +238,9 @@ class SqlJsMapBackend extends MapBackend {
 	}
 
 	async createEdge(nodeAId, nodeBId) {
-		return this.getEdgeRef(this.baseCreateEdge(nodeAId, nodeBId));
+		const edgeRef = this.getEdgeRef(this.baseCreateEdge(nodeAId, nodeBId));
+		await edgeRef.create();
+		return edgeRef;
 	}
 
 	async getNodeType(nodeId) {

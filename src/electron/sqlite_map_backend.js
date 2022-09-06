@@ -220,7 +220,9 @@ class SQLiteMapBackend extends MapBackend {
 	}
 
 	async createEdge(nodeAId, nodeBId) {
-		return this.getEdgeRef(this.baseCreateEdge(nodeAId, nodeBId));
+		const edgeRef = this.getEdgeRef(this.baseCreateEdge(nodeAId, nodeBId));
+		await edgeRef.create();
+		return edgeRef;
 	}
 
 	async getNodeParent(nodeId) {

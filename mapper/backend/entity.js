@@ -99,6 +99,13 @@ class NodeRef extends EntityRef {
 		}
 	}
 
+	async clearNeighborCache() {
+		for await (const nodeRef of this.getSelfAndNeighbors()) {
+			delete nodeRef.cache.edges;
+			delete nodeRef.cache.neighbors;
+		}
+	}
+
 	/** Get the base type of this node. See backend getNodeType().
 	 * @returns {string}
 	 */
@@ -130,9 +137,7 @@ class NodeRef extends EntityRef {
 			children = this.cache.children = await asyncFrom(this.backend.getNodeChildren(this.id));
 		}
 
-		for(const child of children) {
-			yield child;
-		}
+		yield* children;
 	}
 
 	async hasChildren() {
@@ -154,9 +159,13 @@ class NodeRef extends EntityRef {
 	}
 
 	async * getNeighbors() {
-		for await (const dirEdgeRef of this.getEdges()) {
-			yield dirEdgeRef.getDirOtherNode();
+		let neighbors = this.cache.neighbors;
+
+		if(neighbors === undefined) {
+			neighbors = this.cache.neighbors = await asyncFrom(this.getEdges(), async (edge) => await edge.getDirOtherNode());
 		}
+
+		yield* neighbors;
 	}
 
 	async * getSelfAndNeighbors() {
@@ -206,17 +215,23 @@ class NodeRef extends EntityRef {
 	 * @returns {AsyncIterable.<DirEdgeRef>} all the edges, with direction information from this node.
 	 */
 	async * getEdges() {
-		yield* this.backend.getNodeEdges(this.id);
+		let edges = this.cache.edges;
+		if(edges === undefined) {
+			edges = this.cache.edges = await asyncFrom(this.backend.getNodeEdges(this.id));
+		}
+		yield* edges;
 	}
 
 	/** Remove this entity from the database. */
 	async remove() {
 		await this.clearParentCache();
+		await this.clearNeighborCache();
 		return this.backend.removeNode(this.id);
 	}
 
 	async unremove() {
 		await this.clearParentCache();
+		await this.clearNeighborCache();
 		return super.unremove();
 	}
 }
@@ -224,6 +239,18 @@ class NodeRef extends EntityRef {
 /** Reference to an edge entity.
  * Do not construct manually, use backend methods. */
 class EdgeRef extends EntityRef {
+	/** Called when the node is created. */
+	async create() {
+		await this.clearNeighborCache();
+	}
+
+	async clearNeighborCache() {
+		for await (const nodeRef of this.getNodes()) {
+			delete nodeRef.cache.edges;
+			delete nodeRef.cache.neighbors;
+		}
+	}
+
 	/** Get the (two) nodes connected to this edge.
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
@@ -248,7 +275,13 @@ class EdgeRef extends EntityRef {
 	}
 
 	async remove() {
+		await this.clearNeighborCache();
 		return this.backend.removeEdge(this.id);
+	}
+
+	async unremove() {
+		await this.clearNeighborCache();
+		return super.unremove();
 	}
 }
 
