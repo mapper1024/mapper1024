@@ -4,6 +4,8 @@ const { testGenericBackend } = _require("./generic_backend.js");
 const { SqlJsMapBackend } = _require("../mapper/index.js");
 
 describe("SqlJsMapBackend", function() {
+	this.timeout(10000);
+
 	beforeEach(async function() {
 		this.backend = new SqlJsMapBackend();
 		await this.backend.load();
@@ -13,10 +15,10 @@ describe("SqlJsMapBackend", function() {
 
 	it("should persist over multiple opens", async function() {
 		await this.backend.global.setPString("some property", "some value");
-		const root = await this.backend.createNode();
+		const root = await this.backend.createNode(null, "test");
 
-		const childA = await this.backend.createNode(root.id);
-		const childB = await this.backend.createNode(root.id);
+		const childA = await this.backend.createNode(root.id, "test");
+		const childB = await this.backend.createNode(root.id, "test");
 
 		const childEdgeAB = await this.backend.createEdge(childA.id, childB.id);
 

@@ -33,6 +33,21 @@ class MapBackend {
 		return cache;
 	}
 
+	/** Get the database version number. Implementation defined.
+	 * @returns {number}
+	 */
+	getVersionNumber() {
+		throw "getVersionNumber not defined";
+	}
+
+	/** Get the latest backend version number. Implementation defined. Must be greater than zero.
+	 * @returns {number}
+	 */
+	getBackendVersionNumber() {
+		throw "getBackendVersionNumber not defined";
+
+	}
+
 	/** Get a number property on an entity.
 	 * Has a default implementation based on string properties.
 	 * @returns {number}
@@ -92,10 +107,12 @@ class MapBackend {
 
 	/** Creates a new "node" entity.
 	 * @param parentId {number|undefined} ID of the parent node, or undefined if the node has no parent.
+	 * @param nodeType {string} Type of the node. "object" or "point".
 	 * @returns {NodeRef}
 	 */
-	async createNode(parentId) {
+	async createNode(parentId, nodeType) {
 		parentId;
+		nodeType;
 		throw "createNode not implemented";
 	}
 
@@ -121,6 +138,14 @@ class MapBackend {
 	 */
 	async nodeHasChildren(nodeId) {
 		return (await asyncFrom(this.getNodeChildren(nodeId))).length > 0;
+	}
+
+	/** Get a node's type.
+	 * @returns {string}
+	 */
+	async getNodeType(nodeId) {
+		nodeId;
+		throw "getNodeType not implemented";
 	}
 
 	/** Create a new edge between two nodes.
@@ -237,10 +262,12 @@ class MapBackend {
 
 	/** Get all nodes in or near a spatial box (according to their radii).
 	 * @param box {Box3} The box to find nodes within or near.
+	 * @param minRadius {number} The minimum radius of nodes to return.
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	getNodesTouchingArea(box) {
+	getNodesTouchingArea(box, minRadius) {
 		box;
+		minRadius;
 		throw "getNodesTouchingArea not implemented";
 	}
 

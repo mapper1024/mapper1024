@@ -31,15 +31,20 @@ async function blankMap() {
 
 /** Load a map into the display.
  * @param backend {MapBackend} the map to load. backend.load() will be called by this method, do not call it prior to passing it.
+ * @param failToBlank {boolean|undefined} If true and this is the first map loaded, an error when loading will just load a blank map after reporting the error.
  */
-async function loadMap(backend) {
+async function loadMap(backend, failToBlank) {
 	try {
 		await backend.load();
 	} catch(error) {
 		await dialog.showErrorBox("Could not load map...", error.message);
-		// If this is the first map we've tried to load, just quit.
+		// If this is the first map we've tried to load, fail out.
 		if(!renderedMap) {
-			app.quit();
+			if(failToBlank) {
+				loadMap(await blankMap());
+			} else {
+				app.quit();
+			}
 		}
 		return;
 	}
@@ -145,9 +150,15 @@ const argv = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
 
 // If there are no arguments, load the sample map. Otherwise, load the map specified on the command line.
 window.addEventListener("DOMContentLoaded", async () => {
-	await loadMap(argv.length === 0 ? await new SQLiteMapBackend((app.isPackaged ? path.dirname(app.getAppPath()) : app.getAppPath()) + "/samples/sample_map.map", {
+	const sampleMap = async () => await new SQLiteMapBackend((app.isPackaged ? path.dirname(app.getAppPath()) : app.getAppPath()) + "/samples/sample_map.map", {
 		readOnly: true,
-	}) : new SQLiteMapBackend(argv[0]));
+	});
+	if(argv.length === 0) {
+		await loadMap(await sampleMap(), true);
+	}
+	else {
+		await loadMap(new SQLiteMapBackend(argv[0]));
+	}
 });
 
 

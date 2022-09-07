@@ -128,12 +128,12 @@ class AddBrush extends Brush {
 		}
 	}
 
-	async trigger(path, mouseDragEvent) {
+	async trigger(drawEvent) {
 		const drawPathActionOptions = {
-			path: path,
+			path: drawEvent.path,
 			radius: this.getRadius(),
 			nodeType: this.getNodeType(),
-			fullCalculation: mouseDragEvent.done,
+			drawEvent: drawEvent,
 			parent: this.parentNode,
 			undoParent: this.undoParent,
 		};
@@ -150,7 +150,7 @@ class AddBrush extends Brush {
 			this.undoParent = false;
 		}
 		else {
-			this.parentNode = await this.context.mapper.insertNode(this.context.canvasPointToMap(where), {
+			this.parentNode = await this.context.mapper.insertNode(this.context.canvasPointToMap(where), "object", {
 				type: this.getNodeType(),
 				radius: 0,
 			});

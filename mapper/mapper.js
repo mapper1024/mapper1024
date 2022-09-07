@@ -63,6 +63,8 @@ class RenderContext {
 		this.zoom = 5;
 		this.requestedZoom = 5;
 
+		this.altitudeIncrement = this.mapper.metersToUnits(5);
+
 		this.brushes = {
 			add: new AddBrush(this),
 			select: new SelectBrush(this),
@@ -127,13 +129,13 @@ class RenderContext {
 			this.requestRedraw();
 		});
 
-		this.canvas.addEventListener("mousemove", (event) => {
+		this.canvas.addEventListener("mousemove", async (event) => {
 			this.oldMousePosition = this.mousePosition;
 			this.mousePosition = new Vector3(event.x, event.y, 0);
 
 			for(const button in this.mouseDragEvents) {
 				const mouseDragEvent = this.mouseDragEvents[button];
-				mouseDragEvent.next(this.mousePosition);
+				await mouseDragEvent.next(this.mousePosition);
 			}
 
 			this.requestRecheckSelection();
@@ -391,7 +393,7 @@ class RenderContext {
 	async recalculateSelection() {
 		if(this.wantRecheckSelection) {
 			this.wantRecheckSelection = false;
-			const closestNodeRef = await this.getClosestNodeRef(this.mousePosition);
+			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition);
 			if(closestNodeRef) {
 				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
@@ -412,18 +414,25 @@ class RenderContext {
 		}
 	}
 
-	async getClosestNodeRef(canvasPosition) {
-		let closestNodeRef = null;
-		let closestDistanceSquared = null;
-		for await (const nodeRef of this.drawnNodes()) {
-			const center = this.mapPointToCanvas(await nodeRef.getCenter());
-			const distanceSquared = center.subtract(canvasPosition).lengthSquared();
-			if((!closestDistanceSquared || distanceSquared <= closestDistanceSquared) && distanceSquared < this.unitsToPixels(await nodeRef.getRadius()) ** 2) {
-				closestNodeRef = nodeRef;
-				closestDistanceSquared = distanceSquared;
+	async getCursorAltitude() {
+		for (const origin of this.hoverSelection.getOrigins()) {
+			return (await origin.getCenter()).z;
+		}
+
+		return 0;
+	}
+
+	async getDrawnNodeAtCanvasPoint(point) {
+		const tilePosition = point.add(this.scrollOffset).map((c) => Math.floor(c / Tile.SIZE));
+		const tX = this.tiles[tilePosition.x];
+		if(tX) {
+			const tile = tX[tilePosition.y];
+			if(tile) {
+				return tile.closestNodeRef;
 			}
 		}
-		return closestNodeRef;
+
+		return null;
 	}
 
 	async recalculateLoop() {
@@ -630,13 +639,17 @@ class RenderContext {
 
 				this.drawnNodeIds.add(nodeId);
 
+				if(await nodeRef.getNodeType() !== "point") {
+					continue;
+				}
+
 				if(this.nodeIdToTiles[nodeRef.id] === undefined) {
 					this.nodeIdToTiles[nodeRef.id] = {};
 				}
 
 				const nodeIdToTiles = this.nodeIdToTiles[nodeRef.id];
 
-				const center = (await nodeRef.getCenter()).map((a) => this.unitsToPixels(a));
+				const center = (await nodeRef.getEffectiveCenter()).map((a) => this.unitsToPixels(a));
 				const centerTile = center.divideScalar(Tile.SIZE).round();
 				const radius = this.unitsToPixels(await nodeRef.getRadius());
 				if(radius >= Tile.SIZE / 8) {
@@ -732,9 +745,7 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const inSelection = this.selection.hasNodeRef(nodeRef);
 			const inHoverSelection = this.hoverSelection.hasNodeRef(nodeRef);
-			const sibling = this.hoverSelection.nodeRefIsSibling(nodeRef) || this.selection.nodeRefIsSibling(nodeRef);
-			const notSibling = (inSelection && !this.selection.nodeRefIsSibling(nodeRef)) || (inHoverSelection && !this.hoverSelection.nodeRefIsSibling(nodeRef));
-			const alpha = (sibling && !notSibling) ? 0.25 : 0.75;
+			const alpha = 0.75;
 
 			if(inSelection || inHoverSelection) {
 				const nodeTiles = this.nodeIdToTiles[nodeRef.id];
@@ -896,11 +907,11 @@ class RenderContext {
 		}
 		else if(this.brush instanceof SelectBrush) {
 			infoLine("Click to select, drag to move.");
-			infoLine("Hold Shift to select an entire object, hold Control to add to an existing selection.");
+			infoLine("Hold Control to add to an existing selection.");
 		}
 		else if(this.brush instanceof DeleteBrush) {
-			infoLine("Click to delete. Hold Shift to delete an entire object.");
-			infoLine("Hold Control to delete all objects inside the brush. Hold W while scrolling to change brush size.");
+			infoLine("Click to delete an area. Hold Shift to delete an entire object.");
+			infoLine("Hold W while scrolling to change brush size.");
 		}
 		infoLine("Right click or arrow keys to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
 
@@ -915,11 +926,55 @@ class RenderContext {
 
 	async drawDebug() {
 		const c = this.canvas.getContext("2d");
+
+		const drawn = new Set();
+
+		const drawNodePoint = async (nodeRef) => {
+			if(!drawn.has(nodeRef.id)) {
+				drawn.add(nodeRef.id);
+				const position = this.mapPointToCanvas(await nodeRef.getCenter());
+				c.beginPath();
+				c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
+				c.strokeStyle = "white";
+				c.stroke();
+
+				// Draw edges.
+				for await (const dirEdgeRef of nodeRef.getEdges()) {
+					if(!drawn.has(dirEdgeRef.id)) {
+						drawn.add(dirEdgeRef.id);
+						const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+						const otherPosition = this.mapPointToCanvas(await otherNodeRef.getCenter());
+						c.strokeStyle = "white";
+						c.beginPath();
+						c.moveTo(position.x, position.y);
+						c.lineTo(otherPosition.x, otherPosition.y);
+						c.stroke();
+					}
+				}
+
+				// Draw effective bounding radius.
+				const effectivePosition = this.mapPointToCanvas(await nodeRef.getEffectiveCenter());
+				c.beginPath();
+				c.arc(effectivePosition.x, effectivePosition.y, this.unitsToPixels(await nodeRef.getRadius()), 0, 2 * Math.PI, false);
+				c.strokeStyle = "gray";
+				c.stroke();
+			}
+		};
+
 		for await (const nodeRef of this.drawnNodes()) {
+			// Draw center.
+			await drawNodePoint(nodeRef);
+
+			// Draw border path.
+			for await (const child of nodeRef.getChildren()) {
+				await drawNodePoint(child);
+			}
+
+			// Draw bounding radius.
 			const position = this.mapPointToCanvas(await nodeRef.getCenter());
 			c.beginPath();
-			c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
-			c.strokeStyle = "white";
+			c.arc(position.x, position.y, this.unitsToPixels(await nodeRef.getRadius()), 0, 2 * Math.PI, false);
+			c.strokeStyle = "gray";
 			c.stroke();
 		}
 	}
@@ -994,7 +1049,7 @@ class RenderContext {
 
 	async * visibleNodes() {
 		const screenBox = this.screenBox();
-		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)));
+		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)), this.pixelsToUnits(1));
 	}
 
 	async * drawnNodes() {
@@ -1088,20 +1143,13 @@ class Mapper {
 		return this.unsavedChanges;
 	}
 
-	/** Get all nodes inside a specified spatial box.
-	 * @param box {Box3}
-	 * @returns {AsyncIterable.<NodeRef>}
-	 */
-	async * getNodesInArea(box) {
-		yield* this.backend.getNodesInArea(box);
-	}
-
 	/** Get all nodes in or near a spatial box (according to their radii).
 	 * @param box {Box3}
+	 * @param minRadius {number}
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	async * getNodesTouchingArea(box) {
-		yield* this.backend.getNodesTouchingArea(box);
+	async * getNodesTouchingArea(box, minRadius) {
+		yield* this.backend.getNodesTouchingArea(box, minRadius);
 	}
 
 	/** Get all edges attached to the specified node.
@@ -1120,13 +1168,12 @@ class Mapper {
 		return new RenderContext(element, this);
 	}
 
-	async insertNode(point, options) {
-		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null);
+	async insertNode(point, nodeType, options) {
+		const nodeRef = await this.backend.createNode(options.parent ? options.parent.id : null, nodeType);
 		await nodeRef.setCenter(point);
+		await nodeRef.setEffectiveCenter(point);
 		await nodeRef.setType(options.type);
 		await nodeRef.setRadius(options.radius);
-		// TODO: connect nodes
-		//await this.connectNode(nodeRef, this.options);
 		await this.hooks.call("insertNode", nodeRef);
 		return nodeRef;
 	}
@@ -1135,6 +1182,7 @@ class Mapper {
 		const nodeRefs = await asyncFrom(originNodeRef.getSelfAndAllDescendants());
 		for(const nodeRef of nodeRefs) {
 			await nodeRef.setCenter((await nodeRef.getCenter()).add(offset));
+			await nodeRef.setEffectiveCenter((await nodeRef.getEffectiveCenter()).add(offset));
 		}
 		await this.hooks.call("translateNodes", nodeRefs);
 	}
@@ -1148,10 +1196,24 @@ class Mapper {
 		}
 
 		const nodeRefsWithChildren = Array.from(nodeIds, (nodeId) => this.backend.getNodeRef(nodeId));
+		const parentNodeIds = new Set();
 
 		await this.hooks.call("removeNodes", nodeRefsWithChildren);
+
 		for(const nodeRef of nodeRefsWithChildren) {
+			const parent = await nodeRef.getParent();
+			if(parent && !nodeIds.has(parent.id)) {
+				parentNodeIds.add(parent.id);
+			}
 			await nodeRef.remove();
+		}
+
+		for(const nodeId of parentNodeIds) {
+			const nodeRef = this.backend.getNodeRef(nodeId);
+			if(!(await nodeRef.hasChildren())) {
+				await nodeRef.remove();
+				nodeRefsWithChildren.push(nodeRef);
+			}
 		}
 
 		return nodeRefsWithChildren;
@@ -1164,40 +1226,20 @@ class Mapper {
 		}
 	}
 
-	async connectNode(nodeRef, options) {
-		await this.connectNodeToParent(nodeRef);
-		await this.connectNodeToNearbyNodes(nodeRef, options);
-		await this.cleanNodeConnectionsAround(nodeRef, options);
-	}
-
-	async connectNodeToParent(nodeRef) {
-		// TODO: Parents
-		nodeRef;
-	}
-
-	async connectNodeToNearbyNodes(nodeRef, options) {
-		for (const otherNodeRef of await asyncFrom(this.backend.getNearbyNodes(nodeRef, options.blendDistance))) {
-			await this.backend.createEdge(nodeRef.id, otherNodeRef.id);
+	async removeEdges(edgeRefs) {
+		for(const edgeRef of edgeRefs) {
+			for await (const nodeRef of edgeRef.getNodes()) {
+				await this.hooks.call("updateNode", nodeRef);
+			}
+			await edgeRef.remove();
 		}
 	}
 
-	async cleanNodeConnectionsAround(nodeRef, options) {
-		options;
-
-		const removed = {};
-
-		for (const dirEdgeRef of await asyncFrom(this.backend.getNodeEdges(nodeRef.id))) {
-			if(!removed[dirEdgeRef.id]) {
-				for (const intersectingEdgeRef of await asyncFrom(this.backend.getIntersectingEdges(dirEdgeRef, options.blendDistance))) {
-					if((await dirEdgeRef.getLine()).distanceSquared() < (await intersectingEdgeRef.getLine()).distanceSquared()) {
-						intersectingEdgeRef.remove();
-						removed[intersectingEdgeRef.id] = true;
-					}
-					else {
-						dirEdgeRef.remove();
-						break;
-					}
-				}
+	async unremoveEdges(edgeRefs) {
+		for(const edgeRef of edgeRefs) {
+			await edgeRef.unremove();
+			for await (const nodeRef of edgeRef.getNodes()) {
+				await this.hooks.call("updateNode", nodeRef);
 			}
 		}
 	}

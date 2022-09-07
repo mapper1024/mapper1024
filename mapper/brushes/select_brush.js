@@ -24,13 +24,7 @@ class SelectBrush extends Brush {
 	async activate(where) {
 		if(!this.context.hoveringOverSelection()) {
 			if(this.context.hoverSelection.exists()) {
-				let newSelection = null;
-
-				if(this.context.isKeyDown("Shift")) {
-					newSelection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
-				} else {
-					newSelection = this.context.hoverSelection;
-				}
+				const newSelection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
 
 				if(newSelection !== null) {
 					if(this.context.isKeyDown("Control")) {

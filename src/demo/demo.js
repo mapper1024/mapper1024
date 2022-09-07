@@ -2,7 +2,7 @@ import { Mapper, SqlJsMapBackend } from "./mapper/index.js";
 
 let renderedMap;
 
-function loadMap(map) {
+function loadMap(map, failToBlank) {
 	map.load().then(function() {
 		if(renderedMap) {
 			renderedMap.disconnect();
@@ -44,13 +44,16 @@ function loadMap(map) {
 		});
 	}).catch(error => {
 		alert(`Could not load the map: ${error}`);
+		if(failToBlank) {
+			loadMap(new SqlJsMapBackend());
+		}
 	});
 }
 
 loadMap(new SqlJsMapBackend({
 	loadFrom: "url",
 	url: "./mapper/samples/sample_map.map",
-}));
+}), true);
 
 window.addEventListener("beforeunload", function (e) {
 	e.preventDefault();

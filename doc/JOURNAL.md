@@ -76,5 +76,36 @@ The prototype algorithm just randomly generates appropriate pixel art with some 
 ## Performance
 I've cut down on the slowest parts of the code by using Chromium's performance profiling feature and introducing caching or changing the algorithms I use. Rendering the map as tiles is still quite slow, and the ad-hoc approach to redrawing the screen produces some "glitchy" rendering when panning the map or zooming in or out. Future optimization will focus on making the program feel smoother, which is important to the user experience.
 
+# Database Evolution: Early 2022-09
+## Node Shapes
+In the database, nodes now have a type which can be "object" or "point". "object" nodes correspond to map objects like a forest, a wall, a rock, or a mountain. Individual "object" nodes now have an arbitrary shape defined by a set of connected "point" nodes.
+
+## Defining terms
+* Node: An object in the database that is any spatial entitity.
+* \[Map\] Object: A node that corresponds to a "real" map object like a tree or a forest or a mountain. Has "point" nodes as children to define its area.
+* \[Map\] Point: A node that defines a map object's spatial area/region. Has an "object" node as a parent.
+ * Points are connected by edges to determine what space is the "inside" of an "object" node.
+
+## Step-by-step walkthrough: How a piece of the map is made
+1. The user clicks, strokes the drawing brush across the screen to draw a body of water, and releases.
+	1. At the initial click, an "object" node representing the body of water is created.
+	2. Four equidistant "point" nodes are made as children of the "object" node to show the boundaries of the first click.
+	3. As the user drags, the rotation of the brush---that is, how the angle of the stroke changes as the user moves the brush---is used to add more "point" nodes on each side of the stroke. These points are added only after the brush has traveled long enough for new points to be needed to add more area to the "object" node to keep up with the brush.
+	4. The most recently added points are connected to the previously added points by edges.
+	5. The most recently added points average position with their connected neighbors is determined and stored.
+	6. All added nodes are recorded for updating in the next render step.
+	7. The process repeats for the next step of the brush.
+2. After the user releases the brush, points that sufficiently overlap are merged to simplify the graph.
+3. The renderer updates based on the newly added nodes, using the recorded average positions and brush size radii to display the nodes.
+
+## Decision: Algorithm to determine borders from brush strokes
+All the information on where the borders of a brush stroke already existed--the position of the brush and the size of the brush--so I just had to convert these into a point-and-edge representation. The border needs to rotate with the brush stroke (e.g. if the user is drawing horizontally, the border will run on the top and bottom of the brush, but if the user is drawing vertically, the border will run on either side) so I keep track of the difference of brush position and calculate the angle to continue the border path at. Edges are used to connect the border, and are also used inside the border to show which side of the border is the inside of the object and which (if any) is outside.
+
+## Decision: Database versions & upgrades
+This database evolution is incompatible with previous versions. I added database version numbers to make this explicit to users if they attempt to load an older database. Automatic upgrading would be possible, but because this is such an early prototype and no promises of backwards-compatability have been made I decided to forgo the effort. Future versions will have automatic upgrades/backwards-compatability.
+
+## Altitude
+Altitude (Z-levels) has been added so that when something is drawn on top of something else, it renders as the user expects. Previously, smaller objects would always render over larger objects. Different parts of objects can have different altitudes; objects are defined with 3D space. The UI for altitude control will be greatly improved in the future, currently if an object is drawn on top of another its altitude in that area is simply increased by 5 meters.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

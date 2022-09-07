@@ -3,6 +3,11 @@ const _require = require("esm")(module);
 const { Vector3, asyncFrom } = _require("../mapper/index.js");
 
 export function testGenericBackend() {
+	it("should have a version number", function() {
+		expect(this.backend.getBackendVersionNumber()).to.be.above(0);
+		expect(this.backend.getVersionNumber()).to.equal(this.backend.getBackendVersionNumber());
+	});
+
 	describe("properties", function() {
 		const string = "the test string";
 		const number = 0xCAFF00D;
@@ -36,15 +41,15 @@ export function testGenericBackend() {
 		const grandchildString = "a grandchild's string";
 
 		beforeEach(async function() {
-			root = await this.backend.createNode();
+			root = await this.backend.createNode(null, "test");
 
-			childA = await this.backend.createNode(root.id);
-			childB = await this.backend.createNode(root.id);
-			childC = await this.backend.createNode(root.id);
+			childA = await this.backend.createNode(root.id, "testA");
+			childB = await this.backend.createNode(root.id, "testB");
+			childC = await this.backend.createNode(root.id, "testC");
 
-			grandchildA = await this.backend.createNode(childB.id);
-			grandchildB = await this.backend.createNode(childB.id);
-			grandchildC = await this.backend.createNode(childC.id);
+			grandchildA = await this.backend.createNode(childB.id, "test");
+			grandchildB = await this.backend.createNode(childB.id, "test");
+			grandchildC = await this.backend.createNode(childC.id, "test");
 
 			await grandchildA.setPString("another string property", grandchildString);
 
@@ -63,6 +68,11 @@ export function testGenericBackend() {
 			expect((await grandchildB.getParent()).id, "grandchildB parent").to.equal(childB.id);
 
 			expect(await asyncFrom(root.getChildren(), (child) => child.id)).has.members([childA.id, childB.id, childC.id]);
+		});
+
+		it("should have node types", async function() {
+			expect(await root.getNodeType()).to.equal("test");
+			expect(await childA.getNodeType()).to.equal("testA");
 		});
 
 		it("should have edges", async function() {
@@ -89,13 +99,16 @@ export function testGenericBackend() {
 			expect(await childC.valid(), "childC").to.equal(true);
 			expect(await grandchildC.valid(), "grandchildC").to.equal(true);
 
+			// Edges remain valid.
 			expect(await childEdgeAC.valid(), "childEdgeAC").to.equal(true);
+			expect(await childEdgeAB.valid(), "childEdgeAB").to.equal(true);
+
+			// But will not longer be searched.
+			expect(await asyncFrom(childA.getEdges(), (edge) => edge.id)).to.include(childEdgeAC.id).but.not.to.include(childEdgeAB.id);
 
 			expect(await childB.valid(), "childB").to.equal(false);
 			expect(await grandchildA.valid(), "grandchildA").to.equal(false);
 			expect(await grandchildB.valid(), "grandchildB").to.equal(false);
-
-			expect(await childEdgeAB.valid(), "childEdgeAB").to.equal(false);
 		});
 
 		it("should have unremovable nodes", async function() {
@@ -119,6 +132,9 @@ export function testGenericBackend() {
 
 			expect(await asyncFrom(childA.getEdges(), (edge) => edge.id)).to.include(childEdgeAC.id).but.not.to.include(childEdgeAB.id);
 			expect(await asyncFrom(childB.getEdges())).to.be.empty;
+
+			expect((await this.backend.getEdgeBetween(childA.id, childC.id)).id).to.equal(childEdgeAC.id);
+			expect(await this.backend.getEdgeBetween(childA.id, childB.id)).to.equal(null);
 		});
 
 		it("should have unremovable edges", async function() {
