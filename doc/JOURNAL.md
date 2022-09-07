@@ -95,7 +95,7 @@ In the database, nodes now have a type which can be "object" or "point". "object
 	6. All added nodes are recorded for updating in the next render step.
 	7. The process repeats for the next step of the brush.
 2. After the user releases the brush, points that sufficiently overlap are merged to simplify the graph.
-3. The render updates based on the newly added nodes, using the recorded average positions and brush size radii to display the nodes.
+3. The renderer updates based on the newly added nodes, using the recorded average positions and brush size radii to display the nodes.
 
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
