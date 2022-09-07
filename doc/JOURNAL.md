@@ -85,5 +85,17 @@ In the database, nodes now have a type which can be "object" or "point". "object
 * \[Map\] Object: A node that corresponds to a "real" map object like a tree or a forest or a mountain. Has "point" nodes as children to define its area.
 * \[Map\] Point: A node that defines a map object's spatial area/region. Has an "object" node as a parent.
 
+## Step-by-step walkthrough: How a piece of the map is made
+1. The user clicks, strokes the drawing brush across the screen to draw a body of water, and releases.
+	1. At the initial click, an "object" node representing the body of water is created.
+	2. Four equidistant "point" nodes are made as children of the "object" node to show the boundaries of the first click.
+	3. As the user drags, the rotation of the brush---that is, how the angle of the stroke changes as the user moves the brush---is used to add more "point" nodes on each side of the stroke. These points are added only after the brush has traveled long enough for new points to be needed to add more area to the "object" node to keep up with the brush.
+	4. The most recently added points are connected to the previously added points by edges.
+	5. The most recently added points average position with their connected neighbors is determined and stored.
+	6. All added nodes are recorded for updating in the next render step.
+	7. The process repeats for the next step of the brush.
+2. After the user releases the brush, points that sufficiently overlap are merged to simplify the graph.
+3. The render updates based on the newly added nodes, using the recorded average positions and brush size radii to display the nodes.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
