@@ -4,3 +4,6 @@
 
 # v0.1.8
 * Brush sidebar with size, brush type, and terrain type (for the add brush) options.
+
+# v0.2.0
+* New database format allowing map objects to have properly defined 3D area.
