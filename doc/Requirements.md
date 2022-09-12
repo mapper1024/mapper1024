@@ -34,6 +34,16 @@ The user community consists of people with all levels of computer expertise; the
 
 ## Functional or System Requirements
 
+### The map must look OK
+The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
+
+* Inputs: The map created by the user.
+* Outputs: Algorithmically rendered graphics.
+* Issues: [#31](https://github.com/mapper1024/mapper1024/issues/31)
+* Risks: Failure to prioritize can result in getting bogged down messing with graphics. Performance of the algorithmic renderer must also be maintained.
+* Dependencies: Algorithmic rendering
+* Criticality: HIGH, users need things to look OK
+
 ### The map must support multiple layers
 To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
 
