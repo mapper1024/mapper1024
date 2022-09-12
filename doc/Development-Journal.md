@@ -107,8 +107,8 @@ This database evolution is incompatible with previous versions. I added database
 ## Altitude
 Altitude (Z-levels) has been added so that when something is drawn on top of something else, it renders as the user expects. Previously, smaller objects would always render over larger objects. Different parts of objects can have different altitudes; objects are defined with 3D space. The UI for altitude control will be greatly improved in the future, currently if an object is drawn on top of another its altitude in that area is simply increased by 5 meters.
 
-# Pracicum Reflection Journal through 2022-09-12
-Preparing for practicum work, I distilled existing documentation into a Project Proposal and a Formal Requirements document. Nothing of much note occurred here; I was able to translate documentation fairly straightforwardly into the more structured form.
+# Practicum Reflection Journal through 2022-09-12
+Preparing for practicum work, I distilled existing documentation into a Project Proposal and a Formal Requirements document. Nothing of much note occurred here; I was able to translate documentation fairly straightforwardly into the more structured form. Time taken was as expected; a few hours of writing documentation.
 
 Future reflection journals will include more details about implementation; Practicum work began over the past week, following my first organizing meeting.
 
