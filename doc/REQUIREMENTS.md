@@ -34,21 +34,51 @@ The user community consists of people with all levels of computer expertise; the
 
 ## Functional or System Requirements
 
-### The mapping tool should let users create maps
+### The map must support multiple layers
+To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
+
+* Issues: [#30](https://github.com/mapper1024/mapper1024/issues/30)
+* Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
+* Dependencies: Map pieces with arbitrary shape and position
+
+### The user should be able to discover the distance between arbitrary points on the map
+The user should be able to discover the distance between arbitrary points on the map, either as the crow flies or possibly following paths.
+
+* Issues: [#35](https://github.com/mapper1024/mapper1024/issues/35)
+* Inputs: User indication of (at least) two points.
+* Outputs: Display of the distance between the indicated points.
+* Criticality: LOW
+
+### The software should provide help to users
+Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
+
+* Issues: [#37](https://github.com/mapper1024/mapper1024/issues/37)
+* Outputs: An informative UI that response to user action.
+* Risks: Help needs to be comprehensive and kept up to date with developments.
+* Criticality: LOW
+
+### Maps should be renderable in arbitrary styles
+Maps should be able to be rendered in different styles (e.g. like a Tolkien map, or like a geographical survey). Renderers should be easily swappable.
+
+* Issues: [#38](https://github.com/mapper1024/mapper1024/issues/38)
+* Risks: Multiple renderers greatly increase complexity.
+* Criticality: LOW
+
+### DONE: The mapping tool should let users create maps
 The mapping tool should let users create and edit individual maps, that represent arbitrary terrain/geography useful for storytelling organization.
 
 * Inputs: User input and control.
 * Outputs: A "map" which is a representation of the designed map.
 * Criticality: MUST-HAVE, this is what the tool is for.
 
-### The mapping tool should let users edit maps at an arbitrary scale
+### DONE: The mapping tool should let users edit maps at an arbitrary scale
 The mapping tool should support editing maps at an arbitrary scale and level of detail.
 
 * Criticality: MUST-HAVE, this is an important feature for detail and detail management in maps.
 * Risks: Arbitrary detail risks performance issues; care and optimization must be taken when implementing this requirement.
 * Dependencies: Map creation
 
-### Maps must be persistent
+### DONE: Maps must be persistent
 The maps created by the mapping tool must be persistent so that users can access previously created maps.
 
 * Inputs: Map created in the mapping tool.
@@ -57,7 +87,7 @@ The maps created by the mapping tool must be persistent so that users can access
 * Risks: Persistence implies a schema or format of some kind; care must be taken so that backwards compatibility is maintained.
 * Dependencies: Map creation
 
-### Pieces of the map must have arbitrary shape and position
+### DONE: Pieces of the map must have arbitrary shape and position
 Individual "pieces" of the map like a forest or a lake or a city must have an arbitrary, user-defined "real" (as in meters) shape and position.
 
 * Inputs: User input and control over shape when drawing.
@@ -66,39 +96,13 @@ Individual "pieces" of the map like a forest or a lake or a city must have an ar
 * Criticality: MUST-HAVE, for advanced map creation.
 * Dependencies: Map creation
 
-### The map must be rendered by algorithm
+### DONE: The map must be rendered by algorithm
 To avoid creating specific images for each configuration of terrain, the map graphics should be created or assembled algorithmically, with appropriate transitions and indicators.
 
 * Inputs: The map created by the user.
 * Outputs: Graphics rendered on the screen.
 * Risks: Algorithms may be expensive
 * Criticality: HIGH, users need a flexible map rendering system.
-
-### The map must support multiple layers
-To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
-
-* Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
-* Dependencies: Map pieces with arbitrary shape and position
-
-### The software should provide help to users
-Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
-
-* Outputs: An informative UI that response to user action.
-* Risks: Help needs to be comprehensive and kept up to date with developments.
-* Criticality: LOW
-
-### Maps should be renderable in arbitrary styles
-Maps should be able to be rendered in different styles (e.g. like a Tolkien map, or like a geographical survey). Renderers should be easily swappable.
-
-* Risks: Multiple renderers greatly increase complexity.
-* Criticality: LOW
-
-### The user should be able to discover the distance between arbitrary points on the map
-The user should be able to discover the distance between arbitrary points on the map, either as the crow flies or possibly following paths.
-
-* Inputs: User indication of (at least) two points.
-* Outputs: Display of the distance between the indicated points.
-* Criticality: LOW
 
 ## Interface Requirements
 
