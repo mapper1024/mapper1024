@@ -74,6 +74,15 @@ Maps should be able to be rendered in different styles (e.g. like a Tolkien map,
 * Risks: Multiple renderers greatly increase complexity.
 * Criticality: LOW
 
+### The system should provide an easy way to load existing maps
+Users should have a dashboard, landing page, recently opened, or some other kind of way to easily access their existing maps.
+
+* Inputs: History of map editing.
+* Outputs: Interactive display of existing maps.
+* Issues: [#39](https://github.com/mapper1024/mapper1024/issues/39)
+* Risks: Increases complexity with a new display; a new subsystem.
+* Criticality: LOW
+
 ### DONE: The mapping tool should let users create maps
 The mapping tool should let users create and edit individual maps, that represent arbitrary terrain/geography useful for storytelling organization.
 
