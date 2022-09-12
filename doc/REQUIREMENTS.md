@@ -34,12 +34,71 @@ The user community consists of people with all levels of computer expertise; the
 
 ## Functional or System Requirements
 
-### The mapping tool should allow creating and editing maps.
-The mapping tool should let users create and editing individual maps, that represent arbitrary geography useful for storytelling organization.
+### The mapping tool should let users create maps
+The mapping tool should let users create and edit individual maps, that represent arbitrary terrain/geography useful for storytelling organization.
 
 * Inputs: User input and control.
 * Outputs: A "map" which is a representation of the designed map.
 * Criticality: MUST-HAVE, this is what the tool is for.
+
+### The mapping tool should let users edit maps at an arbitrary scale
+The mapping tool should support editing maps at an arbitrary scale and level of detail.
+
+* Criticality: MUST-HAVE, this is an important feature for detail and detail management in maps.
+* Risks: Arbitrary detail risks performance issues; care and optimization must be taken when implementing this requirement.
+* Dependencies: Map creation
+
+### Maps must be persistent
+The maps created by the mapping tool must be persistent so that users can access previously created maps.
+
+* Inputs: Map created in the mapping tool.
+* Outputs: Persistent store of the map that can be loaded again.
+* Criticality: MUST-HAVE, this is a necessary feature for any editor program.
+* Risks: Persistence implies a schema or format of some kind; care must be taken so that backwards compatibility is maintained.
+* Dependencies: Map creation
+
+### Pieces of the map must have arbitrary shape and position
+Individual "pieces" of the map like a forest or a lake or a city must have an arbitrary, user-defined "real" (as in meters) shape and position.
+
+* Inputs: User input and control over shape when drawing.
+* Outputs: Pieces/objects in the map.
+* Risks: Arbitrary shapes increases complexity of the map.
+* Criticality: MUST-HAVE, for advanced map creation.
+* Dependencies: Map creation
+
+### The map must be rendered by algorithm
+To avoid creating specific images for each configuration of terrain, the map graphics should be created or assembled algorithmically, with appropriate transitions and indicators.
+
+* Inputs: The map created by the user.
+* Outputs: Graphics rendered on the screen.
+* Risks: Algorithms may be expensive
+* Criticality: HIGH, users need a flexible map rendering system.
+
+### The map must support multiple layers
+To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
+
+* Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
+* Dependencies: Map pieces with arbitrary shape and position
+
+### The software should provide help to users
+Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
+
+* Outputs: An informative UI that response to user action.
+* Risks: Help needs to be comprehensive and kept up to date with developments.
+* Criticality: LOW
+
+### Maps should be renderable in arbitrary styles
+Maps should be able to be rendered in different styles (e.g. like a Tolkien map, or like a geographical survey). Renderers should be easily swappable.
+
+* Risks: Multiple renderers greatly increase complexity.
+* Criticality: LOW
+
+### The user should be able to discover the distance between arbitrary points on the map
+The user should be able to discover the distance between arbitrary points on the map, either as the crow flies or possibly following paths.
+
+* Inputs: User indication of (at least) two points.
+* Outputs: Display of the distance between the indicated points.
+* Criticality: LOW
 
 ## Interface Requirements
 
@@ -47,7 +106,7 @@ The mapping tool should let users create and editing individual maps, that repre
 The primary interface into the system that MUST exist is the map editing UI. This provides controls to edit existing maps and a display of the map in editing. An interface to export maps as image files SHOULD also exist. The primary interface MUST be supplanted with controls to create new maps, save maps, and otherwise manage multiple maps---the exact behavior depends on the platform and system the mapping tool is running on. Basic command-line options MUST be supported to load existing maps.
 
 ### Hardware Interfaces
-The mapping tool MUST interface with the mouse for drawing the map and selecting options, and SHOULD interface with the keyboard for faster editing.
+The mapping tool MUST interface with the mouse for drawing the map and selecting options, and SHOULD interface with the keyboard for faster editing. The mapping tool MUST support the "trackpad" model of mouse, for laptop users.
 
 ### Communications Interfaces
 N/A
@@ -87,7 +146,7 @@ N/A
 The mapping tool MUST be as safe as an average image-editor. Possible loss of data may be avoided through automatic revision saving or other backups.
 
 ### Maintenance
-The mapping tool SHOULD automatically deploy numbered version releases through Github CI. Download links SHOULD automatically point to the most recent numbered version release.
+The mapping tool SHOULD automatically deploy numbered version releases through Github CI. Download links SHOULD automatically point to the most recent numbered version release. The mapping tool SHOULD have comprehensive unit tests for as many subsystems as possible.
 
 ### Portability
 The mapping tool MUST support Windows 10+, and Ubuntu 20.04+ or other similar Linux distribution. The mapping tool SHOULD support Mac OS 11+. The mapping tool might support Android and iOS as a WISH-LIST feature. The mapping tool MUST support the latest version of Google Chrome/Chromium (including Microsoft Edge), and SHOULD support the latest versions of Safari and Mozilla Firefox.
@@ -98,7 +157,7 @@ The mapping tool SHOULD support importing maps from previous versions throughout
 ### Development Process Constraints
 The development environment assumes a UNIX-like system for development scripts (such as for managing version numbers), but the program may be built and run using any platform supported by [Electron](https://electronjs.org). The desktop app development environment uses [Yarn](https://www.npmjs.com/package/yarn) to access [Electron](https://electronjs.org) and the rest of the [node.js](https://nodejs.org) ecosystem; all written in Javascript. The sample online demo server is written in Python using [Flask](https://flask.palletsprojects.com) to serve the web files and [Pipenv](https://pypi.org/project/pipenv/) to manage dependencies. No IDE is assumed; I have used [KDevelop](https://www.kdevelop.org/).
 
-## System Models
+## TODO: System Models
 This section includes diagrams showing relationships between major system components and the environment. It may include one or more of the following:
 
 -Context Models: what is part of the system and what is not. Includes model diagrams and activity diagrams
@@ -111,7 +170,7 @@ This section includes diagrams showing relationships between major system compon
 
 -Entity-Retionship diagrams (for database design) with schema reduction and normalization to third-normal-form (3NF) or Boyd-Codd Normal Form (BCNF) dependening on need for preserving functional dependencies (FDs, essentially business/logic rules).
 
-## Operational Scenarios
+## TODO: Operational Scenarios
 This section may include a set of scenarios that illustrate, from the user's perspective, what will be experienced when utilizing the system under various situations. In the article Inquiry-Based Requirements Analysis (IEEE Software, March 1994), scenarios are defined as follows:
 
 > A scenario is simply a proposed specific use of the system. More specifically, a scenario is a description of one or more end-to-end transactions involving the required system and its environment. Scenarios can be documented in different ways, depending on the level of detail needed. The simplest form is a use-case diagram, which consists of a labeled interaction between actors. More detailed forms are called scripts. These are usually represented as tables or sequence diagrams and involve identifying a sequence of actions and the agent (doer) of each action.
@@ -119,14 +178,3 @@ This section may include a set of scenarios that illustrate, from the user's per
 Although scenarios are useful in acquiring and validating requirements, they are not themselves requirements, because they describe the system's behavior only in specific situations; a specification, on the other hand, describes what the system should do in general.
 
 You may want to include user stories here as an alternative for describing operational scenarios
-
-## Appendices
-Specifies other useful information for understanding the requirements. Most requirements should include at least the following two appendices:
-
-- **Definitions, Acronyms, Abbreviations**
-
-Provides definitions of specialized terms or acronyms that must be understood in the context of this application.
-
-- **References**
-
-Provides complete citations or URLs for all documents and websites referenced or used in the preparation of this document. Use MLA, APA, or other appropriate citation system (be consistent and use MLA throughout or APA throughout, etc.).
