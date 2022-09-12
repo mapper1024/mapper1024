@@ -11,10 +11,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - run: cp -Lr wiki/ /tmp/wiki/
+
     - name: Push Wiki Changes
       uses: Andrew-Chen-Wang/github-wiki-action@v3
       env:
-        WIKI_DIR: wiki/
+        WIKI_DIR: /tmp/wiki/
         GH_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
         GH_MAIL: linewriter1024@gmail.com
         GH_NAME: linewriter1024
