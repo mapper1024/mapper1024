@@ -67,4 +67,4 @@ Quick facts: The mapping tool is...
 * Built using the *[SQLite](https://sqlite.org)* database engine to store the maps.
 * Composed of well over *4000* lines of code.
 
-You can read more about the technical implementation details in the [development journal](https://github.com/mapper1024/mapper1024/blob/master/doc/JOURNAL.md#functional-prototype-summer-2022).
+You can read more about the technical implementation details in the [development journal](https://github.com/mapper1024/mapper1024/blob/master/doc/Development-Journal.md#functional-prototype-summer-2022).
