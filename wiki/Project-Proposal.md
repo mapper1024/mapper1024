@@ -1,1 +1,0 @@
-../doc/PROPOSAL.md
