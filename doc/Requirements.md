@@ -62,7 +62,7 @@ The user should be able to discover the distance between arbitrary points on the
 ### The software should provide help to users
 Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
 
-* Issues: [#37](https://github.com/mapper1024/mapper1024/issues/37)
+* Issues: [#37](https://github.com/mapper1024/mapper1024/issues/37), [#36](https://github.com/mapper1024/mapper1024/issues/36)
 * Outputs: An informative UI that response to user action.
 * Risks: Help needs to be comprehensive and kept up to date with developments.
 * Criticality: LOW
