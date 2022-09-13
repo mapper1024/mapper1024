@@ -15,18 +15,6 @@ dirs.SE = dirs.S.add(dirs.E);
 
 const dirKeys = Object.keys(dirs);
 
-const dirAdjacents = {
-	N: new Set(["NE", "NW"]),
-	S: new Set(["SE", "SW"]),
-	W: new Set(["NW", "SW"]),
-	E: new Set(["NE", "SE"]),
-
-	NW: new Set(["N", "W"]),
-	NE: new Set(["N", "E"]),
-	SW: new Set(["S", "W"]),
-	SE: new Set(["S", "E"]),
-}
-
 const normalizedDirs = {};
 
 for(const dirName of dirKeys) {
@@ -108,7 +96,7 @@ class Tile {
 	async render() {
 		const position = this.getMegaTilePosition();
 
-		const key = [this.closestNodeType.id];
+		const key = [this.closestNodeType.id, Math.floor(Math.random() * 4)];
 
 		for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
 			dirName;
@@ -170,6 +158,12 @@ class Tile {
 			return getTypeColors(type);
 		}
 
+		function weight(pxv, v) {
+			const l = v.subtract(pxv).length();
+			const w = l === 0 ? Infinity: 1 / l;
+			return w;
+		}
+
 		const pixelSize = pixelSizes[type.id] || 2;
 		const ourColors = getOurColors();
 
@@ -177,17 +171,11 @@ class Tile {
 			for(let y = 0; y < canvas.height; y += pixelSize) {
 				const pxv = (new Vector3(x, y, 0)).subtract(Tile.HALF_SIZE_VECTOR).divideScalar(Tile.SIZE);
 
-				function weight(v) {
-					const l = v.subtract(pxv).length();
-					const w = l === 0 ? Infinity: 1 / l;
-					return w;
-				}
-
-				const neighborColors = [[ourColors, weight(Vector3.ZERO)]];
+				const neighborColors = [[ourColors, weight(pxv, Vector3.ZERO)]];
 
 				for(const dirName of dirKeys) {
 					const neighborType = neighbors[dirName].type;
-					neighborColors.push([neighborType ? getTypeColors(neighborType) : colors["null"], weight(normalizedDirs[dirName])]);
+					neighborColors.push([neighborType ? getTypeColors(neighborType) : colors["null"], weight(pxv, normalizedDirs[dirName])]);
 				}
 
 				const ucolors = weightedRandom(neighborColors);
