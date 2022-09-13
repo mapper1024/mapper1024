@@ -541,7 +541,7 @@ class RenderContext {
 	}
 
 	screenBox() {
-		return new Box3(Vector3.ZERO, this.screenSize());
+		return new Box3(this.screenSize().multiplyScalar(-0.5), this.screenSize().multiplyScalar(1.5));
 	}
 
 	screenBoxTiles() {
