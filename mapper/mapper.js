@@ -293,7 +293,7 @@ class RenderContext {
 
 		this.recalculateSize();
 
-		setTimeout(this.redrawLoop.bind(this), 10);
+		window.requestAnimationFrame(this.redrawLoop.bind(this));
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
 		setTimeout(this.applyZoom.bind(this), 10);
@@ -386,7 +386,7 @@ class RenderContext {
 		}
 
 		if(this.alive) {
-			setTimeout(this.redrawLoop.bind(this), 10);
+			window.requestAnimationFrame(this.redrawLoop.bind(this));
 		}
 	}
 
