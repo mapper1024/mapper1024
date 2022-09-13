@@ -50,4 +50,23 @@ function merge(...args) {
 	return r;
 }
 
-export { asyncFrom, mod, merge };
+function weightedRandom(weightedPairs) {
+	let weightSum = 0;
+	for(const weightedPair of weightedPairs) {
+		if(weightedPair[1] === Infinity) {
+			return weightedPair[0];
+		}
+		weightSum += weightedPair[1];
+	}
+
+	let random = Math.random() * weightSum;
+
+	for(const weightedPair of weightedPairs) {
+		random -= weightedPair[1];
+		if(random <= 0) {
+			return weightedPair[0];
+		}
+	}
+}
+
+export { asyncFrom, mod, merge, weightedRandom };
