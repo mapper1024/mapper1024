@@ -7,3 +7,6 @@
 
 # v0.2.0
 * New database format allowing map objects to have properly defined 3D area.
+
+# v0.2.1
+* Smoother pixelated graphics; documentation overhaul in progress.
