@@ -1,5 +1,5 @@
 import { Vector3 } from "./geometry.js";
-import { mod } from "./utils.js";
+import { mod, weightedRandom } from "./utils.js";
 
 const dirs = {};
 
@@ -15,6 +15,12 @@ dirs.SE = dirs.S.add(dirs.E);
 
 const dirKeys = Object.keys(dirs);
 
+const normalizedDirs = {};
+
+for(const dirName of dirKeys) {
+	normalizedDirs[dirName] = dirs[dirName].normalize();
+}
+
 class Tile {
 	constructor(megaTile, corner) {
 		this.context = megaTile.context;
@@ -27,7 +33,6 @@ class Tile {
 		this.closestNodeDistance = Infinity;
 		this.closestNodeRadiusInUnits = Infinity;
 		this.closestNodeAltitude = -Infinity;
-		this.closestNodeIsOverpowering = false;
 	}
 
 	getCenter() {
@@ -61,7 +66,6 @@ class Tile {
 				this.closestNodeRadiusInUnits = nodeRadiusInUnits;
 				this.closestNodeAltitude = nodeCenterInUnits.z;
 				this.closestNodeType = await nodeRef.getType();
-				this.closestNodeIsOverpowering = distance < nodeRadiusInPixels - Tile.SIZE / 2;
 			}
 
 			return true;
@@ -92,15 +96,13 @@ class Tile {
 	async render() {
 		const position = this.getMegaTilePosition();
 
-		const key = [this.closestNodeType.id];
+		const key = [this.closestNodeType.id, Math.floor(Math.random() * 4)];
 
-		if(!this.closestNodeIsOverpowering) {
-			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
-				dirName;
-				dir;
-				const otherType = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.id : "null";
-				key.push(otherType);
-			}
+		for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+			dirName;
+			dir;
+			const otherType = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.id : "null";
+			key.push(otherType);
 		}
 
 		const keyString = key.join(" ");
@@ -112,17 +114,12 @@ class Tile {
 			canvas.width = Tile.SIZE;
 			canvas.height = Tile.SIZE;
 
-			let neighbors;
-
-			if(!this.closestNodeIsOverpowering) {
-				neighbors = {};
-
-				for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
-					neighbors[dirName] = {
-						dir: dir,
-						type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
-					};
-				}
+			const neighbors = {};
+			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+				neighbors[dirName] = {
+					dir: dir,
+					type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
+				};
 			}
 
 			await Tile.renderMaster(canvas, this.closestNodeType, neighbors);
@@ -161,34 +158,27 @@ class Tile {
 			return getTypeColors(type);
 		}
 
-		const ourColors = getOurColors();
+		function weight(pxv, v) {
+			const l = v.subtract(pxv).length();
+			const w = l === 0 ? Infinity: 1 / l;
+			return w;
+		}
+
 		const pixelSize = pixelSizes[type.id] || 2;
-		const hasNeighbors = !!neighbors;
+		const ourColors = getOurColors();
 
 		for(let x = 0; x < canvas.width; x += pixelSize) {
 			for(let y = 0; y < canvas.height; y += pixelSize) {
-				let ucolors;
+				const pxv = (new Vector3(x, y, 0)).subtract(Tile.HALF_SIZE_VECTOR).divideScalar(Tile.SIZE);
 
-				if(hasNeighbors) {
-					const pxv = (new Vector3(x, y, 0)).subtract(Tile.HALF_SIZE_VECTOR).divideScalar(Tile.SIZE);
+				const neighborColors = [[ourColors, weight(pxv, Vector3.ZERO)]];
 
-					let neighborColors = ourColors;
-					let closestDistance = Infinity;
-
-					for(const dirName of dirKeys) {
-						const distance = dirs[dirName].subtract(pxv).length();
-						if(closestDistance > distance) {
-							const neighborType = neighbors[dirName].type;
-							neighborColors = neighborType ? getTypeColors(neighborType) : colors["null"];
-							closestDistance = distance;
-						}
-					}
-
-					ucolors = Math.random() < closestDistance ? ourColors : neighborColors;
+				for(const dirName of dirKeys) {
+					const neighborType = neighbors[dirName].type;
+					neighborColors.push([neighborType ? getTypeColors(neighborType) : colors["null"], weight(pxv, normalizedDirs[dirName])]);
 				}
-				else {
-					ucolors = ourColors;
-				}
+
+				const ucolors = weightedRandom(neighborColors);
 
 				c.fillStyle = ucolors[Math.floor(Math.random() * ucolors.length)];
 				c.fillRect(x, y, pixelSize, pixelSize);
