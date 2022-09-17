@@ -1,7 +1,7 @@
 # Mapping Tool
 * Benjamin Leskey
 * Mount Vernon Nazarene University
-* 2022-09-11
+* 2022-09-17
 
 ## Introduction
 
@@ -34,16 +34,6 @@ The user community consists of people with all levels of computer expertise; the
 
 ## Functional or System Requirements
 
-### The map must look OK
-The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
-
-* Inputs: The map created by the user.
-* Outputs: Algorithmically rendered graphics.
-* Issues: [#31](https://github.com/mapper1024/mapper1024/issues/31)
-* Risks: Failure to prioritize can result in getting bogged down messing with graphics. Performance of the algorithmic renderer must also be maintained.
-* Dependencies: Algorithmic rendering
-* Criticality: HIGH, users need things to look OK
-
 ### The map must support multiple layers
 To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
 
@@ -51,12 +41,39 @@ To support various types of geography in the same map, such as real terrain and 
 * Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
 * Dependencies: Map pieces with arbitrary shape and position
 
+### The map must have a representation of explicit objects
+Explicit---or, significant---objects are objects that are very well defined on the map, such as a single tree, a building, a particular tower, etc. They stand in contrast to map objects that represent mere areas of terrain like grass or rocks. The map must support these explicit objects and allow users to add them.
+
+* Inputs: Designation as explicit object.
+* Outputs: Rendering of the explicit object on the map.
+* Issues: [#34](https://github.com/mapper1024/mapper1024/issues/34)
+* Criticality: MEDIUM, users need a way to specify significant objects on their map, or objects that are not simply areas of terrain.
+
+### The map must have a representation of explicit paths
+Objects should be able to represent paths---such as a road, a trail, or a shipping route. These paths may then be used to determine distance or simply be rendered on screen.
+
+* Issues: [#46](https://github.com/mapper1024/mapper1024/issues/46)
+* Criticality: MEDIUM
+* Dependencies: Explicit objects, multiple layers
+
+### The map must look OK
+The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
+
+* Inputs: The map created by the user.
+* Outputs: Algorithmically rendered graphics.
+* Issues: [#31](https://github.com/mapper1024/mapper1024/issues/31)
+* Risks: Failure to prioritize can result in getting bogged down messing with graphics. Performance of the algorithmic renderer must also be maintained.
+* Dependencies: Algorithmic rendering, multiple layers, explicit nodes, paths
+* Criticality: HIGH, users need things to look OK
+
 ### The user should be able to discover the distance between arbitrary points on the map
-The user should be able to discover the distance between arbitrary points on the map, either as the crow flies or possibly following paths.
+The user should be able to discover the distance between arbitrary points on the map.
+Distance may be measured as the crow flies---direct distance, or following paths---such as roads or trails.
 
 * Issues: [#35](https://github.com/mapper1024/mapper1024/issues/35)
 * Inputs: User indication of (at least) two points.
 * Outputs: Display of the distance between the indicated points.
+* Dependencies: Explicit paths
 * Criticality: LOW
 
 ### The software should provide help to users
@@ -81,6 +98,15 @@ Users should have a dashboard, landing page, recently opened, or some other kind
 * Outputs: Interactive display of existing maps.
 * Issues: [#39](https://github.com/mapper1024/mapper1024/issues/39)
 * Risks: Increases complexity with a new display; a new subsystem.
+* Criticality: LOW
+
+### The editor should support transfer operations
+Users should have a way to easily transfer pieces or objects of their maps to other areas, perhaps through the cut/copy/paste paradigm. Ideally these pieces may transfer between maps as well.
+
+* Inputs: Pieces of a map.
+* Outputs: Duplicate map pieces.
+* Issues: [#14](https://github.com/mapper1024/mapper1024/issues/14)
+* Risks: Copying objects between maps may require additional subsystems for inter-process communication or OS clipboard methods.
 * Criticality: LOW
 
 ### DONE: The mapping tool should let users create maps
