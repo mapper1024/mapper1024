@@ -209,15 +209,24 @@ The development environment assumes a UNIX-like system for development scripts (
 ## TODO: System Models
 This section includes diagrams showing relationships between major system components and the environment. It may include one or more of the following:
 
--Context Models: what is part of the system and what is not. Includes model diagrams and activity diagrams
+### Context Models
+Context Models: what is part of the system and what is not. Includes model diagrams and activity diagrams
 
--Interaction Models: user to inputs/outputs, software to other systems/environment or among components in a system. Includes use-case digrams and sequence diagrams)
+![Context diagram](https://raw.githubusercontent.com/mapper1024/mapper1024/master/diagrams/Context_Diagram.png)
 
--Structural Models: how the components of the system relate to one another in a static manner. Includes class diagrams (top-level, detailed, aggregation/generalization), component diagrams, deployment diagrams, package diagrams, profile diagrams, and composite structure diagrams.
+### Interaction Models
+Interaction Models: user to inputs/outputs, software to other systems/environment or among components in a system. Includes use-case digrams and sequence diagrams)
 
--Behavorial Models: show the dynamic behavior of the system as it executes. It includes activity (for data-flow), state/state-machine diagrams (event-flow), or timing diagrams
+### Structure Models
+Structural Models: how the components of the system relate to one another in a static manner. Includes class diagrams (top-level, detailed, aggregation/generalization), component diagrams, deployment diagrams, package diagrams, profile diagrams, and composite structure diagrams.
 
--Entity-Retionship diagrams (for database design) with schema reduction and normalization to third-normal-form (3NF) or Boyd-Codd Normal Form (BCNF) dependening on need for preserving functional dependencies (FDs, essentially business/logic rules).
+### Behavior Models
+Behavorial Models: show the dynamic behavior of the system as it executes. It includes activity (for data-flow), state/state-machine diagrams (event-flow), or timing diagrams
+
+### Database
+Entity-Retionship diagrams (for database design) with schema reduction and normalization to third-normal-form (3NF) or Boyd-Codd Normal Form (BCNF) dependening on need for preserving functional dependencies (FDs, essentially business/logic rules).
+
+![Entity-Relationship diagram](https://raw.githubusercontent.com/mapper1024/mapper1024/master/diagrams/database.png)
 
 ## TODO: Operational Scenarios
 This section may include a set of scenarios that illustrate, from the user's perspective, what will be experienced when utilizing the system under various situations. In the article Inquiry-Based Requirements Analysis (IEEE Software, March 1994), scenarios are defined as follows:
