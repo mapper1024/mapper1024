@@ -1,7 +1,9 @@
 @startuml
-[User] <-> [Mapping Component] : viewing and modifying maps
-[Mapping Component] <-> [Map Backend] : rendering the map\nand translating user actions to edit the map
-[Map Backend] <-> [Database] : translating map data\nfetches and stores to the database
+[User] <- [Mapping Component] : viewing the map
+[User] -> [Mapping Component] : editing the map
+[Mapping Component] <- [Map Backend] : rendering map data as a map
+[Mapping Component] -> [Map Backend] : translating user actions to data modifications
+[Map Backend] <-> [Database] : map abstraction on top of the database
 
 note top of User
 	the user using the mapping tool
@@ -12,7 +14,7 @@ note top of [Mapping Component]
 end note
 
 note top of [Map Backend]
-	The interface abstracting the [Database] into a map
+	The interface abstracting the database into a map
 end note
 
 note top of Database
