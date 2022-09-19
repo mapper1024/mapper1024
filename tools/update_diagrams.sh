@@ -6,7 +6,7 @@ if [[ ! -f package.json ]]; then
 	exit 1
 fi
 
-plantuml diagrams -nbthread auto -v
+plantuml diagrams -nbthread auto -v &
 
 pushd diagrams
 

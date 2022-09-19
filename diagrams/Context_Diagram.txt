@@ -1,0 +1,22 @@
+@startuml
+[User] <-> [Mapping Component] : viewing and modifying maps
+[Mapping Component] <-> [Map Backend] : rendering the map\nand translating user actions to edit the map
+[Map Backend] <-> [Database] : translating map data\nfetches and stores to the database
+
+note top of User
+	the user using the mapping tool
+end note
+
+note top of [Mapping Component]
+	The graphical user interface component of the system
+end note
+
+note top of [Map Backend]
+	The interface abstracting the [Database] into a map
+end note
+
+note top of Database
+	The physical data representing the map
+end note
+
+@enduml
