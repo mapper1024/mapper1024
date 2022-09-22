@@ -1,0 +1,60 @@
+@startuml
+	abstract class MapBackend {
+		+ loaded : boolean
+		+ constructor()
+		+ async load()
+	}
+
+	class SqlJsMapBackend extends MapBackend {
+		- db : Database
+
+		+ constructor(options:Object)
+	}
+
+	class SQLiteMapBackend extends MapBackend {
+		- db : Database
+
+		+ constructor(filename:string, options:Object)
+	}
+
+	class Mapper {
+		- backend : MapBackend
+
+		+ constructor(backend:MapBackend)
+		+ render(element:HTMLElement) : RenderContext
+	}
+
+	Mapper - MapBackend : > attached to
+
+	class RenderContext {
+		- undoStack : Array<Action>
+		- redoStack : Array<Action>
+
+		+ constructor(parent:HTMLElement, mapper:Mapper)
+		+ disconnect()
+	}
+
+	RenderContext - Mapper : > attached to
+
+	abstract class Action {
+		+ constructor(context:RenderContext, options:Object)
+		+ empty() : boolean
+		+ async perform() : Action
+	}
+
+	Action - RenderContext : > operates on
+
+	class BulkAction extends Action {}
+	class ChangeNameAction extends Action {}
+	class DrawPathAction extends Action {}
+	class NodeCleanupAction extends Action {}
+	class RemoveAction extends Action {}
+	class RemoveEdgeAction extends Action {}
+	class SetNodeSpaceAction extends Action {}
+	class TranslateAction extends Action {}
+	class UnremoveAction extends Action {}
+	class UnremoveEdgeAction extends Action {}
+
+	UnremoveAction <--> RemoveAction : undoes
+	UnremoveEdgeAction <--> RemoveEdgeAction : undoes
+@enduml
