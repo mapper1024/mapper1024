@@ -1,0 +1,35 @@
+@startuml
+
+Actor User
+
+folder "Interaction Options" {
+	Agent Browser
+	Agent "Electron App" as ElectronApp
+
+	User <--> Browser : interaction
+	User <--> ElectronApp : interaction
+}
+
+folder "Mapping Tool" as MappingTool {
+	folder "Mapping Component" as MappingComponent {
+		component "Render Context" as RenderContext
+		component Mapper
+
+		Mapper --> RenderContext : provides map data
+		RenderContext --> Mapper : translates user input into map actions
+	}
+
+	RenderContext --> Browser : rendered map
+	Browser --> RenderContext : input events
+
+	RenderContext --> ElectronApp : rendered map
+	ElectronApp --> RenderContext : input events
+
+	component "Map Backend" as MapBackend
+
+	Mapper --> MapBackend : translate map actions into map data actions
+	MapBackend --> Mapper : provides map data
+}
+
+@enduml
+

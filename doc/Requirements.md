@@ -232,6 +232,8 @@ Interaction Models: user to inputs/outputs, software to other systems/environmen
 ### Structure Models
 Structural Models: how the components of the system relate to one another in a static manner. Includes class diagrams (top-level, detailed, aggregation/generalization), component diagrams, deployment diagrams, package diagrams, profile diagrams, and composite structure diagrams.
 
+![Package diagram](https://raw.githubusercontent.com/mapper1024/mapper1024/master/diagrams/Package_Diagram.png)
+
 ### Behavior Models
 Behavorial Models: show the dynamic behavior of the system as it executes. It includes activity (for data-flow), state/state-machine diagrams (event-flow), or timing diagrams
 
