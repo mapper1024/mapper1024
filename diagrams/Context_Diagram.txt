@@ -1,12 +1,18 @@
 @startuml
-[User] <- [Mapping Component] : viewing the map
-[User] -> [Mapping Component] : editing the map
+[User] <- [Browser Window] : viewing the rendered data
+[User] -> [Browser Window] : interacting with the page through inputs
+[Browser Window] -> [Mapping Component] : relaying user input as events
+[Browser Window] <- [Mapping Component] : rendering map as canvas pixels and HTML elements
 [Mapping Component] <- [Map Backend] : rendering map data as a map
 [Mapping Component] -> [Map Backend] : translating user actions to data modifications
 [Map Backend] <-> [Database] : map abstraction on top of the database
 
 note top of User
 	the user using the mapping tool
+end note
+
+note top of [Browser Window]
+	the Electron or web browser window running the system
 end note
 
 note top of [Mapping Component]
