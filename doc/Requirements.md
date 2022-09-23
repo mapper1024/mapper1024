@@ -44,6 +44,7 @@ These layers are:
 * Political - To show political boundaries: national territory, city limits, etc.
 * Annotation - for "out-of-world" notes (e.g. to show where a particular story takes place, or where a particular event occurred)
 
+
 * Issues: [#30](https://github.com/mapper1024/mapper1024/issues/30)
 * Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
 * Dependencies: Map pieces with arbitrary shape and position
