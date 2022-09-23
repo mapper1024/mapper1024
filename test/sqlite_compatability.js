@@ -26,8 +26,8 @@ describe("SQLite backend intercompatibility", function() {
 		const childEdgeAB = await this.backend.createEdge(childA.id, childB.id);
 
 		const backendFile = await fs.open(this.backendFilename, "w");
-		backendFile.write(await this.backend.getData());
-		backendFile.close();
+		await backendFile.write(await this.backend.getData());
+		await backendFile.close();
 
 		this.backend2 = new SQLiteMapBackend(this.backendFilename);
 		await this.backend2.load();
@@ -50,14 +50,14 @@ describe("SQLite backend intercompatibility", function() {
 
 		const childEdgeAB = await this.backend.createEdge(childA.id, childB.id);
 
-		this.backend.flush();
+		await this.backend.flush();
 
 		const backendFile = await fs.open(this.backendFilename, "r");
 		this.backend2 = new SqlJsMapBackend({
 			loadFrom: "data",
 			data: await backendFile.readFile(),
 		});
-		backendFile.close();
+		await backendFile.close();
 
 		await this.backend2.load();
 
