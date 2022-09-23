@@ -215,7 +215,7 @@ class SqlJsMapBackend extends MapBackend {
 
 		this.db.run("BEGIN EXCLUSIVE TRANSACTION");
 
-		for(const table of ["entity", "property", "node", "edge"]) {
+		for(const table of ["entity", "property", "node", "edge", "node_edge"]) {
 			const statement = this.db.prepare(`SELECT * FROM ${table}`);
 			const placeholders = statement.getColumnNames().map(() => "?");
 			const sql = `INSERT INTO ${table} VALUES (${placeholders.join(", ")})`;
