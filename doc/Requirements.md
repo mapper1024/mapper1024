@@ -58,6 +58,14 @@ Objects should be able to represent paths---such as a road, a trail, or a shippi
 * Criticality: MEDIUM
 * Dependencies: Explicit objects, multiple layers
 
+### The mapping tool should support a variety of map object types
+In order for a wide variety of maps to be supported, a broad number of generic terrain/map object types should be supported.
+
+See [issue #51](https://github.com/mapper1024/mapper1024/issues/51) for a current list of terrain and objects.
+
+* Criticality: MEDIUM
+* Dependencies: Explicit objects, multiple layers
+
 ### The map must look OK
 The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
 
