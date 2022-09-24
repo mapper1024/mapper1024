@@ -10,3 +10,8 @@
 
 # v0.2.1
 * Smoother pixelated graphics; documentation overhaul in progress.
+
+# v0.2.2
+* Continued development of documentation.
+* Database upgrade---better schema design for edges.
+* Unit test confirming intercompatibility between the SQLite3 backend and the sql.js backend.
