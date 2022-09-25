@@ -40,9 +40,10 @@ The user community consists of people with all levels of computer expertise; the
 To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
 
 These layers are:
-* Geographical - The primary terrain/object layer
-* Political - To show political boundaries: national territory, city limits, etc.
-* Annotation - for "out-of-world" notes (e.g. to show where a particular story takes place, or where a particular event occurred)
+- Geographical - The primary terrain/object layer
+- Political - To show political boundaries: national territory, city limits, etc.
+- Annotation - for "out-of-world" notes (e.g. to show where a particular story takes place, or where a particular event occurred)
+
 
 
 * Issues: [#30](https://github.com/mapper1024/mapper1024/issues/30)
