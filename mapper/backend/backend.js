@@ -3,6 +3,7 @@ import { EntityRef, NodeRef, EdgeRef, DirEdgeRef } from "./entity.js";
 import { HookContainer } from "../hook_container.js";
 import { asyncFrom } from "../utils.js";
 import { NodeTypeRegistry } from "../node_type.js";
+import { LayerRegistry } from "../layer.js";
 
 /** Abstract mapper backend, i.e. what map is being presented.
  * The backend translates between the concept of a map and a database, a file, an API, or whatever else is actually being used to store the data.
@@ -20,6 +21,7 @@ class MapBackend {
 		this.loaded = false;
 		this.hooks = new HookContainer();
 		this.nodeTypeRegistry = new NodeTypeRegistry();
+		this.layerRegistry = new LayerRegistry();
 		this.entityCache = {};
 	}
 

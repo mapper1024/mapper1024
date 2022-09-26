@@ -213,6 +213,15 @@ class NodeRef extends EntityRef {
 		return this.getPNumber("radius");
 	}
 
+	async getLayer() {
+		const layerId = await this.getPString("layer");
+		return layerId ? this.backend.layerRegistry.get(layerId) : this.backend.layerRegistry.getDefault();
+	}
+
+	async setLayer(layer) {
+		return this.setPString("layer", layer.id);
+	}
+
 	/** Get all edges connected to this node.
 	 * @returns {AsyncIterable.<DirEdgeRef>} all the edges, with direction information from this node.
 	 */
