@@ -112,5 +112,10 @@ Preparing for practicum work, I distilled existing documentation into a Project 
 
 Future reflection journals will include more details about implementation; Practicum work began over the past week, following my first organizing meeting.
 
+# Practicum Reflection Journal through 2022-09-25
+The bulk of this period involved expanding the formal requirements document and building system models. This proceeded as expected; I knew writing the requirements and designing the models would take longer than I might instinctively think. Meeting with Dr. Kasper and Dr. Robbeloth helped to clear up any questions I had about to proceed.
+
+Development remains on track. The biggest programming change was adding database upgrade infrastructure and moving edges to a new storage schema for a more understandable diagram. I also added a unit test for binary compatability between the two SQLite map backends; the need for this test manifested as I was working on upgrading both backends' schemas simultaneously.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
