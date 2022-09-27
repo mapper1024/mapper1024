@@ -1,9 +1,66 @@
 @startuml
+	class Vector3 {
+		+ x : number
+		+ y : number
+		+ z : number
+
+		+ add(other:Vector3) : Vector3
+		+ subtract(other:Vector3) : Vector3
+		+ multiplyScalar(scalar:number) : Vector3
+		+ divideScalar(scalar:number) : Vector3
+
+		+ lengthSquared() : number
+		+ length() : number
+		+ normalize() : Vector3
+		+ round() : Vector3
+
+		+ map(f:function) : Vector3
+	}
+
+	class EntityRef {
+		- backend : MapBackend
+		+ id : number
+
+		+ async exists() : boolean
+		+ async valid() : boolean
+
+		+ async getPString(propertyName:string) : string
+		+ async getPNumber(propertyName:string) : number
+		+ async getPVector3(propertyName:string) : Vector3
+
+		+ async setPString(propertyName:string, value:string)
+		+ async setPNumber(propertyName:string, value:number)
+		+ async setPVector3(propertyName:string, value:Vector3)
+
+		+ async remove()
+		+ async unremove()
+	}
+
+	class NodeRef extends EntityRef {
+		 + async getNodeType() : string
+		 + async getChildren() : Iterable<NodeRef>
+		 + async getParent() : NodeRef <<nullable>>
+		 + async getEdges() : Iterable<DirEdgeRef>
+	}
+	class EdgeRef extends EntityRef {
+		+ async getNodes() : Iterable<NodeRef>
+	}
+	class DirEdgeRef extends EdgeRef {
+		+ async getDirOtherNode() : NodeRef
+	}
+
 	abstract class MapBackend {
 		+ loaded : boolean
 		+ constructor()
 		+ async load()
+
+		+ getEntityRef(id:number) : EntityRef
+		+ getNodeRef(id:number) : NodeRef
+		+ getEdgeRef(id:number) : EdgeRef
+		+ getDirEdgeRef(id:number, startId:number) : DirEdgeRef
 	}
+
+	EntityRef - MapBackend : > refers to
 
 	class SqlJsMapBackend extends MapBackend {
 		- db : Database
