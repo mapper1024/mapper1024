@@ -17,7 +17,7 @@ class DrawPathAction extends Action {
 		const radius = this.getRadiusOnMap();
 
 		const getAltitudeAdd = async (point) => {
-			const closestNodeRef = await this.context.getDrawnNodeAtCanvasPoint(this.context.mapPointToCanvas(point));
+			const closestNodeRef = await this.context.getDrawnNodeAtCanvasPoint(this.context.mapPointToCanvas(point), this.options.layer);
 			if(closestNodeRef && (!(await closestNodeRef.getParent()) || (await closestNodeRef.getParent()).id !== this.options.parent.id)) {
 				return (await closestNodeRef.getCenter()).z + this.context.altitudeIncrement;
 			}

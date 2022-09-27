@@ -6,6 +6,10 @@ class Brush {
 		this.maxSize = 20;
 	}
 
+	getLayer() {
+		return this.context.mapper.backend.layerRegistry.getDefault();
+	}
+
 	displayButton(button) {
 		button.innerText = this.constructor.name;
 	}

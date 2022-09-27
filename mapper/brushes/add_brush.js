@@ -17,6 +17,10 @@ class AddBrush extends Brush {
 		this.setNodeTypeIndex(0);
 	}
 
+	getLayer() {
+		return this.context.mapper.backend.layerRegistry.get(this.getNodeType().def.layer);
+	}
+
 	displayButton(button) {
 		button.innerText = "(A)dd";
 		button.title = "Add Objects";
@@ -136,6 +140,7 @@ class AddBrush extends Brush {
 			drawEvent: drawEvent,
 			parent: this.parentNode,
 			undoParent: this.undoParent,
+			layer: this.getLayer(),
 		};
 
 		return await this.context.performAction(new DrawPathAction(this.context, drawPathActionOptions));

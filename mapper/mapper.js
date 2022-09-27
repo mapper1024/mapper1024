@@ -393,7 +393,7 @@ class RenderContext {
 	async recalculateSelection() {
 		if(this.wantRecheckSelection) {
 			this.wantRecheckSelection = false;
-			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition);
+			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition, this.brush.getLayer());
 			if(closestNodeRef) {
 				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
@@ -422,13 +422,19 @@ class RenderContext {
 		return 0;
 	}
 
-	async getDrawnNodeAtCanvasPoint(point) {
+	async getDrawnNodeAtCanvasPoint(point, layer) {
 		const tilePosition = point.add(this.scrollOffset).map((c) => Math.floor(c / Tile.SIZE));
 		const tX = this.tiles[tilePosition.x];
 		if(tX) {
 			const tile = tX[tilePosition.y];
 			if(tile) {
-				return tile.closestNodeRef;
+				const layerType = layer.getType();
+				if(layerType === "geographical") {
+					return tile.closestNodeRef;
+				}
+				else if(layerType === "political") {
+					return tile.closestPoliticalNodeRef;
+				}
 			}
 		}
 

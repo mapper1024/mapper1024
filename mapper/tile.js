@@ -26,6 +26,7 @@ class Tile {
 		this.context = megaTile.context;
 		this.megaTile = megaTile;
 		this.nearbyNodes = new Map();
+		this.nearbyPoliticalNodeIds = new Set();
 		this.nearbyPoliticalTypeIds = new Set();
 		this.nearbyPoliticalTypesInOrder = [];
 		this.corner = corner;
@@ -35,6 +36,9 @@ class Tile {
 		this.closestNodeDistance = Infinity;
 		this.closestNodeRadiusInUnits = Infinity;
 		this.closestNodeAltitude = -Infinity;
+
+		this.closestPoliticalNodeRef = null;
+		this.closestPoliticalNodeDistance = Infinity;
 	}
 
 	getCenter() {
@@ -79,8 +83,13 @@ class Tile {
 			else if(nodeLayerType === "political") {
 				const nodeType = await nodeRef.getType();
 				if(!this.nearbyPoliticalTypeIds.has(nodeType.id)) {
-					this.nearbyPoliticalTypeIds.add(nodeType.id)
+					this.nearbyPoliticalTypeIds.add(nodeType.id);
 					this.nearbyPoliticalTypesInOrder.push(nodeType);
+				}
+
+				if(distance < this.closestPoliticalNodeDistance) {
+					this.closestPoliticalNodeRef = nodeRef;
+					this.closestPoliticalNodeDistance = distance;
 				}
 			}
 
@@ -152,7 +161,7 @@ class Tile {
 			const c = this.megaTile.canvasContext;
 			for(const nodeType of this.nearbyPoliticalTypesInOrder) {
 				c.fillStyle = nodeType.def.color;
-				c.fillRect(position.x + i % (Tile.SIZE / 4), position.y + Math.floor(i / (Tile.SIZE / 4)), 2, 2);
+				c.fillRect(position.x + (i * 2) % (Tile.SIZE / 4), position.y + Math.floor((i * 2) / (Tile.SIZE / 4)), 4, 4);
 			}
 		}
 	}
