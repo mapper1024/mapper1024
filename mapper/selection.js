@@ -60,6 +60,10 @@ class Selection {
 		this.directSelectedNodeIds = directSelectedNodeIds;
 	}
 
+	hasNodeId(nodeId) {
+		return this.selectedNodeIds.has(nodeId);
+	}
+
 	hasNodeRef(nodeRef) {
 		return this.selectedNodeIds.has(nodeRef.id);
 	}

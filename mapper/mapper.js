@@ -344,9 +344,18 @@ class RenderContext {
 
 		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
 
+		const matchesPolitical = (tile, selection) => {
+			for(const politicalNodeId of tile.nearbyPoliticalNodeIds) {
+				if(selection.hasNodeId(politicalNodeId)) {
+					return true;
+				}
+			}
+			return false;
+		};
+
 		let tileCount = 0;
 		for(const tile of this.drawnTiles) {
-			if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
+			if((tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) || matchesPolitical(tile, selection)) {
 				const tileCenter = tile.getCenter();
 				const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
 				if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
