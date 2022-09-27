@@ -254,6 +254,14 @@ Structural Models: how the components of the system relate to one another in a s
 Behavorial Models: show the dynamic behavior of the system as it executes. It includes activity (for data-flow), state/state-machine diagrams (event-flow), or timing diagrams
 
 ### Database
-Entity-Retionship diagrams (for database design) with schema reduction and normalization to third-normal-form (3NF) or Boyd-Codd Normal Form (BCNF) dependening on need for preserving functional dependencies (FDs, essentially business/logic rules).
-
 ![Entity-Relationship diagram](https://raw.githubusercontent.com/mapper1024/mapper1024/master/diagrams/database.png)
+
+This diagram devolves to the following tables:
+
+```
+entity(entityid <<primary key>>, type, valid)
+property(entityid <<primary key, foreign key to entityid in entity>>, property <<primary key>>, v_string, v_number, x, y, z)
+node(entityid <<primary key, foreign key to entityid in entity>>, nodetype, parentid <<foreign key to entityid in node>>)
+edge(entityid <<primary key, foreign key to entityid in entity>>)
+node_edge(edgeid <<primary key, foreign key to entityid in edge>>, nodeid <<primary key, foreign key to entityid in node>>)
+```
