@@ -257,12 +257,3 @@ Behavorial Models: show the dynamic behavior of the system as it executes. It in
 Entity-Retionship diagrams (for database design) with schema reduction and normalization to third-normal-form (3NF) or Boyd-Codd Normal Form (BCNF) dependening on need for preserving functional dependencies (FDs, essentially business/logic rules).
 
 ![Entity-Relationship diagram](https://raw.githubusercontent.com/mapper1024/mapper1024/master/diagrams/database.png)
-
-## TODO: Operational Scenarios
-This section may include a set of scenarios that illustrate, from the user's perspective, what should be experienced when utilizing the system under various situations. In the article Inquiry-Based Requirements Analysis (IEEE Software, March 1994), scenarios are defined as follows:
-
-> A scenario is simply a proposed specific use of the system. More specifically, a scenario is a description of one or more end-to-end transactions involving the required system and its environment. Scenarios can be documented in different ways, depending on the level of detail needed. The simplest form is a use-case diagram, which consists of a labeled interaction between actors. More detailed forms are called scripts. These are usually represented as tables or sequence diagrams and involve identifying a sequence of actions and the agent (doer) of each action.
-
-Although scenarios are useful in acquiring and validating requirements, they are not themselves requirements, because they describe the system's behavior only in specific situations; a specification, on the other hand, describes what the system should do in general.
-
-You may want to include user stories here as an alternative for describing operational scenarios
