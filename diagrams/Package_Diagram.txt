@@ -12,7 +12,12 @@ folder "Interaction Options" {
 
 folder "Mapping Tool" as MappingTool {
 	folder "Mapping Component" as MappingComponent {
-		component "Render Context" as RenderContext
+		folder "Render Context" as RenderContext {
+			component Canvas
+			component "Tile Renderer"
+			component Brushes
+			component Actions
+		}
 		component Mapper
 
 		Mapper --> RenderContext : provides map data
@@ -25,7 +30,10 @@ folder "Mapping Tool" as MappingTool {
 	RenderContext --> ElectronApp : rendered map
 	ElectronApp --> RenderContext : input events
 
-	component "Map Backend" as MapBackend
+	folder "Map Backend" as MapBackend {
+		component "Entity Abstraction Layer"
+		component "Database Interface"
+	}
 
 	Mapper --> MapBackend : translate map actions into map data actions
 	MapBackend --> Mapper : provides map data
