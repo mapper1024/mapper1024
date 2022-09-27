@@ -7,6 +7,10 @@ class Layer {
 	getDescription() {
 		return this.id;
 	}
+
+	getType() {
+		return this.def.type;
+	}
 }
 
 class LayerRegistry {

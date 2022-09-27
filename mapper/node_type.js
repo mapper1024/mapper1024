@@ -15,26 +15,37 @@ class NodeTypeRegistry {
 
 		this.registerType(new NodeType("water", {
 			color: "darkblue",
+			layer: "geographical",
 		}));
 
 		this.registerType(new NodeType("grass", {
 			color: "lightgreen",
+			layer: "geographical",
 		}));
 
 		this.registerType(new NodeType("forest", {
 			color: "darkgreen",
+			layer: "geographical",
 		}));
 
 		this.registerType(new NodeType("rocks", {
 			color: "gray",
+			layer: "geographical",
 		}));
 
 		this.registerType(new NodeType("road", {
 			color: "brown",
+			layer: "geographical",
 		}));
 
 		this.registerType(new NodeType("buildings", {
 			color: "yellow",
+			layer: "geographical",
+		}));
+
+		this.registerType(new NodeType("region", {
+			color: "orange",
+			layer: "political",
 		}));
 	}
 

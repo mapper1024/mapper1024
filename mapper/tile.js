@@ -26,6 +26,8 @@ class Tile {
 		this.context = megaTile.context;
 		this.megaTile = megaTile;
 		this.nearbyNodes = new Map();
+		this.nearbyPoliticalTypeIds = new Set();
+		this.nearbyPoliticalTypesInOrder = [];
 		this.corner = corner;
 
 		this.closestNodeRef = null;
@@ -52,20 +54,34 @@ class Tile {
 	}
 
 	async addNode(nodeRef) {
+		const nodeLayer = await nodeRef.getLayer();
+		const nodeLayerType = nodeLayer.getType();
 		const nodeCenterInUnits = await nodeRef.getEffectiveCenter();
 		const nodeCenterInPixels = nodeCenterInUnits.map((a) => this.context.unitsToPixels(a));
 		const distance = nodeCenterInPixels.subtract(this.getCenter()).length();
 		const nodeRadiusInUnits = await nodeRef.getRadius();
 		const nodeRadiusInPixels = this.context.unitsToPixels(nodeRadiusInUnits);
-		if(distance <= nodeRadiusInPixels + Tile.SIZE / 2 && nodeRadiusInPixels >= Tile.SIZE / 8) {
-			this.nearbyNodes.set(nodeRef.id, nodeRef);
+		const fits = distance <= nodeRadiusInPixels + Tile.SIZE / 2 && nodeRadiusInPixels >= Tile.SIZE / 8;
+		if(fits) {
 			this.megaTile.addNode(nodeRef.id);
 
-			if(distance < this.closestNodeDistance && (nodeCenterInUnits.z > this.closestNodeAltitude || (nodeCenterInUnits.z === this.closestNodeAltitude && nodeRadiusInUnits <= this.closestNodeRadiusInUnits))) {
-				this.closestNodeRef = nodeRef;
-				this.closestNodeRadiusInUnits = nodeRadiusInUnits;
-				this.closestNodeAltitude = nodeCenterInUnits.z;
-				this.closestNodeType = await nodeRef.getType();
+			if(nodeLayerType === "geographical") {
+				this.nearbyNodes.set(nodeRef.id, nodeRef);
+
+				if(distance < this.closestNodeDistance && (nodeCenterInUnits.z > this.closestNodeAltitude || (nodeCenterInUnits.z === this.closestNodeAltitude && nodeRadiusInUnits <= this.closestNodeRadiusInUnits))) {
+					this.closestNodeRef = nodeRef;
+					this.closestNodeRadiusInUnits = nodeRadiusInUnits;
+					this.closestNodeAltitude = nodeCenterInUnits.z;
+					this.closestNodeType = await nodeRef.getType();
+				}
+
+			}
+			else if(nodeLayerType === "political") {
+				const nodeType = await nodeRef.getType();
+				if(!this.nearbyPoliticalTypeIds.has(nodeType.id)) {
+					this.nearbyPoliticalTypeIds.add(nodeType.id)
+					this.nearbyPoliticalTypesInOrder.push(nodeType);
+				}
 			}
 
 			return true;
@@ -94,42 +110,54 @@ class Tile {
 	}
 
 	async render() {
-		const position = this.getMegaTilePosition();
+		if(this.closestNodeType) {
+			const position = this.getMegaTilePosition();
 
-		const key = [this.closestNodeType.id, Math.floor(Math.random() * 4)];
+			const key = [this.closestNodeType.id, Math.floor(Math.random() * 4)];
 
-		for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
-			dirName;
-			dir;
-			const otherType = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.id : "null";
-			key.push(otherType);
-		}
-
-		const keyString = key.join(" ");
-		const tileRenders = this.context.tileRenders;
-		let canvas = tileRenders[keyString];
-
-		if(canvas === undefined) {
-			canvas = document.createElement("canvas");
-			canvas.width = Tile.SIZE;
-			canvas.height = Tile.SIZE;
-
-			const neighbors = {};
 			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
-				neighbors[dirName] = {
-					dir: dir,
-					type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
-				};
+				dirName;
+				dir;
+				const otherType = (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType.id : "null";
+				key.push(otherType);
 			}
 
-			await Tile.renderMaster(canvas, this.closestNodeType, neighbors);
-			tileRenders[keyString] = canvas;
+			const keyString = key.join(" ");
+			const tileRenders = this.context.tileRenders;
+			let canvas = tileRenders[keyString];
+
+			if(canvas === undefined) {
+				canvas = document.createElement("canvas");
+				canvas.width = Tile.SIZE;
+				canvas.height = Tile.SIZE;
+
+				const neighbors = {};
+				for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+					neighbors[dirName] = {
+						dir: dir,
+						type: (otherTile && otherTile.closestNodeType) ? otherTile.closestNodeType : null,
+					};
+				}
+
+				await Tile.renderMasterGeographical(canvas, this.closestNodeType, neighbors);
+				tileRenders[keyString] = canvas;
+			}
+
+			this.megaTile.canvasContext.drawImage(canvas, position.x, position.y);
 		}
 
-		this.megaTile.canvasContext.drawImage(canvas, position.x, position.y);
+		if(this.nearbyPoliticalTypesInOrder.length > 0) {
+			let i = 0;
+			const position = this.getMegaTilePosition();
+			const c = this.megaTile.canvasContext;
+			for(const nodeType of this.nearbyPoliticalTypesInOrder) {
+				c.fillStyle = nodeType.def.color;
+				c.fillRect(position.x + i % (Tile.SIZE / 4), position.y + Math.floor(i / (Tile.SIZE / 4)), 2, 2);
+			}
+		}
 	}
 
-	static async renderMaster(canvas, type, neighbors) {
+	static async renderMasterGeographical(canvas, type, neighbors) {
 		const c = canvas.getContext("2d");
 
 		const colors = {

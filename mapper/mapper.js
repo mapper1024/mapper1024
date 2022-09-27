@@ -609,7 +609,7 @@ class RenderContext {
 				const tY = this.nodeIdToTiles[nodeId][x];
 				for(const y in tY) {
 					const tile = tY[y];
-					if(!clearedTiles.has(tile) && tile.closestNodeRef.id === nodeId) {
+					if(!clearedTiles.has(tile) && tile.closestNodeRef && tile.closestNodeRef.id === nodeId) {
 						clearedTiles.add(tile);
 						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
 						const megaTile = tile.megaTile;
@@ -1173,6 +1173,7 @@ class Mapper {
 		await nodeRef.setCenter(point);
 		await nodeRef.setEffectiveCenter(point);
 		await nodeRef.setType(options.type);
+		await nodeRef.setLayer(this.backend.layerRegistry.get(options.type.def.layer));
 		await nodeRef.setRadius(options.radius);
 		await this.hooks.call("insertNode", nodeRef);
 		return nodeRef;
