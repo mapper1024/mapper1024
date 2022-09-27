@@ -20,8 +20,10 @@ class DeleteBrush extends Brush {
 
 	async * getNodesInBrush(brushPosition) {
 		for await (const nodeRef of this.context.drawnNodes()) {
-			if(this.context.mapPointToCanvas((await nodeRef.getEffectiveCenter())).subtract(brushPosition).length() <= this.getRadius() && !(await nodeRef.hasChildren())) {
-				yield nodeRef;
+			if((await nodeRef.getLayer()).id === this.context.getCurrentLayer().id) {
+				if(this.context.mapPointToCanvas((await nodeRef.getEffectiveCenter())).subtract(brushPosition).length() <= this.getRadius() && !(await nodeRef.hasChildren())) {
+					yield nodeRef;
+				}
 			}
 		}
 	}

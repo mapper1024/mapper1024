@@ -17,72 +17,77 @@ class AddBrush extends Brush {
 		this.setNodeTypeIndex(0);
 	}
 
-	getLayer() {
-		return this.context.mapper.backend.layerRegistry.get(this.getNodeType().def.layer);
-	}
-
 	displayButton(button) {
 		button.innerText = "(A)dd";
 		button.title = "Add Objects";
 	}
 
 	displaySidebar(brushbar, container) {
-		const list = document.createElement("ul");
-		list.setAttribute("class", "mapper1024_add_brush_strip");
-		container.appendChild(list);
+		const make = (layer) => {
+			container.innerHTML = "";
 
-		for(const nodeType of this.nodeTypes) {
-			const index = this.nodeTypes.indexOf(nodeType);
+			const list = document.createElement("ul");
+			list.setAttribute("class", "mapper1024_add_brush_strip");
+			container.appendChild(list);
 
-			const li = document.createElement("li");
-			list.appendChild(li);
+			for(const nodeType of this.nodeTypes) {
+				if(nodeType.def.layer === layer.getType()) {
+					const index = this.nodeTypes.indexOf(nodeType);
 
-			const button = document.createElement("canvas");
-			li.appendChild(button);
+					const li = document.createElement("li");
+					list.appendChild(li);
 
-			button.width = brushbar.size.x - 8;
-			button.height = brushbar.size.x - 8;
+					const button = document.createElement("canvas");
+					li.appendChild(button);
 
-			button.title = nodeType.id;
+					button.width = brushbar.size.x - 8;
+					button.height = brushbar.size.x - 8;
 
-			const c = button.getContext("2d");
-			c.fillStyle = nodeType.def.color;
-			c.fillRect(0, 0, button.width, button.height);
+					button.title = nodeType.id;
 
-			c.textBaseline = "top";
-			c.font = "12px sans";
+					const c = button.getContext("2d");
+					c.fillStyle = nodeType.def.color;
+					c.fillRect(0, 0, button.width, button.height);
 
-			const text = nodeType.id;
-			const firstMeasure = c.measureText(text);
+					c.textBaseline = "top";
+					c.font = "12px sans";
 
-			c.font = `${button.width / firstMeasure.width * 12}px sans`;
-			const measure = c.measureText(text);
-			const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
-			c.globalAlpha = 0.25;
-			c.fillStyle = "black";
-			c.fillRect(0, 0, measure.width, height);
-			c.globalAlpha = 1;
-			c.fillStyle = "white";
-			c.fillText(text, 0, 0);
+					const text = nodeType.id;
+					const firstMeasure = c.measureText(text);
 
-			button.onclick = () => {
-				this.setNodeTypeIndex(index);
-				this.context.focus();
-			};
+					c.font = `${button.width / firstMeasure.width * 12}px sans`;
+					const measure = c.measureText(text);
+					const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
+					c.globalAlpha = 0.25;
+					c.fillStyle = "black";
+					c.fillRect(0, 0, measure.width, height);
+					c.globalAlpha = 1;
+					c.fillStyle = "white";
+					c.fillText(text, 0, 0);
 
-			const update = () => {
-				if(this.nodeTypeIndex === index) {
-					button.style.border = "3px dotted black";
+					button.onclick = () => {
+						this.setNodeTypeIndex(index);
+						this.context.focus();
+					};
+
+					const update = () => {
+						if(this.nodeTypeIndex === index) {
+							button.style.border = "3px dotted black";
+						}
+						else {
+							button.style.border = "0";
+						}
+					};
+
+					update();
+
+					this.hooks.add("type_changed", update);
 				}
-				else {
-					button.style.border = "0";
-				}
-			};
+			}
+		};
 
-			update();
-
-			this.hooks.add("type_changed", update);
-		}
+		make(this.context.getCurrentLayer());
+		this.context.hooks.add("current_layer_change", (layer) => make(layer));
 	}
 
 	setNodeTypeIndex(index) {
@@ -140,7 +145,7 @@ class AddBrush extends Brush {
 			drawEvent: drawEvent,
 			parent: this.parentNode,
 			undoParent: this.undoParent,
-			layer: this.getLayer(),
+			layer: this.context.getCurrentLayer(),
 		};
 
 		return await this.context.performAction(new DrawPathAction(this.context, drawPathActionOptions));

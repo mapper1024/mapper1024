@@ -84,6 +84,33 @@ class Brushbar {
 
 		this.element.appendChild(document.createElement("hr"));
 
+		const layerButtonContainer = document.createElement("div");
+		layerButtonContainer.setAttribute("class", "mapper1024_brush_button_container");
+		this.element.appendChild(layerButtonContainer);
+
+		const layerButton = (layer) => {
+			const button = document.createElement("button");
+			button.setAttribute("class", "mapper1024_brush_button");
+			button.innerText = layer.getDescription();
+			button.onclick = () => {
+				this.context.setCurrentLayer(layer);
+				this.context.focus();
+			};
+
+			this.context.hooks.add("current_layer_change", (newLayer) => {
+				button.style["font-weight"] = layer.id === newLayer.id ? "bold" : "normal";
+			});
+
+			return button;
+		};
+
+		for(const layer of this.context.mapper.backend.layerRegistry.getLayers()) {
+			const button = layerButton(layer);
+			layerButtonContainer.appendChild(button);
+		}
+
+		this.element.appendChild(document.createElement("hr"));
+
 		this.brushStrip = document.createElement("span");
 
 		this.recalculate();

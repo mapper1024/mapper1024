@@ -18,6 +18,9 @@ function style() {
 .mapper1024_brush_button {
 	padding: 0;
 	margin: 0;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
 .mapper1024_brush_size_button {

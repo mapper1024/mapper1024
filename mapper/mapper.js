@@ -73,6 +73,8 @@ class RenderContext {
 
 		this.brush = this.brushes.add;
 
+		this.currentLayer = this.mapper.backend.layerRegistry.getDefault();
+
 		this.hoverSelection = new Selection(this, []);
 		this.selection = new Selection(this, []);
 
@@ -299,6 +301,16 @@ class RenderContext {
 		setTimeout(this.applyZoom.bind(this), 10);
 
 		this.changeBrush(this.brushes.add);
+		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	getCurrentLayer() {
+		return this.currentLayer;
+	}
+
+	setCurrentLayer(layer) {
+		this.currentLayer = layer;
+		this.hooks.call("current_layer_change", layer);
 	}
 
 	isPanning() {
@@ -393,7 +405,7 @@ class RenderContext {
 	async recalculateSelection() {
 		if(this.wantRecheckSelection) {
 			this.wantRecheckSelection = false;
-			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition, this.brush.getLayer());
+			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
 			if(closestNodeRef) {
 				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
@@ -615,7 +627,7 @@ class RenderContext {
 				const tY = this.nodeIdToTiles[nodeId][x];
 				for(const y in tY) {
 					const tile = tY[y];
-					if(!clearedTiles.has(tile) && tile.closestNodeRef && tile.closestNodeRef.id === nodeId) {
+					if(!clearedTiles.has(tile) && ((tile.closestNodeRef && tile.closestNodeRef.id === nodeId) || tile.nearbyPoliticalNodeIds.has(nodeId))) {
 						clearedTiles.add(tile);
 						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
 						const megaTile = tile.megaTile;
@@ -625,7 +637,14 @@ class RenderContext {
 							for(const nodeId of megaTile.popRedraw()) {
 								updatedNodeIds.add(nodeId);
 							}
-							updatedNodeIds.add(tile.closestNodeRef.id);
+
+							if(tile.closestNodeRef) {
+								updatedNodeIds.add(tile.closestNodeRef.id);
+							}
+
+							for(const nodeId of tile.nearbyPoliticalNodeIds) {
+								updatedNodeIds.add(nodeId);
+							}
 						}
 					}
 				}

@@ -91,6 +91,8 @@ class Tile {
 					this.closestPoliticalNodeRef = nodeRef;
 					this.closestPoliticalNodeDistance = distance;
 				}
+
+				this.nearbyPoliticalNodeIds.add(nodeRef.id);
 			}
 
 			return true;
