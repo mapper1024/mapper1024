@@ -267,3 +267,7 @@ node(entityid <<primary key, foreign key to entityid in entity>>, nodetype, pare
 edge(entityid <<primary key, foreign key to entityid in entity>>)
 node_edge(edgeid <<primary key, foreign key to entityid in edge>>, nodeid <<primary key, foreign key to entityid in node>>)
 ```
+
+The database is designed in a straightforward manner. The database is a set of *entities*. Every *entity* has a set of key-value *properties* where the key can be any string and the value can be either a number, a string, or a 3-coordinate vector. *Nodes* and *edges* are *entities* with special behavior. *Nodes* have a *node type* and can have a *parent node*. *Edges* refer to two separate *nodes* to connect them. Both *nodes* and *edges* can have arbitrary properties, as they are merely derived types of *entities*.
+
+The database is built in a very lightweight manner: only relationships between nodes and edges are modeled explicitly. The *property* system, as implemented in the *property* table, provides entities with an arbitrary key-value storage. *Properties* are not explicitly stored in the database as columns, but rather the program can store and retrieve arbitrary properties. This allows for expansion of what properties are being used without needing to update the database schema and go through a migration properties. Future versions of the program can use new properties in a backward-compatible manner. See the development journal through 2022-10-09 for an example of the flexibility of this approach.

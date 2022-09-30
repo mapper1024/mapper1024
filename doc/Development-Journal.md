@@ -117,5 +117,8 @@ The bulk of this period involved expanding the formal requirements document and 
 
 Development remains on track. The biggest programming change was adding database upgrade infrastructure and moving edges to a new storage schema for a more understandable diagram. I also added a unit test for binary compatability between the two SQLite map backends; the need for this test manifested as I was working on upgrading both backends' schemas simultaneously.
 
+# Through 2022-10-09
+This development period involved adding additional layers (Political and Annotation). This was accomplished by adding a "layer" property to nodes that stored a layer ID to identify which layer the node belonged to. The database schema did not need to be altered since additional properties are supported automatically, saving a migration. Layers are currently defined in a generic layer registry class with the three hardcoded layer types: Geographical (the previously existing layer representing physical terrain), Political ("imaginary" parts of the world like political borders), and Annotation ("out-of-world" notes or sketches). In the future, map backends may provide their own layer registries for additional layers, but due to the logic needed to display the different layers in different ways these three are the only currently supported layers.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
