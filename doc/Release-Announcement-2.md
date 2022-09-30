@@ -5,7 +5,8 @@
 * Representation of explicit objects
 * Representation of paths
 * Appearance of map
- * *The map graphics shown on the screen are good*
+ * *The map graphics shown on the screen are* (Quality scale)
+ * *It is easy to tell what you are looking at in the map* (Agreement scale)
 * Distance discovery
 * Help system
 * Map rendering styles
