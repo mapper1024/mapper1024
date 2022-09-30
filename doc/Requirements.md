@@ -73,8 +73,10 @@ See [issue #51](https://github.com/mapper1024/mapper1024/issues/51) for a curren
 * Criticality: MEDIUM
 * Dependencies: Explicit objects, multiple layers
 
-### The map must look OK
+### The map must graphically satisfy median user expectations
 The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
+
+This may be judged by achieving an average middle-or-above (i.e. *Fair* or better) score on a [Likert scale](https://www.simplypsychology.org/likert-scale.html) user survey of the appearance of the map during editing. Questions should cover aesthetics and readability/usability.
 
 * Inputs: The map created by the user.
 * Outputs: Algorithmically rendered graphics.
