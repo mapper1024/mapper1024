@@ -190,12 +190,26 @@ class Tile {
 
 			const position = this.getMegaTilePosition();
 			const c = this.megaTile.canvasContext;
+
+			const actualNodeIds = [];
 			for(const nodeId of this.nearbyPoliticalMasterNodeIds) {
 				if(!found.has(nodeId) || found.get(nodeId) < totalTiles) {
-					const i = nodeId % colors.length;
-					c.fillStyle = colors[i];
-					c.fillRect(position.x + Math.floor(i % (Tile.SIZE / 4)) * 4, position.y + (Math.floor(i / (Tile.SIZE / 4)) % (Tile.SIZE / 4)) * 4, Tile.SIZE / 4, Tile.SIZE / 4);
+					actualNodeIds.push(nodeId);
 				}
+			}
+
+			const radiansPerNode = Math.PI * 2 / actualNodeIds.length;
+
+			let i = 0;
+			for(const nodeId of actualNodeIds) {
+				const colorI = nodeId % colors.length;
+				c.fillStyle = colors[colorI];
+
+				c.beginPath();
+				c.arc(position.x + Tile.SIZE / 2, position.y + Tile.SIZE / 2, Tile.SIZE / 8, radiansPerNode * i, radiansPerNode * (i + 1), false);
+				c.fill();
+
+				i++;
 			}
 		}
 	}
