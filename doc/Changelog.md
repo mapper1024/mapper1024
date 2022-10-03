@@ -15,3 +15,7 @@
 * Continued development of documentation.
 * Database upgrade---better schema design for edges.
 * Unit test confirming intercompatibility between the SQLite3 backend and the sql.js backend.
+
+# v0.2.3
+* Add political and annotation layers.
+* Begin developing user survey for 0.3 release.
