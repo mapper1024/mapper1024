@@ -36,20 +36,6 @@ The user community consists of people with all levels of computer expertise; the
 
 ## Functional or System Requirements
 
-### The map must support multiple layers
-To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
-
-These layers are:
-- Geographical - The primary terrain/object layer
-- Political - To show political boundaries: national territory, city limits, etc.
-- Annotation - for "out-of-world" notes (e.g. to show where a particular story takes place, or where a particular event occurred)
-
-
-
-* Issues: [#30](https://github.com/mapper1024/mapper1024/issues/30)
-* Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
-* Dependencies: Map pieces with arbitrary shape and position
-
 ### The map must have a representation of explicit objects
 Explicit---or, significant---objects are objects that are very well defined on the map, such as a single tree, a building, a particular tower, etc. They stand in contrast to map objects that represent mere areas of terrain like grass or rocks. The map must support these explicit objects and allow users to add them.
 
@@ -127,6 +113,20 @@ Users should have a way to easily transfer pieces or objects of their maps to ot
 * Issues: [#14](https://github.com/mapper1024/mapper1024/issues/14)
 * Risks: Copying objects between maps may require additional subsystems for inter-process communication or OS clipboard methods.
 * Criticality: LOW
+
+### DONE: The map must support multiple layers
+To support various types of geography in the same map, such as real terrain and political borders in the same world, the map should support creation and editing on various "layers" or "types" of things.
+
+These layers are:
+- Geographical - The primary terrain/object layer
+- Political - To show political boundaries: national territory, city limits, etc.
+- Annotation - for "out-of-world" notes (e.g. to show where a particular story takes place, or where a particular event occurred)
+
+
+
+* Issues: [#30](https://github.com/mapper1024/mapper1024/issues/30)
+* Criticality: MEDIUM, users expect a differentiation between physical and political regions and objects.
+* Dependencies: Map pieces with arbitrary shape and position
 
 ### DONE: The mapping tool should let users create maps
 The mapping tool should let users create and edit individual maps, that represent arbitrary terrain/geography useful for storytelling organization.
