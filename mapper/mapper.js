@@ -896,12 +896,12 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const name = await nodeRef.getPString("name");
 			if(name !== undefined) {
-				const geographical = (await nodeRef.getType()).def.layer === "geographical";
+				const layer = (await nodeRef.getType()).def.layer;
 				const position = await this.getNamePosition(nodeRef);
 				const selected = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef));
-				const size = (selected ? 24 : position.size) * (geographical ? 1 : 0.75);
+				const size = (selected ? 24 : position.size) * (this.getCurrentLayer().getType() === layer ? 1 : 0.5);
 				if(size > 0) {
-					const font = geographical ? "serif" : "sans";
+					const font = (this.getCurrentLayer().getType() === layer) ? "serif" : "sans";
 					c.font = selected ? `bold ${size}px ${font}` : `${size}px ${font}`;
 					const measure = c.measureText(name);
 					const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
