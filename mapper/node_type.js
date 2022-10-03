@@ -47,6 +47,11 @@ class NodeTypeRegistry {
 			color: "orange",
 			layer: "political",
 		}));
+
+		this.registerType(new NodeType("note", {
+			color: "white",
+			layer: "annotation",
+		}));
 	}
 
 	registerType(nodeType) {

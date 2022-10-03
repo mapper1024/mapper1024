@@ -200,6 +200,11 @@ class RenderContext {
 			else if(event.key === "s") {
 				this.changeBrush(this.brushes.select);
 			}
+			else if(event.key === "l") {
+				const layerArray = Array.from(this.mapper.backend.layerRegistry.getLayers());
+				const layerIdArray = layerArray.map(layer => layer.id);
+				this.setCurrentLayer(layerArray[(layerIdArray.indexOf(this.getCurrentLayer().id) + 1) % layerArray.length]);
+			}
 			else if(event.key === "`") {
 				this.debugMode = !this.debugMode;
 			}
@@ -345,18 +350,29 @@ class RenderContext {
 
 		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
 
-		const matchesPolitical = (tile, selection) => {
+		const matchesTile = (tile, selection) => {
+			if(tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) {
+				return true;
+			}
+
 			for(const politicalNodeId of tile.nearbyPoliticalNodeIds) {
 				if(selection.hasNodeId(politicalNodeId)) {
 					return true;
 				}
 			}
+
+			for(const annotationNodeId of tile.nearbyAnnotationNodeIds) {
+				if(selection.hasNodeId(annotationNodeId)) {
+					return true;
+				}
+			}
+
 			return false;
 		};
 
 		let tileCount = 0;
 		for(const tile of this.drawnTiles) {
-			if((tile.closestNodeRef && selection.hasNodeRef(tile.closestNodeRef)) || matchesPolitical(tile, selection)) {
+			if(matchesTile(tile, selection)) {
 				const tileCenter = tile.getCenter();
 				const drawnTileCenter = tileCenter.subtract(this.scrollOffset);
 				if(drawnTileCenter.x >= screenBox.a.x && drawnTileCenter.x <= screenBox.b.x && drawnTileCenter.y >= screenBox.a.y && drawnTileCenter.y <= screenBox.b.y) {
@@ -456,6 +472,9 @@ class RenderContext {
 				}
 				else if(layerType === "political") {
 					return tile.closestPoliticalNodeRef;
+				}
+				else if(layerType === "annotation") {
+					return tile.closestAnnotationNodeRef;
 				}
 			}
 		}
@@ -637,7 +656,7 @@ class RenderContext {
 				const tY = this.nodeIdToTiles[nodeId][x];
 				for(const y in tY) {
 					const tile = tY[y];
-					if(!clearedTiles.has(tile) && ((tile.closestNodeRef && tile.closestNodeRef.id === nodeId) || tile.nearbyPoliticalNodeIds.has(nodeId))) {
+					if(!clearedTiles.has(tile) && ((tile.closestNodeRef && tile.closestNodeRef.id === nodeId) || tile.nearbyPoliticalNodeIds.has(nodeId) || tile.nearbyAnnotationNodeIds.has(nodeId))) {
 						clearedTiles.add(tile);
 						const withinY = y >= screenBoxTiles.a.y && y <= screenBoxTiles.b.y;
 						const megaTile = tile.megaTile;
@@ -653,6 +672,10 @@ class RenderContext {
 							}
 
 							for(const nodeId of tile.nearbyPoliticalNodeIds) {
+								updatedNodeIds.add(nodeId);
+							}
+
+							for(const nodeId of tile.nearbyAnnotationNodeIds) {
 								updatedNodeIds.add(nodeId);
 							}
 						}
@@ -937,7 +960,7 @@ class RenderContext {
 		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. ");
 
 		// Debug help
-		infoLine("Press N to set or edit an object's name. Scroll to zoom.");
+		infoLine("Press N to set or edit an object's name. Scroll to zoom. L to change layer.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 			infoLine("Hold Q while scrolling to change brush terrain/type; hold W while scrolling to change brush size.");

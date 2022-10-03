@@ -47,7 +47,8 @@ class Tile {
 		this.megaTile = megaTile;
 		this.nearbyNodes = new Map();
 		this.nearbyPoliticalNodeIds = new Set();
-		this.nearbyPoliticalMasterNodeIds = new Set();
+		this.nearbyAnnotationNodeIds = new Set();
+		this.nearbyBorderMasterNodeIds = new Set();
 		this.corner = corner;
 
 		this.closestNodeRef = null;
@@ -58,6 +59,9 @@ class Tile {
 
 		this.closestPoliticalNodeRef = null;
 		this.closestPoliticalNodeDistance = Infinity;
+
+		this.closestAnnotationNodeRef = null;
+		this.closestAnnotationNodeDistance = Infinity;
 	}
 
 	getCenter() {
@@ -108,7 +112,19 @@ class Tile {
 				this.nearbyPoliticalNodeIds.add(nodeRef.id);
 				const parent = await nodeRef.getParent();
 				if(parent) {
-					this.nearbyPoliticalMasterNodeIds.add(parent.id);
+					this.nearbyBorderMasterNodeIds.add(parent.id);
+				}
+			}
+			else if(nodeLayerType === "annotation") {
+				if(distance < this.closestAnnotationNodeDistance) {
+					this.closestAnnotationNodeRef = nodeRef;
+					this.closestAnnotationNodeDistance = distance;
+				}
+
+				this.nearbyAnnotationNodeIds.add(nodeRef.id);
+				const parent = await nodeRef.getParent();
+				if(parent) {
+					this.nearbyBorderMasterNodeIds.add(parent.id);
 				}
 			}
 
@@ -174,7 +190,7 @@ class Tile {
 			this.megaTile.canvasContext.drawImage(canvas, position.x, position.y);
 		}
 
-		if(this.nearbyPoliticalMasterNodeIds.size > 0) {
+		if(this.nearbyBorderMasterNodeIds.size > 0) {
 			let totalTiles = 0;
 			const found = new Map();
 			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
@@ -182,7 +198,7 @@ class Tile {
 				dirName;
 				dir;
 				if(otherTile) {
-					for(const nodeId of otherTile.nearbyPoliticalMasterNodeIds) {
+					for(const nodeId of otherTile.nearbyBorderMasterNodeIds) {
 						found.set(nodeId, found.has(nodeId) ? found.get(nodeId) + 1 : 1);
 					}
 				}
@@ -192,7 +208,7 @@ class Tile {
 			const c = this.megaTile.canvasContext;
 
 			const actualNodeIds = [];
-			for(const nodeId of this.nearbyPoliticalMasterNodeIds) {
+			for(const nodeId of this.nearbyBorderMasterNodeIds) {
 				if(!found.has(nodeId) || found.get(nodeId) < totalTiles) {
 					actualNodeIds.push(nodeId);
 				}
