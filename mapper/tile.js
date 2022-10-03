@@ -21,6 +21,26 @@ for(const dirName of dirKeys) {
 	normalizedDirs[dirName] = dirs[dirName].normalize();
 }
 
+const colors = [
+	"blue",
+	"darkblue",
+	"lightblue",
+	"red",
+	"maroon",
+	"crimson",
+	"orange",
+	"darkorange",
+	"purple",
+	"violet",
+	"indigo",
+	"yellow",
+	"goldenrod",
+	"pink",
+	"hotpink",
+	"brown",
+	"moccasin",
+];
+
 class Tile {
 	constructor(megaTile, corner) {
 		this.context = megaTile.context;
@@ -28,8 +48,6 @@ class Tile {
 		this.nearbyNodes = new Map();
 		this.nearbyPoliticalNodeIds = new Set();
 		this.nearbyPoliticalMasterNodeIds = new Set();
-		this.nearbyPoliticalTypeIds = new Set();
-		this.nearbyPoliticalTypesInOrder = [];
 		this.corner = corner;
 
 		this.closestNodeRef = null;
@@ -82,12 +100,6 @@ class Tile {
 
 			}
 			else if(nodeLayerType === "political") {
-				const nodeType = await nodeRef.getType();
-				if(!this.nearbyPoliticalTypeIds.has(nodeType.id)) {
-					this.nearbyPoliticalTypeIds.add(nodeType.id);
-					this.nearbyPoliticalTypesInOrder.push(nodeType);
-				}
-
 				if(distance < this.closestPoliticalNodeDistance) {
 					this.closestPoliticalNodeRef = nodeRef;
 					this.closestPoliticalNodeDistance = distance;
@@ -162,26 +174,28 @@ class Tile {
 			this.megaTile.canvasContext.drawImage(canvas, position.x, position.y);
 		}
 
-		const colors = [
-			"blue",
-			"red",
-			"orange",
-			"purple",
-			"yellow",
-			"darkblue",
-			"lightblue",
-			"pink",
-			"brown",
-			"violet",
-		];
-
 		if(this.nearbyPoliticalMasterNodeIds.size > 0) {
+			let totalTiles = 0;
+			const found = new Map();
+			for(const [dirName, dir, otherTile] of this.getNeighborTiles()) {
+				totalTiles++;
+				dirName;
+				dir;
+				if(otherTile) {
+					for(const nodeId of otherTile.nearbyPoliticalMasterNodeIds) {
+						found.set(nodeId, found.has(nodeId) ? found.get(nodeId) + 1 : 1);
+					}
+				}
+			}
+
 			const position = this.getMegaTilePosition();
 			const c = this.megaTile.canvasContext;
 			for(const nodeId of this.nearbyPoliticalMasterNodeIds) {
-				const i = nodeId % colors.length;
-				c.fillStyle = colors[i];
-				c.fillRect(position.x + Math.floor(i % (Tile.SIZE / 4)) * 4, position.y + (Math.floor(i / (Tile.SIZE / 4)) % (Tile.SIZE / 4)) * 4, Tile.SIZE / 4, Tile.SIZE / 4);
+				if(!found.has(nodeId) || found.get(nodeId) < totalTiles) {
+					const i = nodeId % colors.length;
+					c.fillStyle = colors[i];
+					c.fillRect(position.x + Math.floor(i % (Tile.SIZE / 4)) * 4, position.y + (Math.floor(i / (Tile.SIZE / 4)) % (Tile.SIZE / 4)) * 4, Tile.SIZE / 4, Tile.SIZE / 4);
+				}
 			}
 		}
 	}
