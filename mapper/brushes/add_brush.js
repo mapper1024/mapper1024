@@ -9,12 +9,19 @@ class AddBrush extends Brush {
 		super(context);
 
 		this.nodeTypeIndex = 0;
-		this.nodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
 		this.lastTypeChange = 0;
 
 		this.hooks = new HookContainer();
 
+		this.nodeTypes = this.originalNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
 		this.setNodeTypeIndex(0);
+
+		const reset = (layer) => {
+			this.nodeTypes = this.originalNodeTypes.filter((nodeType) => nodeType.def.layer === layer.getType());
+			this.setNodeTypeIndex(0);
+		};
+
+		this.hooks.add("current_layer_change", (layer) => reset(layer));
 	}
 
 	displayButton(button) {
@@ -87,7 +94,11 @@ class AddBrush extends Brush {
 		};
 
 		make(this.context.getCurrentLayer());
-		this.context.hooks.add("current_layer_change", (layer) => make(layer));
+		this.hooks.add("current_layer_change", (layer) => make(layer));
+	}
+
+	signalLayerChange(layer) {
+		this.hooks.call("current_layer_change", layer);
 	}
 
 	setNodeTypeIndex(index) {

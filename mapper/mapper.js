@@ -310,6 +310,7 @@ class RenderContext {
 
 	setCurrentLayer(layer) {
 		this.currentLayer = layer;
+		this.brush.signalLayerChange(layer);
 		this.hooks.call("current_layer_change", layer);
 	}
 
@@ -895,11 +896,13 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const name = await nodeRef.getPString("name");
 			if(name !== undefined) {
+				const geographical = (await nodeRef.getType()).def.layer === "geographical";
 				const position = await this.getNamePosition(nodeRef);
 				const selected = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef));
-				const size = selected ? 24 : position.size;
+				const size = (selected ? 24 : position.size) * (geographical ? 1 : 0.75);
 				if(size > 0) {
-					c.font = selected ? `bold ${size}px serif` : `${size}px serif`;
+					const font = geographical ? "serif" : "sans";
+					c.font = selected ? `bold ${size}px ${font}` : `${size}px ${font}`;
 					const measure = c.measureText(name);
 					const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
 					const where = position.where.subtract(new Vector3(measure.width / 2, height / 2, 0, 0));
