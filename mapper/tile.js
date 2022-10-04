@@ -214,6 +214,13 @@ class Tile {
 				}
 			}
 
+			if(actualNodeIds.length > 0) {
+				c.fillStyle = "white";
+				c.beginPath();
+				c.arc(position.x + Tile.SIZE / 2, position.y + Tile.SIZE / 2, Tile.SIZE / 8 + 2, 0, Math.PI * 2, false);
+				c.fill();
+			}
+
 			const radiansPerNode = Math.PI * 2 / actualNodeIds.length;
 
 			let i = 0;
