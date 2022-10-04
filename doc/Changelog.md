@@ -19,3 +19,6 @@
 # v0.2.3
 * Add political and annotation layers.
 * Begin developing user survey for 0.3 release.
+
+# v0.2.4
+* Better display of border layer layers.
