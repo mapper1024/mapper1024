@@ -193,6 +193,7 @@ A representation of the map SHOULD be rendered onto the screen with editing cont
   * Moving objects on the map
   * Deleting objects from the map
 * Naming objects on the map
+* Discovering distance between points on the map
 
 ### Hardware Interfaces
 The mapping tool MUST interface with the mouse for drawing the map and selecting options, and SHOULD interface with the keyboard for faster editing. The mapping tool MUST support the "trackpad" model of mouse, for laptop users. The mapping tool may support touchscreen interfaces with gestures as a WISH-LIST feature.
