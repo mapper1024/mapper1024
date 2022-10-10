@@ -53,8 +53,17 @@ class AddBrush extends Brush {
 					button.title = nodeType.id;
 
 					const c = button.getContext("2d");
+
 					c.fillStyle = nodeType.def.color;
-					c.fillRect(0, 0, button.width, button.height);
+
+					if(nodeType.def.scale === "explicit") {
+						c.beginPath();
+						c.arc(button.width / 2, button.height / 2, Math.min(button.height, button.width) / 2, 0, 2 * Math.PI, false);
+						c.fill();
+					}
+					else {
+						c.fillRect(0, 0, button.width, button.height);
+					}
 
 					c.textBaseline = "top";
 					c.font = "12px sans";

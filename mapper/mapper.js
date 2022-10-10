@@ -43,6 +43,7 @@ class RenderContext {
 
 		this.tiles = {};
 		this.megaTiles = {};
+		this.explicitDrawn = {};
 		this.drawnNodeIds = new Set();
 		this.offScreenDrawnNodeIds = new Set();
 		this.drawnTiles = [];
@@ -689,6 +690,7 @@ class RenderContext {
 			delete this.nodeIdToTiles[removedId];
 			this.drawnNodeIds.delete(removedId);
 			this.offScreenDrawnNodeIds.delete(removedId);
+			delete this.explicitDrawn[removedId];
 		}
 
 		for(const nodeId of updatedNodeIds) {
@@ -697,74 +699,85 @@ class RenderContext {
 
 				this.drawnNodeIds.add(nodeId);
 
-				if(await nodeRef.getNodeType() !== "point") {
-					continue;
-				}
-
-				if(this.nodeIdToTiles[nodeRef.id] === undefined) {
-					this.nodeIdToTiles[nodeRef.id] = {};
-				}
-
-				const nodeIdToTiles = this.nodeIdToTiles[nodeRef.id];
-
-				const center = (await nodeRef.getEffectiveCenter()).map((a) => this.unitsToPixels(a));
-				const centerTile = center.divideScalar(Tile.SIZE).round();
-				const radius = this.unitsToPixels(await nodeRef.getRadius());
-				if(radius >= Tile.SIZE / 8) {
-
-					const radiusTile = Math.ceil(radius / Tile.SIZE);
-
-					const cxn = centerTile.x - radiusTile;
-					const cyn = centerTile.y - radiusTile;
-					const cxp = centerTile.x + radiusTile;
-					const cyp = centerTile.y + radiusTile;
-
-					const tileBox = new Box3(
-						new Vector3(Math.max(screenBoxTiles.a.x, cxn), Math.max(screenBoxTiles.a.y, cyn), 0),
-						new Vector3(Math.min(screenBoxTiles.b.x, cxp), Math.min(screenBoxTiles.b.y, cyp), 0)
-					);
-
-					if(tileBox.a.x !== cxn || tileBox.a.y !== cyn || tileBox.b.x !== cxp || tileBox.b.y !== cyp) {
-						this.offScreenDrawnNodeIds.add(nodeId);
+				if(await nodeRef.getNodeType() === "object") {
+					const nodeType = await nodeRef.getType();
+					if(nodeType.def.scale === "explicit") {
+						const center = await nodeRef.getEffectiveCenter();
+						const radius =await nodeRef.getRadius();
+						this.explicitDrawn[nodeId] = {
+							type: nodeType,
+							center: center,
+							radius: radius,
+						};
 					}
-					else {
-						this.offScreenDrawnNodeIds.delete(nodeId);
+				}
+				else {
+
+					if(this.nodeIdToTiles[nodeRef.id] === undefined) {
+						this.nodeIdToTiles[nodeRef.id] = {};
 					}
 
-					for(let x = tileBox.a.x; x <= tileBox.b.x; x++) {
-						if(this.tiles[x] === undefined) {
-							this.tiles[x] = {};
-						}
-						if(nodeIdToTiles[x] === undefined) {
-							nodeIdToTiles[x] = {};
-						}
-						const nodeIdToTileX = nodeIdToTiles[x];
-						const tilesX = this.tiles[x];
-						const megaTilePositionX = Math.floor(x / MegaTile.SIZE * Tile.SIZE);
+					const nodeIdToTiles = this.nodeIdToTiles[nodeRef.id];
 
-						if(this.megaTiles[megaTilePositionX] === undefined) {
-							this.megaTiles[megaTilePositionX] = {};
+					const center = (await nodeRef.getEffectiveCenter()).map((a) => this.unitsToPixels(a));
+					const centerTile = center.divideScalar(Tile.SIZE).round();
+					const radius = this.unitsToPixels(await nodeRef.getRadius());
+					if(radius >= Tile.SIZE / 8) {
+
+						const radiusTile = Math.ceil(radius / Tile.SIZE);
+
+						const cxn = centerTile.x - radiusTile;
+						const cyn = centerTile.y - radiusTile;
+						const cxp = centerTile.x + radiusTile;
+						const cyp = centerTile.y + radiusTile;
+
+						const tileBox = new Box3(
+							new Vector3(Math.max(screenBoxTiles.a.x, cxn), Math.max(screenBoxTiles.a.y, cyn), 0),
+							new Vector3(Math.min(screenBoxTiles.b.x, cxp), Math.min(screenBoxTiles.b.y, cyp), 0)
+						);
+
+						if(tileBox.a.x !== cxn || tileBox.a.y !== cyn || tileBox.b.x !== cxp || tileBox.b.y !== cyp) {
+							this.offScreenDrawnNodeIds.add(nodeId);
+						}
+						else {
+							this.offScreenDrawnNodeIds.delete(nodeId);
 						}
 
-						const mtX = this.megaTiles[megaTilePositionX];
-						for(let y = tileBox.a.y; y <= tileBox.b.y; y++) {
-							const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
+						for(let x = tileBox.a.x; x <= tileBox.b.x; x++) {
+							if(this.tiles[x] === undefined) {
+								this.tiles[x] = {};
+							}
+							if(nodeIdToTiles[x] === undefined) {
+								nodeIdToTiles[x] = {};
+							}
+							const nodeIdToTileX = nodeIdToTiles[x];
+							const tilesX = this.tiles[x];
+							const megaTilePositionX = Math.floor(x / MegaTile.SIZE * Tile.SIZE);
 
-							if(mtX[megaTilePositionY] === undefined) {
-								mtX[megaTilePositionY] = new MegaTile(this, new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(MegaTile.SIZE));
+							if(this.megaTiles[megaTilePositionX] === undefined) {
+								this.megaTiles[megaTilePositionX] = {};
 							}
 
-							const megaTile = mtX[megaTilePositionY];
+							const mtX = this.megaTiles[megaTilePositionX];
+							for(let y = tileBox.a.y; y <= tileBox.b.y; y++) {
+								const megaTilePositionY = Math.floor(y / MegaTile.SIZE * Tile.SIZE);
 
-							if(tilesX[y] === undefined) {
-								tilesX[y] = megaTile.makeTile(new Vector3(x * Tile.SIZE, y * Tile.SIZE, 0));
-							}
+								if(mtX[megaTilePositionY] === undefined) {
+									mtX[megaTilePositionY] = new MegaTile(this, new Vector3(megaTilePositionX, megaTilePositionY, 0).multiplyScalar(MegaTile.SIZE));
+								}
 
-							const tile = tilesX[y];
+								const megaTile = mtX[megaTilePositionY];
 
-							if(await tile.addNode(nodeRef)) {
-								nodeIdToTileX[y] = tile;
-								actualTiles.add(tile);
+								if(tilesX[y] === undefined) {
+									tilesX[y] = megaTile.makeTile(new Vector3(x * Tile.SIZE, y * Tile.SIZE, 0));
+								}
+
+								const tile = tilesX[y];
+
+								if(await tile.addNode(nodeRef)) {
+									nodeIdToTileX[y] = tile;
+									actualTiles.add(tile);
+								}
 							}
 						}
 					}
@@ -792,6 +805,19 @@ class RenderContext {
 				const point = tile.point.subtract(this.scrollOffset);
 
 				c.drawImage(tile.canvas, point.x, point.y);
+			}
+		}
+
+		for(const nodeId in this.explicitDrawn) {
+			const d = this.explicitDrawn[nodeId];
+			const r = Math.floor(this.unitsToPixels(d.radius * 2));
+			if(r >= 5) {
+				const text = d.type.id;
+				c.font = `${r}px mono`;
+				const where = this.mapPointToCanvas(d.center);
+				c.globalAlpha = 1;
+				c.fillStyle = "white";
+				c.fillText(text, where.x - r / 2, where.y - r / 2, r);
 			}
 		}
 	}

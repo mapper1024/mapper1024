@@ -203,6 +203,15 @@ class Box3 {
 		return new Box3(center.subtract(radiusVector), center.add(radiusVector));
 	}
 
+	/** Construct a new Box3 by adding an offset to the first corner.
+	 * @param start {Vector3} the first corner of the box
+	 * @param offset {Vector3} the offset added to the first corner to form the second corner
+	 * @returns {Box3}
+	 */
+	static fromOffset(start, offset) {
+		return new Box3(start, start.add(offset));
+	}
+
 	/** Scale both vectors in the box by a scalar.
 	 * @param scalar {number}
 	 * @returns {Box3}
