@@ -703,7 +703,7 @@ class RenderContext {
 					const nodeType = await nodeRef.getType();
 					if(nodeType.def.scale === "explicit") {
 						const center = await nodeRef.getEffectiveCenter();
-						const radius =await nodeRef.getRadius();
+						const radius = await nodeRef.getRadius();
 						this.explicitDrawn[nodeId] = {
 							type: nodeType,
 							center: center,
@@ -1135,7 +1135,10 @@ class RenderContext {
 
 	async * visibleNodes() {
 		const screenBox = this.screenBox();
-		yield* this.mapper.getNodesTouchingArea(screenBox.map((v) => this.canvasPointToMap(v)), this.pixelsToUnits(1));
+		const mapBox = screenBox.map((v) => this.canvasPointToMap(v));
+		mapBox.a.z = -Infinity;
+		mapBox.b.z = Infinity;
+		yield* this.mapper.getNodesTouchingArea(mapBox, this.pixelsToUnits(1));
 	}
 
 	async * drawnNodes() {

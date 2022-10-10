@@ -126,5 +126,8 @@ The next feature in development is explicit objects, such as a single tree. Thes
 
 Layers and explicit objects both will be in prototype stage--although usable. Later, when the UI and renderer are reworked, they will be fully realized, but all the core features need to be in place to begin the renderer rework.
 
+# TODO
+Difficult implementing deeper zoom.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
