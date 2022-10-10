@@ -22,3 +22,6 @@
 
 # v0.2.4
 * Better display of border layer layers.
+
+# v0.2.5
+* Prototype explicit objects.
