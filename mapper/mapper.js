@@ -346,7 +346,7 @@ class RenderContext {
 	async getNamePosition(nodeRef) {
 		const screenBox = this.screenBox();
 
-		const optimal = (await nodeRef.getCenter()).map((v) => this.unitsToPixels(v));
+		const optimal = this.mapPointToTileCanvas(await nodeRef.getCenter());
 		let best = null;
 
 		const selection = await Selection.fromNodeRefs(this, [nodeRef]);
@@ -572,6 +572,10 @@ class RenderContext {
 		return new Vector3(v.x, v.y, 0).map((a) => this.unitsToPixels(a)).subtract(this.scrollOffset);
 	}
 
+	mapPointToTileCanvas(v) {
+		return new Vector3(v.x, v.y, 0).map((a) => this.unitsToPixels(a));
+	}
+
 	canvasPathToMap(path) {
 		return path.mapOrigin((origin) => this.canvasPointToMap(origin)).mapLines((v) => v.map((a) => this.pixelsToUnits(a)));
 	}
@@ -719,10 +723,10 @@ class RenderContext {
 
 					const nodeIdToTiles = this.nodeIdToTiles[nodeRef.id];
 
-					const center = (await nodeRef.getEffectiveCenter()).map((a) => this.unitsToPixels(a));
+					const center = this.mapPointToTileCanvas(await nodeRef.getEffectiveCenter());
 					const centerTile = center.divideScalar(Tile.SIZE).round();
 					const radius = this.unitsToPixels(await nodeRef.getRadius());
-					if(radius >= Tile.SIZE / 8) {
+					if(radius >= 1) {
 
 						const radiusTile = Math.ceil(radius / Tile.SIZE);
 

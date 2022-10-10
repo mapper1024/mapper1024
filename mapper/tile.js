@@ -84,11 +84,11 @@ class Tile {
 		const nodeLayer = await nodeRef.getLayer();
 		const nodeLayerType = nodeLayer.getType();
 		const nodeCenterInUnits = await nodeRef.getEffectiveCenter();
-		const nodeCenterInPixels = nodeCenterInUnits.map((a) => this.context.unitsToPixels(a));
+		const nodeCenterInPixels = this.context.mapPointToTileCanvas(nodeCenterInUnits);
 		const distance = nodeCenterInPixels.subtract(this.getCenter()).length();
 		const nodeRadiusInUnits = await nodeRef.getRadius();
 		const nodeRadiusInPixels = this.context.unitsToPixels(nodeRadiusInUnits);
-		const fits = distance <= nodeRadiusInPixels + Tile.SIZE / 2 && nodeRadiusInPixels >= Tile.SIZE / 8;
+		const fits = distance <= nodeRadiusInPixels + Tile.SIZE / 2 && nodeRadiusInPixels >= 1;
 		if(fits) {
 			this.megaTile.addNode(nodeRef.id);
 
