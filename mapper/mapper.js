@@ -577,7 +577,7 @@ class RenderContext {
 	}
 
 	pixelsToUnits(pixels) {
-		return pixels * this.zoom;
+		return pixels * this.zoom / (1 + 20 / this.zoom);
 	}
 
 	unitsToPixels(units) {
@@ -1068,7 +1068,7 @@ class RenderContext {
 	async drawScale() {
 		const c = this.canvas.getContext("2d");
 		const barHeight = 10;
-		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(100 * 5)));
+		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(100 * Math.min(5, Math.ceil(this.zoom / 2)))));
 		const barX = 10;
 		const label2Y = this.canvas.height - barHeight;
 		const barY = label2Y - barHeight - 15;

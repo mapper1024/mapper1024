@@ -23,7 +23,7 @@ class Brushbar {
 
 		const updateSize = (brush) => {
 			if(brush === this.context.brush) {
-				size.innerText = `Radius ${brush.sizeInMeters()}m`;
+				size.innerText = `Radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
 			}
 		};
 

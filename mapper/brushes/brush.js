@@ -64,7 +64,7 @@ class Brush {
 
 		context.textBaseline = "alphabetic";
 		context.font = "16px mono";
-		const sizeText = `${this.sizeInMeters() * 2}m`;
+		const sizeText = `${Math.floor(this.sizeInMeters() * 2 + 0.5)}m`;
 		context.fillText(sizeText, position.x - context.measureText(sizeText).width / 2, position.y - 6);
 
 		context.textBaseline = "top";
