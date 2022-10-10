@@ -126,8 +126,10 @@ The next feature in development is explicit objects, such as a single tree. Thes
 
 Layers and explicit objects both will be in prototype stage--although usable. Later, when the UI and renderer are reworked, they will be fully realized, but all the core features need to be in place to begin the renderer rework.
 
-# TODO
-Difficult implementing deeper zoom.
+# Through 2022-10-23
+Difficult implementing deeper zoom resulting from trying to map 3D nodes to 2D canvas, had to explicitly discard the Z coordinate.
+
+Added explicit objects represented with additional node types (e.g. forest vs tree, rocks vs stone, buildings vs tower).
 
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
