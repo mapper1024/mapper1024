@@ -25,3 +25,6 @@
 
 # v0.2.5
 * Prototype explicit objects.
+
+# v0.2.6
+* Better scale drawing.
