@@ -392,7 +392,7 @@ class RenderContext {
 	}
 
 	requestZoomChange(zoom) {
-		this.requestedZoom = Math.max(1, Math.min(zoom, 20));
+		this.requestedZoom = Math.max(1, Math.min(zoom, 30));
 	}
 
 	async applyZoom() {
@@ -1072,7 +1072,7 @@ class RenderContext {
 	async drawScale() {
 		const c = this.canvas.getContext("2d");
 		const barHeight = 10;
-		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(100 * Math.min(5, Math.ceil(this.zoom / 2)))));
+		const barWidth = this.canvas.width / 5 - mod(this.canvas.width / 5, this.unitsToPixels(this.mapper.metersToUnits(10 ** Math.ceil(Math.log10(this.zoom * 5)))));
 		const barX = 10;
 		const label2Y = this.canvas.height - barHeight;
 		const barY = label2Y - barHeight - 15;
