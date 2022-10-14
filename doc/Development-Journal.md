@@ -131,5 +131,8 @@ Difficult implementing deeper zoom resulting from trying to map 3D nodes to 2D c
 
 Added explicit objects represented with additional node types (e.g. forest vs tree, rocks vs stone, buildings vs tower).
 
+## Explicit Paths
+I now work on adding explicit paths. Paths will be represented as child nodes of type "path" which are connected by edges.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

@@ -17,7 +17,7 @@ class AddBrush extends Brush {
 		this.setNodeTypeIndex(0);
 
 		const reset = (layer) => {
-			this.nodeTypes = this.originalNodeTypes.filter((nodeType) => nodeType.def.layer === layer.getType());
+			this.nodeTypes = this.originalNodeTypes.filter((nodeType) => nodeType.getLayer() === layer.getType());
 			this.setNodeTypeIndex(0);
 		};
 
@@ -38,7 +38,7 @@ class AddBrush extends Brush {
 			container.appendChild(list);
 
 			for(const nodeType of this.nodeTypes) {
-				if(nodeType.def.layer === layer.getType()) {
+				if(nodeType.getLayer() === layer.getType()) {
 					const index = this.nodeTypes.indexOf(nodeType);
 
 					const li = document.createElement("li");
@@ -54,9 +54,9 @@ class AddBrush extends Brush {
 
 					const c = button.getContext("2d");
 
-					c.fillStyle = nodeType.def.color;
+					c.fillStyle = nodeType.getColor();
 
-					if(nodeType.def.scale === "explicit") {
+					if(nodeType.getScale() === "explicit") {
 						c.beginPath();
 						c.arc(button.width / 2, button.height / 2, Math.min(button.height, button.width) / 2, 0, 2 * Math.PI, false);
 						c.fill();

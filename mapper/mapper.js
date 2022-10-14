@@ -705,7 +705,7 @@ class RenderContext {
 
 				if(await nodeRef.getNodeType() === "object") {
 					const nodeType = await nodeRef.getType();
-					if(nodeType.def.scale === "explicit") {
+					if(nodeType.getScale() === "explicit") {
 						const center = await nodeRef.getEffectiveCenter();
 						const radius = await nodeRef.getRadius();
 						this.explicitDrawn[nodeId] = {
@@ -949,7 +949,7 @@ class RenderContext {
 		for await (const nodeRef of this.drawnNodes()) {
 			const name = await nodeRef.getPString("name");
 			if(name !== undefined) {
-				const layer = (await nodeRef.getType()).def.layer;
+				const layer = (await nodeRef.getType()).getLayer();
 				const position = await this.getNamePosition(nodeRef);
 				const selected = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef));
 				const size = (selected ? 24 : position.size) * (this.getCurrentLayer().getType() === layer ? 1 : 0.5);
@@ -1266,7 +1266,7 @@ class Mapper {
 		await nodeRef.setCenter(point);
 		await nodeRef.setEffectiveCenter(point);
 		await nodeRef.setType(options.type);
-		await nodeRef.setLayer(this.backend.layerRegistry.get(options.type.def.layer));
+		await nodeRef.setLayer(this.backend.layerRegistry.get(options.type.getLayer()));
 		await nodeRef.setRadius(options.radius);
 		await this.hooks.call("insertNode", nodeRef);
 		return nodeRef;

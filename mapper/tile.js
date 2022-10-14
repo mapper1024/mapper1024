@@ -259,7 +259,7 @@ class Tile {
 
 		function getTypeColors(type) {
 			const acolors = colors[type.id];
-			return acolors || [type.def.color];
+			return acolors || [type.getColor()];
 		}
 
 		function getOurColors() {
