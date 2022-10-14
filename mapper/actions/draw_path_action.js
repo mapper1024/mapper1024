@@ -94,6 +94,8 @@ class DrawPathAction extends Action {
 				}
 			}
 
+			let pathNode;
+
 			if(ok) {
 				if(last || first) {
 					// This is the beginning or end of a stroke, draw all four "sides".
@@ -107,12 +109,21 @@ class DrawPathAction extends Action {
 
 				placedNodes.push(...placedForVertex);
 
+				if(this.options.nodeType.isPath()) {
+					pathNode = await this.context.mapper.insertNode(where, "path", {
+						type: this.options.nodeType,
+						radius: this.options.radius,
+						parent: this.options.parent,
+					});
+				}
+
 				// Record drawing event for calculating the full path.
 				drawEvent.pushState({
 					where: where,
 					wherePixel: wherePixel,
 					angle: angle,
 					borders: placedForVertex,
+					pathNode: pathNode,
 				});
 			}
 
@@ -122,6 +133,10 @@ class DrawPathAction extends Action {
 			// Connect edges to the last drawn position.
 			if(lastState !== undefined) {
 				await connectNodes(placedForVertex, lastState.borders);
+
+				if(pathNode) {
+					await this.context.mapper.backend.createEdge(pathNode.id, lastState.pathNode.id);
+				}
 			}
 		}
 

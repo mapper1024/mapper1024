@@ -44,6 +44,7 @@ class RenderContext {
 		this.tiles = {};
 		this.megaTiles = {};
 		this.explicitDrawn = {};
+		this.pathDrawn = {};
 		this.drawnNodeIds = new Set();
 		this.offScreenDrawnNodeIds = new Set();
 		this.drawnTiles = [];
@@ -695,6 +696,7 @@ class RenderContext {
 			this.drawnNodeIds.delete(removedId);
 			this.offScreenDrawnNodeIds.delete(removedId);
 			delete this.explicitDrawn[removedId];
+			delete this.pathDrawn[removedId];
 		}
 
 		for(const nodeId of updatedNodeIds) {
@@ -703,7 +705,9 @@ class RenderContext {
 
 				this.drawnNodeIds.add(nodeId);
 
-				if(await nodeRef.getNodeType() === "object") {
+				const nodeType = await nodeRef.getNodeType();
+
+				if(nodeType === "object") {
 					const nodeType = await nodeRef.getType();
 					if(nodeType.getScale() === "explicit") {
 						const center = await nodeRef.getEffectiveCenter();
@@ -715,8 +719,14 @@ class RenderContext {
 						};
 					}
 				}
+				else if(nodeType === "path") {
+					const center = await nodeRef.getCenter();
+					this.pathDrawn[nodeId] = {
+						center: center,
+						nodeRef: nodeRef,
+					}
+				}
 				else {
-
 					if(this.nodeIdToTiles[nodeRef.id] === undefined) {
 						this.nodeIdToTiles[nodeRef.id] = {};
 					}
@@ -822,6 +832,33 @@ class RenderContext {
 				c.globalAlpha = 1;
 				c.fillStyle = "white";
 				c.fillText(text, where.x - r / 2, where.y - r / 2, r);
+			}
+		}
+
+		const drawn = new Set();
+
+		for(const nodeId in this.pathDrawn) {
+			if(!drawn.has(nodeId)) {
+				drawn.add(nodeId);
+
+				const p = this.pathDrawn[nodeId];
+				const nodeRef = p.nodeRef;
+
+				const position = this.mapPointToCanvas(p.center);
+
+				// Draw edges.
+				for await (const dirEdgeRef of nodeRef.getEdges()) {
+					if(!drawn.has(dirEdgeRef.id)) {
+						drawn.add(dirEdgeRef.id);
+						const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+						const otherPosition = this.mapPointToCanvas(await otherNodeRef.getCenter());
+						c.strokeStyle = "white";
+						c.beginPath();
+						c.moveTo(position.x, position.y);
+						c.lineTo(otherPosition.x, otherPosition.y);
+						c.stroke();
+					}
+				}
 			}
 		}
 	}

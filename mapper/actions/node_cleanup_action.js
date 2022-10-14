@@ -6,7 +6,7 @@ class NodeCleanupAction extends Action {
 	async perform() {
 		const toRemove = new Set();
 		const mergePairs = [];
-		const vertices = await asyncFrom(this.getAllVertices());
+		const vertices = await asyncFrom(this.getAllPointVertices());
 
 		let sum = Vector3.ZERO;
 		let count = 0;
@@ -65,13 +65,15 @@ class NodeCleanupAction extends Action {
 		}
 	}
 
-	async * getAllVertices() {
+	async * getAllPointVertices() {
 		for await (const nodeRef of this.getAllNodes()) {
-			yield {
-				nodeRef: nodeRef,
-				radius: await nodeRef.getRadius(),
-				point: await nodeRef.getCenter(),
-			};
+			if(await nodeRef.getNodeType() === "point") {
+				yield {
+					nodeRef: nodeRef,
+					radius: await nodeRef.getRadius(),
+					point: await nodeRef.getCenter(),
+				};
+			}
 		}
 	}
 }
