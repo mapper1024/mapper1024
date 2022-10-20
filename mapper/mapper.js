@@ -1,7 +1,7 @@
 import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3, Line3 } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
-import { DeleteBrush, AddBrush, SelectBrush } from "./brushes/index.js";
+import { DeleteBrush, AddBrush, SelectBrush, DistancePegBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { Tile, MegaTile } from "./tile.js";
@@ -67,10 +67,15 @@ class RenderContext {
 
 		this.altitudeIncrement = this.mapper.metersToUnits(5);
 
+		this.distanceMarkers = {};
+
 		this.brushes = {
 			add: new AddBrush(this),
 			select: new SelectBrush(this),
 			"delete": new DeleteBrush(this),
+			"peg1": new DistancePegBrush(this, 1),
+			"peg2": new DistancePegBrush(this, 2),
+
 		};
 
 		this.brush = this.brushes.add;
@@ -192,6 +197,12 @@ class RenderContext {
 			}
 			else if(event.key === "ArrowRight") {
 				this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)).round());
+			}
+			else if(event.key === "1") {
+				this.changeBrush(this.brushes.peg1);
+			}
+			else if(event.key === "2") {
+				this.changeBrush(this.brushes.peg2);
 			}
 			else if(event.key === "d") {
 				this.changeBrush(this.brushes["delete"]);
@@ -323,6 +334,10 @@ class RenderContext {
 
 	isPanning() {
 		return this.mouseDragEvents[2] instanceof PanEvent;
+	}
+
+	isCalculatingDistance() {
+		return this.brush instanceof DistancePegBrush;
 	}
 
 	setScrollOffset(value) {
@@ -724,7 +739,7 @@ class RenderContext {
 					this.pathDrawn[nodeId] = {
 						center: center,
 						nodeRef: nodeRef,
-					}
+					};
 				}
 				else {
 					if(this.nodeIdToTiles[nodeRef.id] === undefined) {
@@ -1046,6 +1061,16 @@ class RenderContext {
 			infoLine: infoLine,
 		});
 
+		if(this.isCalculatingDistance()) {
+			const a = this.distanceMarkers[1];
+			const b = this.distanceMarkers[2];
+
+			if(a && b) {
+				const meters = this.mapper.unitsToMeters(a.subtract(b).length());
+				infoLine(`Distance between markers: ${Math.floor(meters + 0.5)}m (${Math.floor(meters / 1000 + 0.5)}km)`);
+			}
+		}
+
 		if(this.debugMode) {
 			infoLine(`${Object.keys(this.tileRenders).length} cached tiles | ${this.drawnNodeIds.size} drawn nodes, ${this.offScreenDrawnNodeIds.size} on border`);
 		}
@@ -1153,6 +1178,74 @@ class RenderContext {
 		c.fillText(text, x, 0);
 	}
 
+	async drawPegs() {
+		const c = this.canvas.getContext("2d");
+
+		const colors = {
+			1: "red",
+			2: "blue",
+		};
+
+		const positions = {};
+
+		for(const distanceMarkerN in this.distanceMarkers) {
+			const distanceMarker = this.distanceMarkers[distanceMarkerN];
+			const position = this.mapPointToCanvas(distanceMarker);
+			positions[distanceMarkerN] = position;
+			c.beginPath();
+			c.arc(position.x, position.y, 4, 0, 2 * Math.PI, false);
+			c.fillStyle = colors[distanceMarkerN] || "black";
+			c.fill();
+
+			c.fillStyle = "white";
+
+			c.textBaseline = "alphabetic";
+			c.font = "16px mono";
+			const worldPosition = this.canvasPointToMap(position).map(c => this.mapper.unitsToMeters(c)).round();
+			const text = `${worldPosition.x}m, ${worldPosition.y}m, ${worldPosition.z}m`;
+			c.fillText(text, position.x - c.measureText(text).width / 2, position.y - 16);
+		}
+
+		if(positions[1] && positions[2]) {
+			c.lineWidth = 3;
+
+			c.setLineDash([5, 15]);
+
+			c.strokeStyle = "black";
+			c.beginPath();
+			c.moveTo(positions[1].x, positions[1].y);
+			c.lineTo(positions[2].x, positions[2].y);
+			c.stroke();
+
+			c.setLineDash([11, 22]);
+
+			c.strokeStyle = "white";
+			c.beginPath();
+			c.moveTo(positions[1].x, positions[1].y);
+			c.lineTo(positions[2].x, positions[2].y);
+			c.stroke();
+
+			c.setLineDash([]);
+			c.lineWidth = 1;
+
+			const meters = this.mapper.unitsToMeters(this.distanceMarkers[1].subtract(this.distanceMarkers[2]).length());
+
+			c.textBaseline = "top";
+			c.font = "16px mono";
+			const position = this.mapPointToCanvas(positions[1].add(positions[2]).divideScalar(2).round());
+			const text = `Distance between markers: ${Math.floor(meters + 0.5)}m (${Math.floor(meters / 1000 + 0.5)}km)`;
+			const measure = c.measureText(text);
+			const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
+			c.globalAlpha = 0.25;
+			c.fillStyle = "black";
+			c.fillRect(position.x - measure.width / 2, position.y, measure.width, height);
+			c.globalAlpha = 1;
+			c.fillStyle = "white";
+			c.fillText(text, position.x - measure.width / 2, position.y);
+
+		}
+	}
+
 	/** Completely redraw the displayed UI. */
 	async redraw() {
 		await this.clearCanvas();
@@ -1161,6 +1254,9 @@ class RenderContext {
 		if(!this.isPanning()) {
 			await this.drawSelection();
 			await this.drawLabels();
+		}
+		if(this.isCalculatingDistance()) {
+			await this.drawPegs();
 		}
 		await this.drawBrush();
 
