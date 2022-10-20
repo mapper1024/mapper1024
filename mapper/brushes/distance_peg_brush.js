@@ -1,6 +1,4 @@
 import { Brush } from "./brush.js";
-import { Selection } from "../selection.js";
-import { TranslateEvent } from "../drag_events/translate_event.js";
 
 class DistancePegBrush extends Brush {
 	constructor(context, n) {
