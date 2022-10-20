@@ -28,3 +28,6 @@
 
 # v0.2.6
 * Better scale drawing.
+
+# v0.2.7
+* Prototype explicit paths.
