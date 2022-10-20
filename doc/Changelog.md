@@ -31,3 +31,4 @@
 
 # v0.2.7
 * Prototype explicit paths.
+* Add distance calculation.
