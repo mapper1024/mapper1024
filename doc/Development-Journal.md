@@ -127,12 +127,15 @@ The next feature in development is explicit objects, such as a single tree. Thes
 Layers and explicit objects both will be in prototype stage--although usable. Later, when the UI and renderer are reworked, they will be fully realized, but all the core features need to be in place to begin the renderer rework.
 
 # Through 2022-10-23
-Difficult implementing deeper zoom resulting from trying to map 3D nodes to 2D canvas, had to explicitly discard the Z coordinate.
+I experieced difficulty implementing deeper zoom resulting from trying to map 3D nodes to 2D canvas, so I had to explicitly discard the Z coordinate in some cases. This was part of the difficulty of adding explicit objects at a very small scale, so adding explicit objects has also helped work out zooming/scaling bugs.
 
-Added explicit objects represented with additional node types (e.g. forest vs tree, rocks vs stone, buildings vs tower).
+I added explicit objects represented with additional node types (e.g. forest vs tree, rocks vs stone, buildings vs tower).
 
 ## Explicit Paths
-I now work on adding explicit paths. Paths will be represented as child nodes of type "path" which are connected by edges.
+I worked on adding explicit paths. Paths area represented as child nodes of type "path" which are connected by edges. Specific node types may be paths, which are displayed currently as lines on the map. Two path objects are present: the Road terrain now has paths associated with it, as well as a new political terrain called "Route" which has no area but only a line/path.
+
+## Distance Measurement
+Distance measurement has been added through two new brushes to place two "pegs". The distance between the pegs (in meters and kilometers) is displayed to the user when the peg brushes are selected. Future developments will use a more modal structure for distance measurement, and possibly add path editing.
 
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
