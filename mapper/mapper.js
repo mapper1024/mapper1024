@@ -1039,7 +1039,7 @@ class RenderContext {
 			infoLineY += 24;
 		}
 
-		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. ");
+		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. Press 1 or 2 to measure distances.");
 
 		// Debug help
 		infoLine("Press N to set or edit an object's name. Scroll to zoom. L to change layer.");
