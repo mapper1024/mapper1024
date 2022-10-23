@@ -185,6 +185,14 @@ class RenderContext {
 						this.recalculateTilesNodesTranslate(drawnNodes);
 					});
 				}
+				else if(event.key === "=") {
+					this.requestZoomChange(this.zoom - 1);
+					event.preventDefault();
+				}
+				else if(event.key === "-") {
+					this.requestZoomChange(this.zoom + 1);
+					event.preventDefault();
+				}
 			}
 			else if(event.key === "ArrowUp") {
 				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(0, this.screenSize().y / 3, 0)).round());
@@ -1039,10 +1047,10 @@ class RenderContext {
 			infoLineY += 24;
 		}
 
-		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. ");
+		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. Press 1 or 2 to measure distances.");
 
 		// Debug help
-		infoLine("Press N to set or edit an object's name. Scroll to zoom. L to change layer.");
+		infoLine("Press N to set or edit an object's name. Scroll or Ctrl+Plus/Minus to zoom. L to change layer.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 			infoLine("Hold Q while scrolling to change brush terrain/type; hold W while scrolling to change brush size.");

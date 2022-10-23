@@ -20,6 +20,10 @@ class NodeType {
 		return this.def.scale || "terrain";
 	}
 
+	isArea() {
+		return (this.def.area === false) ? false : true;
+	}
+
 	isPath() {
 		return !!this.def.path;
 	}
@@ -72,6 +76,13 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("region", {
 			color: "orange",
 			layer: "political",
+		}));
+
+		this.registerType(new NodeType("route", {
+			color: "white",
+			layer: "political",
+			path: true,
+			area: false,
 		}));
 
 		this.registerType(new NodeType("note", {
