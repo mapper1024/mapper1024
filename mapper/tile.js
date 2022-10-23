@@ -83,6 +83,8 @@ class Tile {
 	async addNode(nodeRef) {
 		const nodeLayer = await nodeRef.getLayer();
 		const nodeLayerType = nodeLayer.getType();
+		const nodeType = await nodeRef.getType();
+		const isArea = nodeType.isArea();
 		const nodeCenterInUnits = await nodeRef.getEffectiveCenter();
 		const nodeCenterInPixels = this.context.mapPointToTileCanvas(nodeCenterInUnits);
 		const distance = nodeCenterInPixels.subtract(this.getCenter()).length();
@@ -111,7 +113,7 @@ class Tile {
 
 				this.nearbyPoliticalNodeIds.add(nodeRef.id);
 				const parent = await nodeRef.getParent();
-				if(parent) {
+				if(isArea && parent) {
 					this.nearbyBorderMasterNodeIds.add(parent.id);
 				}
 			}
@@ -123,7 +125,7 @@ class Tile {
 
 				this.nearbyAnnotationNodeIds.add(nodeRef.id);
 				const parent = await nodeRef.getParent();
-				if(parent) {
+				if(isArea && parent) {
 					this.nearbyBorderMasterNodeIds.add(parent.id);
 				}
 			}
