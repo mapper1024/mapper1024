@@ -36,3 +36,5 @@ Planned improvements include:
 * Better performance for a smoother experience.
 * Full palette menu system to easily select what you want to do.
 * Improved user interface for more comfortable map making.
+
+I look forward to continuing development, and thanks for all your feedback, ideas, and support! As always, let me know if you have any questions or comments!
