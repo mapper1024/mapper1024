@@ -6,6 +6,8 @@ You can download it here: [https://github.com/mapper1024/mapper1024/blob/master/
 
 You can use the online demo here: [https://mapper1024.github.io/demo](https://mapper1024.github.io/demo)
 
+Once you've tested the new version, please [fill out the feedback survey](https://forms.gle/fRmo3hLvL9sxyyVV6).
+
 What's New?
 -----------
 Version 0.3 of the map making tool includes the following updates:
@@ -22,7 +24,7 @@ Survey
 ---------
 Your feedback is important for improving the mapping tool. All the core features are in the prototype now, so I have written a survey for your feedback.
 
-Once you've tested the new version of the mapping tool, you can fill out the survey at **SURVEY HERE** to give important feedback for furthering development. Future versions will use a similar survey to measure satisfaction with the development process.
+Once you've tested the new version of the mapping tool, you can [fill out the feedback survey](https://forms.gle/fRmo3hLvL9sxyyVV6) to give important feedback for furthering development. Future versions will use a similar survey to measure satisfaction with the development process.
 
 What's Next?
 ------------
