@@ -30,7 +30,7 @@ What's Next?
 ------------
 With all the core features in place, I can focus on refining the user interface and performance according to the feedback given in the survey and elsewhere.
 
-Planned improvements include:
+Planned improvements coming soon include:
 
 * Improved graphics for a cleaner and more realistic map.
 * Better performance for a smoother experience.
