@@ -33,4 +33,4 @@ Planned improvements include:
 * Improved graphics for a cleaner and more realistic map
 * Better performance for a smoother experience
 * Full palette menu system to easily select what you want to do
-*
+* Improved user interface for more comfortable map making
