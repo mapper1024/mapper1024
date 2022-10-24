@@ -137,5 +137,10 @@ I worked on adding explicit paths. Paths area represented as child nodes of type
 ## Distance Measurement
 Distance measurement has been added through two new brushes to place two "pegs". The distance between the pegs (in meters and kilometers) is displayed to the user when the peg brushes are selected. Future developments will use a more modal structure for distance measurement, and possibly add path editing.
 
+I continued work on the user survey and preparing for the release, which comes very soon.
+
+# Through 2022-11-6
+I finished release documentation and the user survey and deployed 0.3 to my testers.
+
 # References
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
