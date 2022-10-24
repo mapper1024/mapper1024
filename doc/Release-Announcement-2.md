@@ -30,7 +30,7 @@ With all the core features in place, I can focus on refining the user interface 
 
 Planned improvements include:
 
-* Improved graphics for a cleaner and more realistic map
-* Better performance for a smoother experience
-* Full palette menu system to easily select what you want to do
-* Improved user interface for more comfortable map making
+* Improved graphics for a cleaner and more realistic map.
+* Better performance for a smoother experience.
+* Full palette menu system to easily select what you want to do.
+* Improved user interface for more comfortable map making.
