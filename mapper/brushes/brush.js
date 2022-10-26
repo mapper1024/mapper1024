@@ -85,6 +85,10 @@ class Brush {
 	async activate(where) {
 		where;
 	}
+
+	signalLayerChange(layer) {
+		layer;
+	}
 }
 
 export { Brush };

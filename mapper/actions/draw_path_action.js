@@ -129,6 +129,7 @@ class DrawPathAction extends Action {
 						radius: this.options.radius,
 						parent: this.options.parent,
 					});
+					placedNodes.push(pathNode);
 				}
 
 				// Record drawing event for calculating the full path.
