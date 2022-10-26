@@ -16,12 +16,26 @@ class DrawPathAction extends Action {
 
 		const radius = this.getRadiusOnMap();
 
+		/* Get the altitude (Z) we need at a specific point on the map in order to be on top of all other map objects. */
 		const getAltitudeAdd = async (point) => {
+			// Find the nodeRef being drawn on top currently.
 			const closestNodeRef = await this.context.getDrawnNodeAtCanvasPoint(this.context.mapPointToCanvas(point), this.options.layer);
-			if(closestNodeRef && (!(await closestNodeRef.getParent()) || (await closestNodeRef.getParent()).id !== this.options.parent.id)) {
-				return (await closestNodeRef.getCenter()).z + this.context.altitudeIncrement;
+			if(closestNodeRef) {
+				// There is a node below us.
+				const closestParent = await closestNodeRef.getParent();
+				// Get it's Z level at that position.
+				const closestZ = (await closestNodeRef.getCenter()).z;
+				if(closestParent && closestParent.id === this.options.parent.id) {
+					// If this map object is the same as what we're drawing, keep the same altitude.
+					return closestZ;
+				}
+				else {
+					// If this map object is different, we want to draw above it, so add a bit to the altitude.
+					return closestZ + this.context.altitudeIncrement;
+				}
 			}
 			else {
+				// Nothing below us, stay at 0 Z.
 				return 0;
 			}
 		};
