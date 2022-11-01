@@ -32,3 +32,7 @@
 # v0.2.7
 * Prototype explicit paths.
 * Add distance calculation.
+
+# v0.3
+* Finalize 0.3 survey.
+* Fix undo bug with paths.
