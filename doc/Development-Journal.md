@@ -142,5 +142,47 @@ I continued work on the user survey and preparing for the release, which comes v
 # Through 2022-11-6
 I finished release documentation and the user survey and deployed 0.3 to my testers.
 
+## Renderer Design
+
+Map objects roughly correspond to "features" (Neupane, 2017).
+
+There are two basic cases we need to consider on the map: an area that is solely one map object type, or an area between two map objects---a border.
+
+### Information Input
+The information remains the same between the old and new renderers.
+
+* "Mesh" of points and edges to indicate area/volume of each object.
+* Each map object consists of a set of interconnected sub objects representing various pieces of the whole.
+
+### Intermediate Representation
+
+#### Old Renderer
+* Map split into tiles, where each tile was a 16x16 pixel area corresponding to the map object whose area was, on average, on top (highest Z level) at that particular location.
+
+#### New Renderer (Design Draft 1)
+
+* A set of map (sub)objects to be rendered.
+* A set of border areas that require special handling during rendering.
+  * The set of border areas consists of areas where map images need to overlap.
+  * Each individual border area may be a tile of appropriate size, perhaps 16x16.
+
+### Rendering Process
+
+#### Old Renderer
+* Each tile is rendered on screen as a particular set of random colors corresponding to its dominant node type. Borders are generated based on what tiles (with what dominant nodes) are next to a given tile.
+
+#### New Renderer (Design Draft 1)
+* Each map sub object has an image generated for it based either on an algorithm or on pre-defined image files. The image is the size and shape of the map object at the appropriate scale; it will be tiled and/or masked out to force a rectangular image into the full size and an irregular form. This image may be cached until the size or shape of the map object changes.
+* Images are constructed to tile appropriately, such that terrain of the same type will line up on a global coordinate grid.
+* Explicit objects may be scaled single images rather than tiling terrain.
+* Map objects will be cached in a large tile system, perhaps 256x256 tiles or similar.
+  * A tile may contain only part of a rendered image. Only the necessary part of the rendered image will be saved in the cached large tile and rendered in that large tile.
+* Border images are necessary when one map object needs to be rendered beside (or within and on top of) another map object.
+* Border images are generated to align with the tiles of all objects involved in the border. The map object on top takes precedence, with the side(s) of the border image facing away from the most precedent map object being rendered as transitions to the other map objects.
+  * Transitions may be automatically generated and cached, or provided as premade image tiles.
+* (Future) Rendering may be parallelized---each large tile should be independent of the others.
+* (Curiosity) Hexagonal tiles? More options for borders, best at filling space.
+
 # References
+* Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
