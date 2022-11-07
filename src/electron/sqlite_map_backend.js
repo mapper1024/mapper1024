@@ -118,6 +118,8 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.s_getNodesTouchingArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid INNER JOIN property AS radiusproperty ON node.entityid = radiusproperty.entityid WHERE entity.valid = TRUE AND property.property = 'center' AND radiusproperty.property = 'radius' AND radiusproperty.v_number >= $minRadius AND property.x >= $ax - radiusproperty.v_number AND property.x <= $bx + radiusproperty.v_number AND property.y >= $ay - radiusproperty.v_number AND property.y <= $by + radiusproperty.v_number AND property.z >= $az - radiusproperty.v_number AND property.z <= $bz + radiusproperty.v_number");
 
+		this.s_getObjectNodesTouchingArea = this.db.prepare("SELECT node.entityid FROM node INNER JOIN property ON node.entityid = property.entityid INNER JOIN entity ON node.entityid = entity.entityid INNER JOIN property AS radiusproperty ON node.entityid = radiusproperty.entityid WHERE entity.valid = TRUE AND property.property = 'center' AND radiusproperty.property = 'radius' AND radiusproperty.v_number >= $minRadius AND property.x >= $ax - radiusproperty.v_number AND property.x <= $bx + radiusproperty.v_number AND property.y >= $ay - radiusproperty.v_number AND property.y <= $by + radiusproperty.v_number AND property.z >= $az - radiusproperty.v_number AND property.z <= $bz + radiusproperty.v_number AND node.nodetype = 'object'");
+
 		// Triggers & foreign key constraints will handle deleting everything else relating to the entity.
 		this.s_deleteEntity = this.db.prepare("DELETE FROM entity WHERE entityid = $entityId");
 		this.s_invalidateEntity = this.db.prepare("UPDATE entity SET valid = FALSE WHERE entityid = $entityId AND valid = TRUE");
@@ -333,6 +335,12 @@ class SQLiteMapBackend extends MapBackend {
 
 	async * getNodesTouchingArea(box, minRadius) {
 		for(const row of this.s_getNodesTouchingArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z, minRadius: minRadius})) {
+			yield this.getNodeRef(row.entityid);
+		}
+	}
+
+	async * getObjectNodesTouchingArea(box, minRadius) {
+		for(const row of this.s_getObjectNodesTouchingArea.iterate({ax: box.a.x, ay: box.a.y, az: box.a.z, bx: box.b.x, by: box.b.y, bz: box.b.z, minRadius: minRadius})) {
 			yield this.getNodeRef(row.entityid);
 		}
 	}

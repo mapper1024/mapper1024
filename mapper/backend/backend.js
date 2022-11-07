@@ -267,10 +267,10 @@ class MapBackend {
 	 * @param minRadius {number} The minimum radius of nodes to return.
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */
-	getNodesTouchingArea(box, minRadius) {
+	getObjectNodesTouchingArea(box, minRadius) {
 		box;
 		minRadius;
-		throw "getNodesTouchingArea not implemented";
+		throw "getObjectNodesTouchingArea not implemented";
 	}
 
 	/** Get the edge between two nodes, if it exists.

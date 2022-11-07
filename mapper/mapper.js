@@ -6,6 +6,7 @@ import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { ChangeNameAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
+import { NodeRender } from "./node_render.js";
 import { style } from "./style.js";
 import { version } from "./version.js";
 
@@ -39,6 +40,8 @@ class RenderContext {
 
 		this.undoStack = [];
 		this.redoStack = [];
+
+		this.nodeRenders = {};
 
 		this.backgroundColor = "#997";
 
@@ -544,15 +547,33 @@ class RenderContext {
 		this.hooks.call("size_change");
 	}
 
+	getNodeRender(nodeRef) {
+		let nodeRender = this.nodeRenders[nodeRef.id];
+		if(nodeRender === undefined) {
+			this.nodeRenders[nodeRef.id] = nodeRender = new NodeRender(this, nodeRef);
+		}
+		return nodeRender;
+	}
+
+	invalidateNodeRender(nodeRef) {
+		this.removeNodeRender(nodeRef);
+	}
+
+	removeNodeRender(nodeRef) {
+		delete this.nodeRenders[nodeRef.id];
+	}
+
 	recalculateEntireViewport() {
 		this.recalculateViewport = true;
 	}
 
 	recalculateNodeUpdate(nodeRef) {
+		this.invalidateNodeRender(nodeRef);
 		this.recalculateUpdate.push(nodeRef);
 	}
 
 	recalculateNodesRemove(nodeRefs) {
+		this.removeNodeRender(nodeRef);
 		this.recalculateRemoved.push(...nodeRefs);
 	}
 
@@ -803,6 +824,22 @@ class RenderContext {
 	async redraw() {
 		await this.clearCanvas();
 
+		const layers = [];
+
+		for await(const nodeRef of this.drawnNodes()) {
+			for (const layer of await this.getNodeRender(nodeRef).getLayers()) {
+				layers.push(layer);
+			}
+		}
+
+		layers.sort((a, b) => a.z - b.z);
+
+		const c = this.canvas.getContext("2d");
+
+		for(const layer of layers) {
+			c.drawImage(layer.canvas, 0, 0);
+		}
+
 		if(this.isCalculatingDistance()) {
 			await this.drawPegs();
 		}
@@ -818,24 +855,16 @@ class RenderContext {
 		await this.drawVersion();
 	}
 
-	async * visibleNodes() {
+	async * visibleObjectNodes() {
 		const screenBox = this.screenBox();
 		const mapBox = screenBox.map((v) => this.canvasPointToMap(v));
 		mapBox.a.z = -Infinity;
 		mapBox.b.z = Infinity;
-		yield* this.mapper.getNodesTouchingArea(mapBox, this.pixelsToUnits(1));
+		yield* this.mapper.getObjectNodesTouchingArea(mapBox, this.pixelsToUnits(1));
 	}
 
 	async * drawnNodes() {
-		for(const nodeId of this.drawnNodeIds) {
-			yield this.mapper.backend.getNodeRef(nodeId);
-		}
-	}
-
-	async * offScreenDrawnNodes() {
-		for(const nodeId of this.offScreenDrawnNodeIds) {
-			yield this.mapper.backend.getNodeRef(nodeId);
-		}
+		yield* this.visibleObjectNodes();
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */
@@ -906,6 +935,15 @@ class Mapper {
 	 */
 	async * getNodesTouchingArea(box, minRadius) {
 		yield* this.backend.getNodesTouchingArea(box, minRadius);
+	}
+
+	/** Get all nodes in or near a spatial box (according to their radii).
+	 * @param box {Box3}
+	 * @param minRadius {number}
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
+	async * getObjectNodesTouchingArea(box, minRadius) {
+		yield* this.backend.getObjectNodesTouchingArea(box, minRadius);
 	}
 
 	/** Get all edges attached to the specified node.
