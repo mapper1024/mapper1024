@@ -376,7 +376,7 @@ class RenderContext {
 	forceZoom(zoom) {
 		this.zoom = this.requestedZoom = zoom;
 		this.hooks.call("changed_zoom", this.zoom);
-		this.recalculateViewport();
+		this.recalculateEntireViewport();
 	}
 
 	async redrawLoop() {
@@ -573,7 +573,9 @@ class RenderContext {
 	}
 
 	recalculateNodesRemove(nodeRefs) {
-		this.removeNodeRender(nodeRef);
+		for(const nodeRef of nodeRefs) {
+			this.removeNodeRender(nodeRef);
+		}
 		this.recalculateRemoved.push(...nodeRefs);
 	}
 
@@ -827,7 +829,7 @@ class RenderContext {
 		const layers = [];
 
 		for await(const nodeRef of this.drawnNodes()) {
-			for (const layer of await this.getNodeRender(nodeRef).getLayers()) {
+			for (const layer of await this.getNodeRender(nodeRef).getLayers(this.unitsToPixels(1))) {
 				layers.push(layer);
 			}
 		}
@@ -837,7 +839,8 @@ class RenderContext {
 		const c = this.canvas.getContext("2d");
 
 		for(const layer of layers) {
-			c.drawImage(layer.canvas, 0, 0);
+			const cornerOnCanvas = layer.corner.subtract(this.scrollOffset);
+			c.drawImage(layer.canvas, cornerOnCanvas.x, cornerOnCanvas.y);
 		}
 
 		if(this.isCalculatingDistance()) {

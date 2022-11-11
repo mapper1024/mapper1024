@@ -186,6 +186,9 @@ The information remains the same between the old and new renderers.
 ## Implementing the Render
 I began to implement the renderer. I tore out all of the old renderer relating to rendering as tiles and began implementation of each node that needed to be drawn having a "NodeRender" object associated (and cached) for it. This NodeRender object will abstract actually rendering each individual node and calculating border areas for the various sizes, and the primary renderer will piece all of these objects together appropriately.
 
+# Through 2022-11-20
+I continue to implement the new renderer.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
