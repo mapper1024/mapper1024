@@ -12,6 +12,10 @@ class NodeType {
 		return this.def.color || "black";
 	}
 
+	getImageName() {
+		return this.def.image;
+	}
+
 	getLayer() {
 		return this.def.layer || "geographical";
 	}
@@ -35,14 +39,17 @@ class NodeTypeRegistry {
 
 		this.registerType(new NodeType("water", {
 			color: "darkblue",
+			image: "water",
 		}));
 
 		this.registerType(new NodeType("grass", {
 			color: "lightgreen",
+			image: "grass",
 		}));
 
 		this.registerType(new NodeType("forest", {
 			color: "darkgreen",
+			image: "forest",
 		}));
 
 		this.registerType(new NodeType("tree", {
