@@ -10,7 +10,7 @@ class NodeRender {
 		this.renders = {};
 	}
 
-	async getNodeTypeFillStyle(context, nodeType) {
+	static async getNodeTypeFillStyle(context, nodeType) {
 		const imageName = await nodeType.getImageName();
 		if(imageName) {
 			return context.createPattern(await images[imageName].image, "repeat");
@@ -57,7 +57,7 @@ class NodeRender {
 
 						toRender.push({
 							nodeRef: childNodeRef,
-							point: point,
+							absolutePoint: point,
 							radius: radiusInPixels,
 						});
 					}
@@ -65,8 +65,7 @@ class NodeRender {
 					topLeftCorner = topLeftCorner.map(Math.floor).map((c) => c - c % tileSize);
 
 					for(const part of toRender) {
-						const absolutePoint = part.point;
-						part.point = absolutePoint.subtract(topLeftCorner);
+						part.point = part.absolutePoint.subtract(topLeftCorner);
 
 						for(let r = 0; r < Math.PI * 2; r += 8 / part.radius) {
 							const tilePos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point).divideScalar(tileSize).map(Math.floor);
@@ -74,13 +73,8 @@ class NodeRender {
 							if(tilesX === undefined) {
 								tilesX = focusTiles[tilePos.x] = {};
 							}
-							let tilesY = tilesX[tilePos.y];
-							if(tilesY === undefined) {
-								tilesY = tilesX[tilePos.y] = new Map();
-							}
-							tilesY.set(part.nodeRef, {
-								point: absolutePoint,
-							});
+
+							tilesX[tilePos.y] = true;
 						}
 					}
 
@@ -92,7 +86,7 @@ class NodeRender {
 					}
 					const c = canvas.getContext("2d");
 
-					c.fillStyle = await this.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+					c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
 
 					for(const part of toRender) {
 						const point = part.point;
@@ -106,6 +100,7 @@ class NodeRender {
 						z: z,
 						canvas: canvas,
 						focusTiles: focusTiles,
+						parts: toRender,
 					});
 				}
 			}

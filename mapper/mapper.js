@@ -849,14 +849,7 @@ class RenderContext {
 
 						const tY = tileCornerOnCanvas.y + +lTY;
 
-						let tile = focusTilesX[tY];
-						if(tile === undefined) {
-							tile = focusTilesX[tY] = new Map();
-						}
-
-						for(const [k, v] of lTile) {
-							tile.set(k, v);
-						}
+						focusTilesX[tY] = true;
 					}
 				}
 			}
@@ -873,11 +866,51 @@ class RenderContext {
 
 		c.strokeStyle = "black";
 
+		const halfTile = new Vector3(tileSize / 2, tileSize / 2, 0);
+
 		for(const tX in focusTiles) {
 			const tilesX = focusTiles[tX];
+			const absolutePointX = +tX * tileSize;
+			const layersX = [];
+			for(const layer of layers) {
+				if(layer.corner.x <= absolutePointX && layer.corner.x + layer.canvas.width >= absolutePointX + tileSize) {
+					layersX.push(layer);
+				}
+			}
 			for(const tY in tilesX) {
-				const tile = tilesX[tY];
-				const point = new Vector3(+tX, +tY, 0).multiplyScalar(tileSize).subtract(this.scrollOffset);
+				const absolutePointY = +tY * tileSize;
+				const nodeTypes = new Map();
+
+				const absolutePoint = new Vector3(absolutePointX, absolutePointY, 0);
+				const absoluteCenter = absolutePoint.add(halfTile);
+
+				for(const layer of layersX) {
+					if(layer.corner.y <= absolutePointY && layer.corner.y + layer.canvas.height >= absolutePointY + tileSize) {
+						for(const part of layer.parts) {
+							if(part.absolutePoint.subtract(absoluteCenter).length() < part.radius) {
+								const nodeType = await part.nodeRef.getType();
+								nodeTypes.set(nodeType.id, nodeType);
+							}
+						}
+					}
+				}
+
+				const point = absolutePoint.subtract(this.scrollOffset);
+
+				if(nodeTypes.size > 1) {
+					c.globalAlpha = 1 / nodeTypes.size;
+
+					for(const nodeType of nodeTypes.values()) {
+						c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, nodeType);
+						c.fillRect(point.x, point.y, tileSize, tileSize);
+					}
+
+					c.globalAlpha = 1;
+				}
+
+				c.strokeStyle = "black";
+				c.strokeWidth = 1;
+				c.setLineDash([1, 3]);
 				c.strokeRect(point.x, point.y, tileSize, tileSize);
 			}
 		}
