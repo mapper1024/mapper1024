@@ -845,8 +845,6 @@ class RenderContext {
 					}
 
 					for(const lTY in lFocusTilesX) {
-						const lTile = lFocusTilesX[lTY];
-
 						const tY = tileCornerOnCanvas.y + +lTY;
 
 						focusTilesX[tY] = true;
@@ -1068,7 +1066,7 @@ class Mapper {
 		let nodeIds = new Set(nodeRefs.map((nodeRef) => nodeRef.id));
 		for(const nodeRef of nodeRefs) {
 			for await (const childNodeRef of nodeRef.getAllDescendants()) {
-				nodeIds.add(childNodeRef.id);z
+				nodeIds.add(childNodeRef.id);
 			}
 		}
 
