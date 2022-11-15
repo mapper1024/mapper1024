@@ -1,6 +1,8 @@
 import { Vector3 } from "./geometry.js";
 import { images } from "./images/index.js";
 
+const tileSize = 16;
+
 class NodeRender {
 	constructor(context, nodeRef) {
 		this.context = context;
@@ -44,7 +46,6 @@ class NodeRender {
 					let bottomRightCorner = new Vector3(-Infinity, -Infinity, -Infinity);
 
 					const focusTiles = {};
-					const tileSize = 16;
 
 					for(const childNodeRef of children) {
 						const radiusInPixels = this.context.unitsToPixels(await childNodeRef.getRadius());
@@ -64,7 +65,8 @@ class NodeRender {
 					topLeftCorner = topLeftCorner.map(Math.floor).map((c) => c - c % tileSize);
 
 					for(const part of toRender) {
-						part.point = part.point.subtract(topLeftCorner);
+						const absolutePoint = part.point;
+						part.point = absolutePoint.subtract(topLeftCorner);
 
 						for(let r = 0; r < Math.PI * 2; r += 8 / part.radius) {
 							const tilePos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point).divideScalar(tileSize).map(Math.floor);
@@ -74,9 +76,11 @@ class NodeRender {
 							}
 							let tilesY = tilesX[tilePos.y];
 							if(tilesY === undefined) {
-								tilesY = tilesX[tilePos.y] = [];
+								tilesY = tilesX[tilePos.y] = new Map();
 							}
-							tilesY.push(part.nodeRef);
+							tilesY.set(part.nodeRef, {
+								point: absolutePoint,
+							});
 						}
 					}
 
@@ -97,17 +101,6 @@ class NodeRender {
 						c.fill();
 					}
 
-					c.strokeStyle = "black";
-
-					for(const tX in focusTiles) {
-						const tilesX = focusTiles[tX];
-						for(const tY in tilesX) {
-							const tile = tilesX[tY];
-							const point = new Vector3(tX, tY, 0).multiplyScalar(tileSize);
-							c.strokeRect(point.x, point.y, tileSize, tileSize);
-						}
-					}
-
 					render.push({
 						corner: topLeftCorner,
 						z: z,
@@ -123,4 +116,4 @@ class NodeRender {
 	}
 }
 
-export { NodeRender };
+export { NodeRender, tileSize };

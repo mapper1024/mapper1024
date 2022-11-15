@@ -6,7 +6,7 @@ import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { ChangeNameAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
-import { NodeRender } from "./node_render.js";
+import { NodeRender, tileSize } from "./node_render.js";
 import { style } from "./style.js";
 import { version } from "./version.js";
 
@@ -822,15 +822,43 @@ class RenderContext {
 		}
 	}
 
-	/** Completely redraw the displayed UI. */
-	async redraw() {
-		await this.clearCanvas();
-
+	async drawNodes() {
+		const focusTiles = {};
 		const layers = [];
 
 		for await(const nodeRef of this.drawnNodes()) {
 			for (const layer of await this.getNodeRender(nodeRef).getLayers(this.unitsToPixels(1))) {
 				layers.push(layer);
+
+				const cornerOnCanvas = layer.corner;
+				const tileCornerOnCanvas = cornerOnCanvas.divideScalar(tileSize).map(Math.floor);
+
+				const lFocusTiles = layer.focusTiles;
+				for(const lTX in lFocusTiles) {
+					const lFocusTilesX = lFocusTiles[lTX];
+
+					const tX = tileCornerOnCanvas.x + +lTX;
+
+					let focusTilesX = focusTiles[tX];
+					if(focusTilesX === undefined) {
+						focusTilesX = focusTiles[tX] = {};
+					}
+
+					for(const lTY in lFocusTilesX) {
+						const lTile = lFocusTilesX[lTY];
+
+						const tY = tileCornerOnCanvas.y + +lTY;
+
+						let tile = focusTilesX[tY];
+						if(tile === undefined) {
+							tile = focusTilesX[tY] = new Map();
+						}
+
+						for(const [k, v] of lTile) {
+							tile.set(k, v);
+						}
+					}
+				}
 			}
 		}
 
@@ -842,6 +870,24 @@ class RenderContext {
 			const cornerOnCanvas = layer.corner.subtract(this.scrollOffset);
 			c.drawImage(layer.canvas, cornerOnCanvas.x, cornerOnCanvas.y);
 		}
+
+		c.strokeStyle = "black";
+
+		for(const tX in focusTiles) {
+			const tilesX = focusTiles[tX];
+			for(const tY in tilesX) {
+				const tile = tilesX[tY];
+				const point = new Vector3(+tX, +tY, 0).multiplyScalar(tileSize).subtract(this.scrollOffset);
+				c.strokeRect(point.x, point.y, tileSize, tileSize);
+			}
+		}
+	}
+
+	/** Completely redraw the displayed UI. */
+	async redraw() {
+		await this.clearCanvas();
+
+		await this.drawNodes();
 
 		if(this.isCalculatingDistance()) {
 			await this.drawPegs();
@@ -989,7 +1035,7 @@ class Mapper {
 		let nodeIds = new Set(nodeRefs.map((nodeRef) => nodeRef.id));
 		for(const nodeRef of nodeRefs) {
 			for await (const childNodeRef of nodeRef.getAllDescendants()) {
-				nodeIds.add(childNodeRef.id);
+				nodeIds.add(childNodeRef.id);z
 			}
 		}
 
