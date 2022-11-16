@@ -52,6 +52,8 @@ class Brush {
 	}
 
 	async drawAsCircle(context, position) {
+		context.setLineDash([]);
+
 		context.beginPath();
 		context.arc(position.x, position.y, this.getRadius(), 0, 2 * Math.PI, false);
 		context.strokeStyle = "white";

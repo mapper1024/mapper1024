@@ -657,6 +657,8 @@ class RenderContext {
 
 		const drawn = new Set();
 
+		c.setLineDash([]);
+
 		const drawNodePoint = async (nodeRef) => {
 			if(!drawn.has(nodeRef.id)) {
 				drawn.add(nodeRef.id);

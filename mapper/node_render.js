@@ -68,13 +68,32 @@ class NodeRender {
 						part.point = part.absolutePoint.subtract(topLeftCorner);
 
 						for(let r = 0; r < Math.PI * 2; r += 8 / part.radius) {
-							const tilePos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point).divideScalar(tileSize).map(Math.floor);
+							const pos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point);
+							const tilePos = pos.divideScalar(tileSize).map(Math.floor);
 							let tilesX = focusTiles[tilePos.x];
 							if(tilesX === undefined) {
 								tilesX = focusTiles[tilePos.x] = {};
 							}
 
-							tilesX[tilePos.y] = true;
+							tilesX[tilePos.y] = {
+								point: pos,
+							};
+						}
+					}
+
+					/* Loop through all focus tiles and delete those that fall fully within another part;
+					 * they would certainly not be borders. */
+					for(const tX in focusTiles) {
+						const focusTilesX = focusTiles[tX];
+						for(const tY in focusTilesX) {
+							const tile = focusTilesX[tY];
+							const point = tile.point;
+							for(const part of toRender) {
+								if(part.point.subtract(point).length() < part.radius - tileSize) {
+									delete focusTilesX[tY];
+									break;
+								}
+							}
 						}
 					}
 
