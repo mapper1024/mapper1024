@@ -62,11 +62,14 @@ class NodeRender {
 						});
 					}
 
+					// Align the node render to the tile grid.
 					topLeftCorner = topLeftCorner.map(Math.floor).map((c) => c - c % tileSize);
 
 					for(const part of toRender) {
 						part.point = part.absolutePoint.subtract(topLeftCorner);
 
+						/* Calculate all potential focus tiles for this part.
+						 * Potential focus tiles lie along the outer radius of the part. */
 						for(let r = 0; r < Math.PI * 2; r += 8 / part.radius) {
 							const pos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point);
 							const tilePos = pos.divideScalar(tileSize).map(Math.floor);
