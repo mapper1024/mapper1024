@@ -440,7 +440,7 @@ class RenderContext {
 					for(let i = megaTile.parts.length - 1; i >= 0; i--) {
 						const part = megaTile.parts[i];
 						if(layer.getType() === (await part.nodeRef.getLayer()).getType()) {
-							if(part.absolutePoint.subtract(point).length() < part.radius) {
+							if(part.absolutePoint.subtract(absolutePoint).length() < part.radius) {
 								return part.nodeRef;
 							}
 						}
