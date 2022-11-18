@@ -13,6 +13,8 @@ class SetNodeSpaceAction extends Action {
 		await this.options.nodeRef.setEffectiveCenter(this.options.effectiveCenter);
 		await this.options.nodeRef.setRadius(this.options.radius);
 
+		await this.context.mapper.hooks.call("updateNode", this.options.nodeRef);
+
 		return undoAction;
 	}
 }

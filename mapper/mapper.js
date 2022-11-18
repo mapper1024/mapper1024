@@ -628,7 +628,6 @@ class RenderContext {
 			delete this.nodeIdsToMegatiles[actualNodeRef.id];
 			this.removeNodeRender(actualNodeRef);
 			redrawNodeIds.add(actualNodeRef.id);
-			updateNodeIds.delete(actualNodeRef.id);
 			drawnNodeIds.delete(actualNodeRef.id);
 		}
 

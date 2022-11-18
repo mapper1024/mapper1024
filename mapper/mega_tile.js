@@ -1,4 +1,4 @@
-const megaTileSize = 256;
+const megaTileSize = 512;
 
 class MegaTile {
 	constructor(context, oneUnitInPixels, tileCorner) {
