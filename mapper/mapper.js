@@ -6,6 +6,7 @@ import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { ChangeNameAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
+import { MegaTile, megaTileSize } from "./mega_tile.js";
 import { NodeRender, tileSize } from "./node_render.js";
 import { style } from "./style.js";
 import { version } from "./version.js";
@@ -42,6 +43,9 @@ class RenderContext {
 		this.redoStack = [];
 
 		this.nodeRenders = {};
+		this.megaTiles = {};
+		this.nodeIdsToMegatiles = {};
+		this.drawnNodeIds = {};
 
 		this.backgroundColor = "#997";
 
@@ -339,6 +343,7 @@ class RenderContext {
 
 	setScrollOffset(value) {
 		this.scrollOffset = value;
+		this.recalculateEntireViewport();
 	}
 
 	registerKeyboardShortcut(filter, handler) {
@@ -364,6 +369,7 @@ class RenderContext {
 			const oldLandmark = this.canvasPointToMap(this.mousePosition);
 			this.zoom = this.requestedZoom;
 			this.hooks.call("changed_zoom", this.zoom);
+			this.recalculateEntireViewport();
 			const newLandmark = this.canvasPointToMap(this.mousePosition);
 			this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
 		}
@@ -536,6 +542,12 @@ class RenderContext {
 	screenBox() {
 		return new Box3(Vector3.ZERO, this.screenSize());
 	}
+
+	absoluteScreenBox() {
+		const scrollOffsetPixels = this.scrollOffset.map(c => this.unitsToPixels(c));
+		return new Box3(scrollOffsetPixels, this.screenSize().add(scrollOffsetPixels));
+	}
+
 	/** Recalculate the UI size based on the parent.
 	 * This requires a full redraw.
 	 */
@@ -567,15 +579,18 @@ class RenderContext {
 		this.recalculateViewport = true;
 	}
 
+	async objectNode(nodeRef) {
+		if(await nodeRef.getNodeType() === "object")
+			return nodeRef;
+		else
+			return await nodeRef.getParent();
+	}
+
 	recalculateNodeUpdate(nodeRef) {
-		this.invalidateNodeRender(nodeRef);
 		this.recalculateUpdate.push(nodeRef);
 	}
 
 	recalculateNodesRemove(nodeRefs) {
-		for(const nodeRef of nodeRefs) {
-			this.removeNodeRender(nodeRef);
-		}
 		this.recalculateRemoved.push(...nodeRefs);
 	}
 
@@ -584,9 +599,131 @@ class RenderContext {
 	}
 
 	async recalculate(updatedNodeRefs, removedNodeRefs, translatedNodeRefs) {
-		updatedNodeRefs;
-		removedNodeRefs;
-		translatedNodeRefs;
+		const redrawNodeIds = new Set();
+		const updateNodeIds = new Set();
+
+		let drawnNodeIds = this.drawnNodeIds[this.unitsToPixels(1)];
+		if(drawnNodeIds === undefined) {
+			drawnNodeIds = this.drawnNodeIds[this.unitsToPixels(1)] = new Set();
+		}
+
+		const visibleNodeIds = new Set(await asyncFrom(this.visibleObjectNodes(), nodeRef => nodeRef.id));
+
+		for(const visibleNodeId of visibleNodeIds) {
+			if(!drawnNodeIds.has(visibleNodeId)) {
+				redrawNodeIds.add(visibleNodeId);
+				updateNodeIds.add(visibleNodeId);
+			}
+		}
+
+		for(const nodeRef of updatedNodeRefs) {
+			const actualNodeRef = await this.objectNode(nodeRef);
+			this.invalidateNodeRender(actualNodeRef);
+			redrawNodeIds.add(actualNodeRef.id);
+			updateNodeIds.add(actualNodeRef.id);
+		}
+
+		for(const nodeRef of removedNodeRefs) {
+			const actualNodeRef = await this.objectNode(nodeRef);
+			delete this.nodeIdsToMegatiles[actualNodeRef.id];
+			this.removeNodeRender(actualNodeRef);
+			redrawNodeIds.add(actualNodeRef.id);
+			updateNodeIds.delete(actualNodeRef.id);
+			drawnNodeIds.delete(actualNodeRef.id);
+		}
+
+		for(const nodeRef of translatedNodeRefs) {
+			redrawNodeIds.add(nodeRef.id);
+		}
+
+		const redrawMegaTiles = new Set();
+
+		for(const nodeId of redrawNodeIds) {
+			const megaTilesByNode = this.nodeIdsToMegatiles[nodeId];
+			if(megaTilesByNode !== undefined) {
+				for(const megaTile of megaTilesByNode) {
+					const tilePosition = megaTile.tileCorner;
+					for(const nodeId of megaTile.nodeIds) {
+						updateNodeIds.add(nodeId);
+					}
+					delete this.megaTiles[megaTile.oneUnitInPixels][tilePosition.x][tilePosition.y];
+				}
+				delete this.nodeIdsToMegatiles[nodeId];
+			}
+		}
+
+		const drawNodeIds = async (nodeIds) => {
+			const drawAgainIds = new Set();
+			const layers = [];
+
+			for(const nodeId of nodeIds) {
+				const nodeRef = this.mapper.backend.getNodeRef(nodeId);
+				drawnNodeIds.add(nodeRef.id);
+
+				const nodeRender = this.getNodeRender(nodeRef);
+				for(const layer of await nodeRender.getLayers(this.unitsToPixels(1))) {
+					layers.push(layer);
+				}
+
+				if(this.nodeIdsToMegatiles[nodeId] === undefined)
+					this.nodeIdsToMegatiles[nodeId] = new Set();
+			}
+
+			layers.sort((a, b) => a.z - b.z);
+
+			let megaTiles = this.megaTiles[this.unitsToPixels(1)];
+			if(megaTiles === undefined) {
+				megaTiles = this.megaTiles[this.unitsToPixels(1)] = {};
+			}
+
+			for(const layer of layers) {
+				const nodeId = layer.nodeRender.nodeRef.id;
+
+				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.canvas.width, layer.canvas.height, 0));
+				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
+
+				for(let x = layerBoxInMegaTiles.a.x; x <= layerBoxInMegaTiles.b.x; x++) {
+					let megaTileX = megaTiles[x];
+					if(megaTileX === undefined) {
+						megaTileX = megaTiles[x] = {};
+					}
+
+					for(let y = layerBoxInMegaTiles.a.y; y <= layerBoxInMegaTiles.b.y; y++) {
+						const megaTilePoint = new Vector3(x, y, 0);
+
+						let megaTile = megaTileX[y];
+						if(megaTile === undefined) {
+							megaTile = megaTileX[y] = new MegaTile(this, this.unitsToPixels(1), megaTilePoint);
+							redrawMegaTiles.add(megaTile);
+						}
+
+						const firstAppearanceInMegaTile = !megaTile.nodeIds.has(nodeId);
+
+						if(redrawMegaTiles.has(megaTile) || firstAppearanceInMegaTile) {
+							const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
+							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
+							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
+							megaTile.context.drawImage(layer.canvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
+
+							this.nodeIdsToMegatiles[nodeId].add(megaTile);
+							megaTile.nodeIds.add(nodeId);
+						}
+
+						if(firstAppearanceInMegaTile) {
+							for(const otherNodeId of megaTile.nodeIds) {
+								drawAgainIds.add(otherNodeId);
+							}
+						}
+					}
+				}
+			}
+
+			return drawAgainIds;
+		}
+
+		const secondPassNodeIds = await drawNodeIds(updateNodeIds);
+		await drawNodeIds(secondPassNodeIds);
+
 		this.requestRedraw();
 	}
 
@@ -825,93 +962,22 @@ class RenderContext {
 	}
 
 	async drawNodes() {
-		const focusTiles = {};
-		const layers = [];
-
-		for await(const nodeRef of this.drawnNodes()) {
-			for (const layer of await this.getNodeRender(nodeRef).getLayers(this.unitsToPixels(1))) {
-				layers.push(layer);
-
-				const cornerOnCanvas = layer.corner;
-				const tileCornerOnCanvas = cornerOnCanvas.divideScalar(tileSize).map(Math.floor);
-
-				const lFocusTiles = layer.focusTiles;
-				for(const lTX in lFocusTiles) {
-					const lFocusTilesX = lFocusTiles[lTX];
-
-					const tX = tileCornerOnCanvas.x + +lTX;
-
-					let focusTilesX = focusTiles[tX];
-					if(focusTilesX === undefined) {
-						focusTilesX = focusTiles[tX] = {};
-					}
-
-					for(const lTY in lFocusTilesX) {
-						const tY = tileCornerOnCanvas.y + +lTY;
-
-						focusTilesX[tY] = true;
-					}
-				}
-			}
-		}
-
-		layers.sort((a, b) => a.z - b.z);
-
 		const c = this.canvas.getContext("2d");
 
-		for(const layer of layers) {
-			const cornerOnCanvas = layer.corner.subtract(this.scrollOffset);
-			c.drawImage(layer.canvas, cornerOnCanvas.x, cornerOnCanvas.y);
-		}
-
-		c.strokeStyle = "black";
-
-		const halfTile = new Vector3(tileSize / 2, tileSize / 2, 0);
-
-		for(const tX in focusTiles) {
-			const tilesX = focusTiles[tX];
-			const absolutePointX = +tX * tileSize;
-			const layersX = [];
-			for(const layer of layers) {
-				if(layer.corner.x <= absolutePointX && layer.corner.x + layer.canvas.width >= absolutePointX + tileSize) {
-					layersX.push(layer);
-				}
-			}
-			for(const tY in tilesX) {
-				const absolutePointY = +tY * tileSize;
-				const nodeTypes = new Map();
-
-				const absolutePoint = new Vector3(absolutePointX, absolutePointY, 0);
-				const absoluteCenter = absolutePoint.add(halfTile);
-
-				for(const layer of layersX) {
-					if(layer.corner.y <= absolutePointY && layer.corner.y + layer.canvas.height >= absolutePointY + tileSize) {
-						for(const part of layer.parts) {
-							if(part.absolutePoint.subtract(absoluteCenter).length() < part.radius) {
-								const nodeType = await part.nodeRef.getType();
-								nodeTypes.set(nodeType.id, nodeType);
-							}
+		const megaTiles = this.megaTiles[this.unitsToPixels(1)];
+		if(megaTiles !== undefined) {
+			const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
+			for(let x = screenBoxInMegaTiles.a.x; x <= screenBoxInMegaTiles.b.x; x++) {
+				const megaTileX = megaTiles[x];
+				if(megaTileX !== undefined) {
+					for(let y = screenBoxInMegaTiles.a.y; y <= screenBoxInMegaTiles.b.y; y++) {
+						const megaTile = megaTileX[y];
+						if(megaTile !== undefined) {
+							const point = megaTile.corner.subtract(this.scrollOffset);
+							c.drawImage(megaTile.canvas, point.x, point.y);
 						}
 					}
 				}
-
-				const point = absolutePoint.subtract(this.scrollOffset);
-
-				if(nodeTypes.size > 1) {
-					c.globalAlpha = 1 / nodeTypes.size;
-
-					for(const nodeType of nodeTypes.values()) {
-						c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, nodeType);
-						c.fillRect(point.x, point.y, tileSize, tileSize);
-					}
-
-					c.globalAlpha = 1;
-				}
-
-				c.strokeStyle = "black";
-				c.strokeWidth = 1;
-				c.setLineDash([1, 3]);
-				c.strokeRect(point.x, point.y, tileSize, tileSize);
 			}
 		}
 	}
@@ -938,15 +1004,31 @@ class RenderContext {
 	}
 
 	async * visibleObjectNodes() {
-		const screenBox = this.screenBox();
-		const mapBox = screenBox.map((v) => this.canvasPointToMap(v));
+		yield* this.getObjectNodesInRelativeBox(this.screenBox());
+	}
+
+	async * getObjectNodesInAbsoluteBox(box) {
+		yield* this.getObjectNodesInBox(box.map(v => v.map(c => this.pixelsToUnits(c))));
+	}
+
+	async * getObjectNodesInRelativeBox(box) {
+		yield* this.getObjectNodesInBox(box.map((v) => this.canvasPointToMap(v)));
+	}
+
+	async * getObjectNodesInBox(box) {
+		const mapBox = box.map(v => v);
 		mapBox.a.z = -Infinity;
 		mapBox.b.z = Infinity;
 		yield* this.mapper.getObjectNodesTouchingArea(mapBox, this.pixelsToUnits(1));
 	}
 
 	async * drawnNodes() {
-		yield* this.visibleObjectNodes();
+		const drawnNodeIds = this.drawnNodeIds[this.unitsToPixels(1)];
+		if(drawnNodeIds !== undefined) {
+			for(const nodeId of drawnNodeIds) {
+				yield this.mapper.backend.getNodeRef(nodeId);
+			}
+		}
 	}
 
 	/** Disconnect the render context from the page and clean up listeners. */

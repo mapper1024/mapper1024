@@ -118,6 +118,7 @@ class NodeRender {
 					}
 
 					render.push({
+						nodeRender: this,
 						corner: topLeftCorner,
 						z: z,
 						canvas: canvas,
