@@ -60,7 +60,7 @@ class RenderContext {
 
 		this.scrollOffset = Vector3.ZERO;
 		this.zoom = 5;
-		this.requestedZoom = 5;
+		this.requestedZoom = this.zoom;
 
 		this.altitudeIncrement = this.mapper.metersToUnits(5);
 
@@ -560,8 +560,7 @@ class RenderContext {
 	}
 
 	absoluteScreenBox() {
-		const scrollOffsetPixels = this.scrollOffset.map(c => this.unitsToPixels(c));
-		return new Box3(scrollOffsetPixels, this.screenSize().add(scrollOffsetPixels));
+		return new Box3(this.scrollOffset, this.screenSize().add(this.scrollOffset));
 	}
 
 	/** Recalculate the UI size based on the parent.
@@ -872,6 +871,7 @@ class RenderContext {
 			for(let y = screenBoxInMegaTiles.a.y; y <= screenBoxInMegaTiles.b.y; y++) {
 				const point = new Vector3(x, y, 0).multiplyScalar(megaTileSize).subtract(this.scrollOffset);
 				c.strokeRect(point.x, point.y, megaTileSize, megaTileSize);
+				c.strokeText(`${x}, ${y}`, point.x, point.y);
 			}
 		}
 	}
