@@ -59,7 +59,8 @@ class RenderContext {
 		this.scrollDelta = 0;
 
 		this.scrollOffset = Vector3.ZERO;
-		this.zoom = 5;
+		this.defaultZoom = 5;
+		this.zoom = this.defaultZoom;
 		this.requestedZoom = this.zoom;
 
 		this.altitudeIncrement = this.mapper.metersToUnits(5);
@@ -177,8 +178,20 @@ class RenderContext {
 					}
 				}
 				else if(event.key === "c") {
-					this.setScrollOffset(Vector3.ZERO);
-					this.forceZoom(5);
+					if(this.zoom === this.defaultZoom) {
+						this.setScrollOffset(Vector3.ZERO);
+					}
+					else {
+						let f;
+						f = () => {
+							this.setScrollOffset(Vector3.ZERO);
+							this.hooks.remove("changed_zoom", f);
+						};
+
+						this.hooks.add("changed_zoom", f);
+
+						this.requestZoomChange(this.defaultZoom);
+					}
 				}
 				else if(event.key === "=") {
 					this.requestZoomChange(this.zoom - 1);
@@ -317,7 +330,6 @@ class RenderContext {
 		window.requestAnimationFrame(this.redrawLoop.bind(this));
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
-		setTimeout(this.applyZoom.bind(this), 10);
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
@@ -362,27 +374,6 @@ class RenderContext {
 
 	requestZoomChange(zoom) {
 		this.requestedZoom = Math.max(1, Math.min(zoom, 30));
-	}
-
-	async applyZoom() {
-		if(this.zoom !== this.requestedZoom) {
-			const oldLandmark = this.canvasPointToMap(this.mousePosition);
-			this.zoom = this.requestedZoom;
-			this.hooks.call("changed_zoom", this.zoom);
-			this.recalculateEntireViewport();
-			const newLandmark = this.canvasPointToMap(this.mousePosition);
-			this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
-		}
-
-		if(this.alive) {
-			setTimeout(this.applyZoom.bind(this), 10);
-		}
-	}
-
-	forceZoom(zoom) {
-		this.zoom = this.requestedZoom = zoom;
-		this.hooks.call("changed_zoom", this.zoom);
-		this.recalculateEntireViewport();
 	}
 
 	async redrawLoop() {
@@ -451,6 +442,15 @@ class RenderContext {
 	}
 
 	async recalculateLoop() {
+		if(this.zoom !== this.requestedZoom) {
+			const oldLandmark = this.canvasPointToMap(this.mousePosition);
+			this.zoom = this.requestedZoom;
+			const newLandmark = this.canvasPointToMap(this.mousePosition);
+			this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
+			await this.hooks.call("changed_zoom", this.zoom);
+			this.recalculateEntireViewport();
+		}
+
 		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0) {
 			this.recalculateViewport = false;
 			await this.recalculate(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
