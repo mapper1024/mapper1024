@@ -429,9 +429,25 @@ class RenderContext {
 	}
 
 	async getDrawnNodeAtCanvasPoint(point, layer) {
-		point;
-		layer;
-		return null;
+		const absolutePoint = point.add(this.scrollOffset);
+		const absoluteMegaTile = absolutePoint.divideScalar(megaTileSize).map(Math.floor);
+		const megaTiles = this.megaTiles[this.unitsToPixels(1)];
+		if(megaTiles !== undefined) {
+			const megaTileX = megaTiles[absoluteMegaTile.x];
+			if(megaTileX !== undefined) {
+				const megaTile = megaTileX[absoluteMegaTile.y];
+				if(megaTile !== undefined) {
+					for(let i = megaTile.parts.length - 1; i >= 0; i--) {
+						const part = megaTile.parts[i];
+						if(layer.getType() === (await part.nodeRef.getLayer()).getType()) {
+							if(part.absolutePoint.subtract(point).length() < part.radius) {
+								return part.nodeRef;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	async recalculateLoop() {
@@ -710,6 +726,7 @@ class RenderContext {
 
 							this.nodeIdsToMegatiles[nodeId].add(megaTile);
 							megaTile.nodeIds.add(nodeId);
+							megaTile.parts.push(...layer.parts);
 						}
 
 						if(firstAppearanceInMegaTile) {

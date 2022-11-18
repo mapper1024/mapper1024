@@ -15,6 +15,7 @@ class MegaTile {
 		this.context = this.canvas.getContext("2d");
 
 		this.nodeIds = new Set();
+		this.parts = [];
 	}
 }
 
