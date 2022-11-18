@@ -7,7 +7,7 @@ import { Selection } from "./selection.js";
 import { ChangeNameAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
 import { MegaTile, megaTileSize } from "./mega_tile.js";
-import { NodeRender, tileSize } from "./node_render.js";
+import { NodeRender } from "./node_render.js";
 import { style } from "./style.js";
 import { version } from "./version.js";
 
@@ -718,7 +718,7 @@ class RenderContext {
 			}
 
 			return drawAgainIds;
-		}
+		};
 
 		const secondPassNodeIds = await drawNodeIds(updateNodeIds);
 		await drawNodeIds(secondPassNodeIds);
