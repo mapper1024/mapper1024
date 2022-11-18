@@ -625,7 +625,6 @@ class RenderContext {
 
 		for(const nodeRef of removedNodeRefs) {
 			const actualNodeRef = await this.objectNode(nodeRef);
-			delete this.nodeIdsToMegatiles[actualNodeRef.id];
 			this.removeNodeRender(actualNodeRef);
 			redrawNodeIds.add(actualNodeRef.id);
 			drawnNodeIds.delete(actualNodeRef.id);
@@ -649,6 +648,11 @@ class RenderContext {
 				}
 				delete this.nodeIdsToMegatiles[nodeId];
 			}
+		}
+
+		for(const nodeRef of removedNodeRefs) {
+			const actualNodeRef = await this.objectNode(nodeRef);
+			delete this.nodeIdsToMegatiles[actualNodeRef.id];
 		}
 
 		const drawNodeIds = async (nodeIds) => {
