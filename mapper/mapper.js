@@ -625,10 +625,8 @@ class RenderContext {
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleObjectNodes(), nodeRef => nodeRef.id));
 
 		for(const visibleNodeId of visibleNodeIds) {
-			if(!drawnNodeIds.has(visibleNodeId)) {
-				redrawNodeIds.add(visibleNodeId);
-				updateNodeIds.add(visibleNodeId);
-			}
+			redrawNodeIds.add(visibleNodeId);
+			updateNodeIds.add(visibleNodeId);
 		}
 
 		for(const nodeRef of updatedNodeRefs) {
@@ -670,6 +668,8 @@ class RenderContext {
 			delete this.nodeIdsToMegatiles[actualNodeRef.id];
 		}
 
+		const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
+
 		const drawNodeIds = async (nodeIds) => {
 			const drawAgainIds = new Set();
 			const layers = [];
@@ -700,13 +700,13 @@ class RenderContext {
 				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.canvas.width, layer.canvas.height, 0));
 				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
-				for(let x = layerBoxInMegaTiles.a.x; x <= layerBoxInMegaTiles.b.x; x++) {
+				for(let x = Math.max(layerBoxInMegaTiles.a.x, screenBoxInMegaTiles.a.x); x <= Math.min(layerBoxInMegaTiles.b.x, screenBoxInMegaTiles.b.x); x++) {
 					let megaTileX = megaTiles[x];
 					if(megaTileX === undefined) {
 						megaTileX = megaTiles[x] = {};
 					}
 
-					for(let y = layerBoxInMegaTiles.a.y; y <= layerBoxInMegaTiles.b.y; y++) {
+					for(let y = Math.max(layerBoxInMegaTiles.a.y, screenBoxInMegaTiles.a.y); y <= Math.min(layerBoxInMegaTiles.b.y, screenBoxInMegaTiles.b.y); y++) {
 						const megaTilePoint = new Vector3(x, y, 0);
 
 						let megaTile = megaTileX[y];
