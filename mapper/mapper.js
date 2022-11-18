@@ -864,6 +864,16 @@ class RenderContext {
 			c.strokeStyle = "gray";
 			c.stroke();
 		}
+
+		c.strokeStyle = "black";
+
+		const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
+		for(let x = screenBoxInMegaTiles.a.x; x <= screenBoxInMegaTiles.b.x; x++) {
+			for(let y = screenBoxInMegaTiles.a.y; y <= screenBoxInMegaTiles.b.y; y++) {
+				const point = new Vector3(x, y, 0).multiplyScalar(megaTileSize).subtract(this.scrollOffset);
+				c.strokeRect(point.x, point.y, megaTileSize, megaTileSize);
+			}
+		}
 	}
 
 	async drawScale() {
