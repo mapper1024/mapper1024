@@ -176,6 +176,8 @@ class DrawPathAction extends Action {
 
 			await nodeRef.setEffectiveCenter(center);
 			await nodeRef.setRadius(furthest.subtract(center).length());
+			await this.options.parent.setRadius(Math.max(await this.options.parent.getRadius(), await nodeRef.getRadius()));
+			await this.context.mapper.hooks.call("updateNode", this.options.parent);
 		}
 
 		const undoActions = [];
