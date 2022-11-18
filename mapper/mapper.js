@@ -178,20 +178,8 @@ class RenderContext {
 					}
 				}
 				else if(event.key === "c") {
-					if(this.zoom === this.defaultZoom) {
-						this.setScrollOffset(Vector3.ZERO);
-					}
-					else {
-						let f;
-						f = () => {
-							this.setScrollOffset(Vector3.ZERO);
-							this.hooks.remove("changed_zoom", f);
-						};
-
-						this.hooks.add("changed_zoom", f);
-
-						this.requestZoomChange(this.defaultZoom);
-					}
+					await this.forceZoom(this.defaultZoom);
+					this.setScrollOffset(Vector3.ZERO);
 				}
 				else if(event.key === "=") {
 					this.requestZoomChange(this.zoom - 1);
@@ -374,6 +362,25 @@ class RenderContext {
 
 	requestZoomChange(zoom) {
 		this.requestedZoom = Math.max(1, Math.min(zoom, 30));
+	}
+
+	forceZoom(zoom) {
+		return new Promise((resolve) => {
+			if(this.zoom === zoom) {
+				resolve(this.zoom);
+			}
+			else {
+				let f;
+				f = () => {
+					resolve(this.zoom);
+					this.hooks.remove("changed_zoom", f);
+				};
+
+				this.hooks.add("changed_zoom", f);
+
+				this.requestZoomChange(zoom);
+			}
+		});
 	}
 
 	async redrawLoop() {
