@@ -20,8 +20,8 @@ class NodeRender {
 		}
 	}
 
-	async getLayers(oneUnitInPixels) {
-		let render = this.renders[oneUnitInPixels];
+	async getLayers(zoom) {
+		let render = this.renders[zoom];
 		if(render === undefined) {
 			render = [];
 
@@ -64,6 +64,7 @@ class NodeRender {
 
 					// Align the node render to the tile grid.
 					topLeftCorner = topLeftCorner.map(Math.floor).map((c) => c - c % tileSize);
+					bottomRightCorner = bottomRightCorner.map(Math.ceil);
 
 					for(const part of toRender) {
 						part.point = part.absolutePoint.subtract(topLeftCorner);
@@ -100,35 +101,61 @@ class NodeRender {
 						}
 					}
 
-					const canvas = document.createElement("canvas");
-					canvas.width = bottomRightCorner.x - topLeftCorner.x;
-					canvas.height = bottomRightCorner.y - topLeftCorner.y;
-					if(canvas.width === 0 || canvas.height === 0) {
+					const miniCanvasSize = 2048;
+					const totalCanvasSize = new Vector3(bottomRightCorner.x - topLeftCorner.x, bottomRightCorner.y - topLeftCorner.y, 0);
+					if(totalCanvasSize.x === 0 || totalCanvasSize.y === 0) {
 						continue;
 					}
-					const c = canvas.getContext("2d");
 
-					c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+					const miniCanvasLimit = totalCanvasSize.divideScalar(miniCanvasSize).map(Math.floor);
+					for(let x = 0; x <= miniCanvasLimit.x; x++) {
+						for(let y = 0; y <= miniCanvasLimit.y; y++) {
+							const offset = new Vector3(x, y, 0).multiplyScalar(miniCanvasSize);
 
-					for(const part of toRender) {
-						const point = part.point;
-						c.beginPath();
-						c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
-						c.fill();
+							const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
+							const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
+
+							let canvas;
+
+							const canvasFunction = async () => {
+								if(canvas) {
+									return canvas;
+								}
+
+								canvas = document.createElement("canvas");
+								canvas.width = width;
+								canvas.height = height;
+
+								const c = canvas.getContext("2d");
+
+								c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+
+								for(const part of toRender) {
+									const point = part.point.subtract(offset);
+									c.beginPath();
+									c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
+									c.fill();
+								}
+
+								return canvas;
+							};
+
+							render.push({
+								nodeRender: this,
+								corner: topLeftCorner.add(offset),
+								z: z,
+								canvas: canvasFunction,
+								width: width,
+								height: height,
+								focusTiles: focusTiles,
+								parts: toRender,
+							});
+						}
 					}
-
-					render.push({
-						nodeRender: this,
-						corner: topLeftCorner,
-						z: z,
-						canvas: canvas,
-						focusTiles: focusTiles,
-						parts: toRender,
-					});
 				}
 			}
 
-			this.renders[oneUnitInPixels] = render;
+			this.renders[zoom] = render;
 		}
 		return render;
 	}

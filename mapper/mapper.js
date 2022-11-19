@@ -429,7 +429,7 @@ class RenderContext {
 	async getDrawnNodeAtCanvasPoint(point, layer) {
 		const absolutePoint = point.add(this.scrollOffset);
 		const absoluteMegaTile = absolutePoint.divideScalar(megaTileSize).map(Math.floor);
-		const megaTiles = this.megaTiles[this.unitsToPixels(1)];
+		const megaTiles = this.megaTiles[this.zoom];
 		if(megaTiles !== undefined) {
 			const megaTileX = megaTiles[absoluteMegaTile.x];
 			if(megaTileX !== undefined) {
@@ -579,6 +579,7 @@ class RenderContext {
 		this.canvas.height = this.parent.clientHeight;
 
 		this.hooks.call("size_change");
+		this.recalculateEntireViewport();
 	}
 
 	getNodeRender(nodeRef) {
@@ -624,9 +625,9 @@ class RenderContext {
 		const redrawNodeIds = new Set();
 		const updateNodeIds = new Set();
 
-		let drawnNodeIds = this.drawnNodeIds[this.unitsToPixels(1)];
+		let drawnNodeIds = this.drawnNodeIds[this.zoom];
 		if(drawnNodeIds === undefined) {
-			drawnNodeIds = this.drawnNodeIds[this.unitsToPixels(1)] = new Set();
+			drawnNodeIds = this.drawnNodeIds[this.zoom] = new Set();
 		}
 
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleObjectNodes(), nodeRef => nodeRef.id));
@@ -686,7 +687,7 @@ class RenderContext {
 				drawnNodeIds.add(nodeRef.id);
 
 				const nodeRender = this.getNodeRender(nodeRef);
-				for(const layer of await nodeRender.getLayers(this.unitsToPixels(1))) {
+				for(const layer of await nodeRender.getLayers(this.zoom)) {
 					layers.push(layer);
 				}
 
@@ -696,15 +697,15 @@ class RenderContext {
 
 			layers.sort((a, b) => a.z - b.z);
 
-			let megaTiles = this.megaTiles[this.unitsToPixels(1)];
+			let megaTiles = this.megaTiles[this.zoom];
 			if(megaTiles === undefined) {
-				megaTiles = this.megaTiles[this.unitsToPixels(1)] = {};
+				megaTiles = this.megaTiles[this.zoom] = {};
 			}
 
 			for(const layer of layers) {
 				const nodeId = layer.nodeRender.nodeRef.id;
 
-				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.canvas.width, layer.canvas.height, 0));
+				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
 				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
 				for(let x = Math.max(layerBoxInMegaTiles.a.x, screenBoxInMegaTiles.a.x); x <= Math.min(layerBoxInMegaTiles.b.x, screenBoxInMegaTiles.b.x); x++) {
@@ -718,7 +719,7 @@ class RenderContext {
 
 						let megaTile = megaTileX[y];
 						if(megaTile === undefined) {
-							megaTile = megaTileX[y] = new MegaTile(this, this.unitsToPixels(1), megaTilePoint);
+							megaTile = megaTileX[y] = new MegaTile(this, this.zoom, megaTilePoint);
 							redrawMegaTiles.add(megaTile);
 						}
 
@@ -728,7 +729,7 @@ class RenderContext {
 							const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
 							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
 							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
-							megaTile.context.drawImage(layer.canvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
+							megaTile.context.drawImage(await layer.canvas(), realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
 
 							this.nodeIdsToMegatiles[nodeId].add(megaTile);
 							megaTile.nodeIds.add(nodeId);
@@ -1001,7 +1002,7 @@ class RenderContext {
 	async drawNodes() {
 		const c = this.canvas.getContext("2d");
 
-		const megaTiles = this.megaTiles[this.unitsToPixels(1)];
+		const megaTiles = this.megaTiles[this.zoom];
 		if(megaTiles !== undefined) {
 			const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
 			for(let x = screenBoxInMegaTiles.a.x; x <= screenBoxInMegaTiles.b.x; x++) {
@@ -1060,7 +1061,7 @@ class RenderContext {
 	}
 
 	async * drawnNodes() {
-		const drawnNodeIds = this.drawnNodeIds[this.unitsToPixels(1)];
+		const drawnNodeIds = this.drawnNodeIds[this.zoom];
 		if(drawnNodeIds !== undefined) {
 			for(const nodeId of drawnNodeIds) {
 				yield this.mapper.backend.getNodeRef(nodeId);
