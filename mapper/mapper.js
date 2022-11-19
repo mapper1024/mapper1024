@@ -7,7 +7,7 @@ import { Selection } from "./selection.js";
 import { ChangeNameAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
 import { MegaTile, megaTileSize } from "./mega_tile.js";
-import { NodeRender } from "./node_render.js";
+import { NodeRender, tileSize } from "./node_render.js";
 import { style } from "./style.js";
 import { version } from "./version.js";
 
@@ -676,11 +676,14 @@ class RenderContext {
 			delete this.nodeIdsToMegatiles[actualNodeRef.id];
 		}
 
+		const screenBoxInTiles = this.absoluteScreenBox().map(v => v.divideScalar(tileSize).map(Math.floor));
 		const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
 		const drawNodeIds = async (nodeIds) => {
 			const drawAgainIds = new Set();
 			const layers = [];
+
+			const focusTileLists = new Set();
 
 			for(const nodeId of nodeIds) {
 				const nodeRef = this.mapper.backend.getNodeRef(nodeId);
@@ -689,6 +692,7 @@ class RenderContext {
 				const nodeRender = this.getNodeRender(nodeRef);
 				for(const layer of await nodeRender.getLayers(this.zoom)) {
 					layers.push(layer);
+					focusTileLists.add(layer.focusTiles);
 				}
 
 				if(this.nodeIdsToMegatiles[nodeId] === undefined)
@@ -739,6 +743,31 @@ class RenderContext {
 						if(firstAppearanceInMegaTile) {
 							for(const otherNodeId of megaTile.nodeIds) {
 								drawAgainIds.add(otherNodeId);
+							}
+						}
+					}
+				}
+			}
+
+			for(const focusTiles of focusTileLists) {
+				for(let tX in focusTiles) {
+					tX = +tX;
+					if(tX >= screenBoxInTiles.a.x && tX <= screenBoxInTiles.b.x) {
+						const megaTilePointX = Math.floor(tX * tileSize / megaTileSize);
+						const megaTileX = megaTiles[megaTilePointX];
+						if(megaTileX !== undefined) {
+							const focusTilesX = focusTiles[tX];
+							for(let tY in focusTilesX) {
+								tY = +tY;
+								if(tY >= screenBoxInTiles.a.y && tY <= screenBoxInTiles.b.y) {
+									const megaTilePointY = Math.floor(tY * tileSize / megaTileSize);
+									const megaTile = megaTileX[megaTilePointY];
+									if(megaTile !== undefined) {
+										const tile = focusTilesX[tY];
+										const point = tile.absolutePoint.subtract(megaTile.corner);
+										megaTile.context.strokeRect(point.x, point.y, tileSize, tileSize);
+									}
+								}
 							}
 						}
 					}

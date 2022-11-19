@@ -72,7 +72,7 @@ class NodeRender {
 						/* Calculate all potential focus tiles for this part.
 						 * Potential focus tiles lie along the outer radius of the part. */
 						for(let r = 0; r < Math.PI * 2; r += 8 / part.radius) {
-							const pos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point);
+							const pos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.absolutePoint);
 							const tilePos = pos.divideScalar(tileSize).map(Math.floor);
 							let tilesX = focusTiles[tilePos.x];
 							if(tilesX === undefined) {
@@ -80,7 +80,7 @@ class NodeRender {
 							}
 
 							tilesX[tilePos.y] = {
-								point: pos,
+								absolutePoint: tilePos.multiplyScalar(tileSize),
 							};
 						}
 					}
@@ -91,9 +91,9 @@ class NodeRender {
 						const focusTilesX = focusTiles[tX];
 						for(const tY in focusTilesX) {
 							const tile = focusTilesX[tY];
-							const point = tile.point;
+							const point = tile.absolutePoint;
 							for(const part of toRender) {
-								if(part.point.subtract(point).length() < part.radius - tileSize) {
+								if(part.absolutePoint.subtract(point).length() < part.radius - tileSize) {
 									delete focusTilesX[tY];
 									break;
 								}
