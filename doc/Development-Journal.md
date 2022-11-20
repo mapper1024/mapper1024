@@ -187,7 +187,13 @@ The information remains the same between the old and new renderers.
 I began to implement the renderer. I tore out all of the old renderer relating to rendering as tiles and began implementation of each node that needed to be drawn having a "NodeRender" object associated (and cached) for it. This NodeRender object will abstract actually rendering each individual node and calculating border areas for the various sizes, and the primary renderer will piece all of these objects together appropriately.
 
 # Through 2022-11-20
-I continue to implement the new renderer.
+I initially implemented the renderer in two pieces: rendering each object separately, and then rendering the pre-rendered objects onto the screen. This required a significant amount of memory when fully zoomed in, and also required rendering the entire object for each object displayed, even if it was not on screen. This approach also required searching the entire map to detect what nodes were rendered at what points.
+
+I implemented megatiles, which split the rendered map up into 512x512 chunks. Objects are rendered in pieces over each of these chunks, allowing for only the chunks that need to be displayed on the screen to be rendered. Megatiles also retain information about what parts of which objects are rendered within them, enabling faster detection of what objects are displayed at any given point on the canvas---this is useful for determining what object the user is pointing at.
+
+During development I ran into an issue where objects rendered to canvases that were too large. To solve this issue, I limited each individual canvas size to 2048x2048, and the cached node renders consist of however many of these canvases are needed to contain the entire image. Each smaller canvas is rendered only on demand, making for a much faster map loading and navigating experience.
+
+Immediate future development will reach feature parity with the old renderer.
 
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
