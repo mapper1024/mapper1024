@@ -823,7 +823,6 @@ class RenderContext {
 									if(neighborNode) {
 										neighbors.push({
 											nodeRef: neighborNode,
-											length: dirs[dirKey].length(),
 											angle: dirAngles[dirKey],
 											normalizedDir: normalizedDirs[dirKey],
 										});
@@ -836,7 +835,6 @@ class RenderContext {
 									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await neighbor.nodeRef.getType());
 									c.globalAlpha = 0.5;
 
-									const length = neighbor.length;
 									const angle = neighbor.angle;
 
 									const arcPoint = drawPoint.add(neighbor.normalizedDir.multiplyScalar(tileSize / 2));

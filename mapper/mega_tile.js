@@ -1,5 +1,3 @@
-import { tileSize } from "./node_render.js";
-
 const megaTileSize = 512;
 
 class MegaTile {
