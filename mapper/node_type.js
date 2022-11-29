@@ -59,6 +59,7 @@ class NodeTypeRegistry {
 
 		this.registerType(new NodeType("rocks", {
 			color: "gray",
+			image: "rocks",
 		}));
 
 		this.registerType(new NodeType("stone", {

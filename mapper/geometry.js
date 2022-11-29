@@ -369,4 +369,30 @@ class Path {
 	}
 }
 
-export { Vector3, Line3, Box3, Path };
+const dirs = {};
+
+dirs.N = new Vector3(0, -1, 0);
+dirs.S = new Vector3(0, 1, 0);
+dirs.W = new Vector3(-1, 0, 0);
+dirs.E = new Vector3(1, 0, 0);
+
+dirs.NW = dirs.N.add(dirs.W);
+dirs.NE = dirs.N.add(dirs.E);
+dirs.SW = dirs.S.add(dirs.W);
+dirs.SE = dirs.S.add(dirs.E);
+
+const dirKeys = Object.keys(dirs);
+
+const normalizedDirs = {};
+
+for(const dirName of dirKeys) {
+	normalizedDirs[dirName] = dirs[dirName].normalize();
+}
+
+const dirAngles = {};
+for(const dirName of dirKeys) {
+	const dir = dirs[dirName];
+	dirAngles[dirName] = Math.atan2(dir.y, dir.x);
+}
+
+export { Vector3, Line3, Box3, Path, dirs, dirKeys, normalizedDirs, dirAngles };

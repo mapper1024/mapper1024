@@ -1,5 +1,5 @@
 import { HookContainer } from "./hook_container.js";
-import { Vector3, Box3 } from "./geometry.js";
+import { Vector3, Box3, dirs, dirKeys, dirAngles, normalizedDirs } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
 import { DeleteBrush, AddBrush, SelectBrush, DistancePegBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
@@ -78,7 +78,8 @@ class RenderContext {
 
 		this.brush = this.brushes.add;
 
-		this.currentLayer = this.mapper.backend.layerRegistry.getDefault();
+		this.defaultLayer = this.mapper.backend.layerRegistry.getDefault();
+		this.currentLayer = this.defaultLayer;
 
 		this.hoverSelection = new Selection(this, []);
 		this.selection = new Selection(this, []);
@@ -418,14 +419,24 @@ class RenderContext {
 		}
 	}
 
+	/** Get the altitude of the map object pointed to by the cursor at the point pointed to.
+	 * @returns {number} The Z coordinate of that point on the map.
+	 */
 	async getCursorAltitude() {
+		// Just return the first Z coordinate of whatever we're hovering over.
 		for (const origin of this.hoverSelection.getOrigins()) {
 			return (await origin.getCenter()).z;
 		}
 
+		// Hovering over nothing, use default value.
 		return 0;
 	}
 
+	/** Get the node drawn at a specific canvas point in the specified layer.
+	 * @param point {Vector3}
+	 * @param layer {Layer}
+	 * @returns {NodeRef|null}
+	 */
 	async getDrawnNodeAtCanvasPoint(point, layer) {
 		const absolutePoint = point.add(this.scrollOffset);
 		const absoluteMegaTile = absolutePoint.divideScalar(megaTileSize).map(Math.floor);
@@ -435,20 +446,31 @@ class RenderContext {
 			if(megaTileX !== undefined) {
 				const megaTile = megaTileX[absoluteMegaTile.y];
 				if(megaTile !== undefined) {
-					for(let i = megaTile.parts.length - 1; i >= 0; i--) {
-						const part = megaTile.parts[i];
-						if(layer.getType() === (await part.nodeRef.getLayer()).getType()) {
-							if(part.absolutePoint.subtract(absolutePoint).length() < part.radius) {
-								return part.nodeRef;
-							}
-						}
-					}
+					return megaTile.getDrawnNodeAtPoint(absolutePoint, layer);
 				}
 			}
 		}
+		return null;
+	}
+
+	async getDrawnNodeAtAbsoluteCanvasPointTileAligned(absolutePoint, layer) {
+		const absoluteMegaTile = absolutePoint.divideScalar(megaTileSize).map(Math.floor);
+		const megaTiles = this.megaTiles[this.zoom];
+		if(megaTiles !== undefined) {
+			const megaTileX = megaTiles[absoluteMegaTile.x];
+			if(megaTileX !== undefined) {
+				const megaTile = megaTileX[absoluteMegaTile.y];
+				if(megaTile !== undefined) {
+					return megaTile.getDrawnNodeAtPointTileAligned(absolutePoint, layer);
+				}
+			}
+		}
+		return null;
 	}
 
 	async recalculateLoop() {
+		// Change the zoom level if requested.
+		// We do this in the same async loop method as recalculating the renderings so that the rendering is never out of sync between zoom levels.
 		if(this.zoom !== this.requestedZoom) {
 			const oldLandmark = this.canvasPointToMap(this.mousePosition);
 			this.zoom = this.requestedZoom;
@@ -458,6 +480,7 @@ class RenderContext {
 			this.recalculateEntireViewport();
 		}
 
+		// If anything's changed on the map, try to recalculate the renderings.
 		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0) {
 			this.recalculateViewport = false;
 			await this.recalculate(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
@@ -679,6 +702,15 @@ class RenderContext {
 		const screenBoxInTiles = this.absoluteScreenBox().map(v => v.divideScalar(tileSize).map(Math.floor));
 		const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
+		const focusTiles = {};
+
+		let megaTiles = this.megaTiles[this.zoom];
+		if(megaTiles === undefined) {
+			megaTiles = this.megaTiles[this.zoom] = {};
+		}
+
+		const drewToMegaTiles = new Set();
+
 		const drawNodeIds = async (nodeIds) => {
 			const drawAgainIds = new Set();
 			const layers = [];
@@ -700,11 +732,6 @@ class RenderContext {
 			}
 
 			layers.sort((a, b) => a.z - b.z);
-
-			let megaTiles = this.megaTiles[this.zoom];
-			if(megaTiles === undefined) {
-				megaTiles = this.megaTiles[this.zoom] = {};
-			}
 
 			for(const layer of layers) {
 				const nodeId = layer.nodeRender.nodeRef.id;
@@ -738,6 +765,8 @@ class RenderContext {
 							this.nodeIdsToMegatiles[nodeId].add(megaTile);
 							megaTile.nodeIds.add(nodeId);
 							megaTile.parts.push(...layer.parts);
+
+							drewToMegaTiles.add(megaTile);
 						}
 
 						if(firstAppearanceInMegaTile) {
@@ -749,27 +778,15 @@ class RenderContext {
 				}
 			}
 
-			for(const focusTiles of focusTileLists) {
-				for(let tX in focusTiles) {
-					tX = +tX;
-					if(tX >= screenBoxInTiles.a.x && tX <= screenBoxInTiles.b.x) {
-						const megaTilePointX = Math.floor(tX * tileSize / megaTileSize);
-						const megaTileX = megaTiles[megaTilePointX];
-						if(megaTileX !== undefined) {
-							const focusTilesX = focusTiles[tX];
-							for(let tY in focusTilesX) {
-								tY = +tY;
-								if(tY >= screenBoxInTiles.a.y && tY <= screenBoxInTiles.b.y) {
-									const megaTilePointY = Math.floor(tY * tileSize / megaTileSize);
-									const megaTile = megaTileX[megaTilePointY];
-									if(megaTile !== undefined) {
-										const tile = focusTilesX[tY];
-										const point = tile.absolutePoint.subtract(megaTile.corner);
-										megaTile.context.strokeRect(point.x, point.y, tileSize, tileSize);
-									}
-								}
-							}
-						}
+			for(const subFocusTiles of focusTileLists) {
+				for(const tX in subFocusTiles) {
+					const subFocusTilesX = subFocusTiles[tX];
+					let focusTilesX = focusTiles[tX];
+					if(focusTilesX === undefined) {
+						focusTilesX = focusTiles[tX] = {};
+					}
+					for(const tY in subFocusTilesX) {
+						focusTilesX[tY] = subFocusTilesX[tY];
 					}
 				}
 			}
@@ -779,6 +796,66 @@ class RenderContext {
 
 		const secondPassNodeIds = await drawNodeIds(updateNodeIds);
 		await drawNodeIds(secondPassNodeIds);
+
+		for(let tX in focusTiles) {
+			tX = +tX;
+			if(tX >= screenBoxInTiles.a.x && tX <= screenBoxInTiles.b.x) {
+				const megaTilePointX = Math.floor(tX * tileSize / megaTileSize);
+				const megaTileX = megaTiles[megaTilePointX];
+				if(megaTileX !== undefined) {
+					const focusTilesX = focusTiles[tX];
+					for(let tY in focusTilesX) {
+						tY = +tY;
+						if(tY >= screenBoxInTiles.a.y && tY <= screenBoxInTiles.b.y) {
+							const megaTilePointY = Math.floor(tY * tileSize / megaTileSize);
+							const megaTile = megaTileX[megaTilePointY];
+							if(drewToMegaTiles.has(megaTile)) {
+								const tile = focusTilesX[tY];
+								const center = tile.centerPoint;
+								const drawPoint = center.subtract(megaTile.corner);
+
+								const neighbors = [];
+
+								for(const dirKey of dirKeys) {
+									const tileDir = dirs[dirKey].multiplyScalar(tileSize);
+									const neighborPoint = center.add(tileDir.divideScalar(2));
+									const neighborNode = await this.getDrawnNodeAtAbsoluteCanvasPointTileAligned(neighborPoint, tile.layer);
+									if(neighborNode) {
+										neighbors.push({
+											nodeRef: neighborNode,
+											length: dirs[dirKey].length(),
+											angle: dirAngles[dirKey],
+											normalizedDir: normalizedDirs[dirKey],
+										});
+									}
+								}
+
+								for(const neighbor of neighbors) {
+									const c = megaTile.context;
+
+									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await neighbor.nodeRef.getType());
+									c.globalAlpha = 0.5;
+
+									const length = neighbor.length;
+									const angle = neighbor.angle;
+
+									const arcPoint = drawPoint.add(neighbor.normalizedDir.multiplyScalar(tileSize / 2));
+
+									c.beginPath();
+									c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
+									c.fill();
+
+									//const p = tile.absolutePoint.subtract(megaTile.corner);
+									//c.strokeRect(p.x, p.y, tileSize, tileSize);
+
+									c.globalAlpha = 1;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
 		this.requestRedraw();
 	}

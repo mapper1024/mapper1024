@@ -20,6 +20,7 @@ echo "const images = {" >> "$INDEX_FILE"
 while read f_path; do
 	i_name="$(basename "$f_path" .png)"
 	echo "	$i_name: {image: new Promise((resolve) => {const image = new Image(); image.src = \"data:image/png;base64,$(base64 -w 0 "$f_path")\"; resolve(image); })}," >> "$INDEX_FILE"
+	echo "Written: $i_name"
 done < <(find images -name '*.png')
 
 echo "};" >> "$INDEX_FILE"

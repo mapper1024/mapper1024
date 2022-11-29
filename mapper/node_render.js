@@ -25,7 +25,7 @@ class NodeRender {
 		if(render === undefined) {
 			render = [];
 
-			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1) {
+			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1 && (await this.nodeRef.getLayer()).getType() === "geographical") {
 
 				const layers = {};
 
@@ -57,6 +57,7 @@ class NodeRender {
 
 						toRender.push({
 							nodeRef: childNodeRef,
+							layer: await childNodeRef.getLayer(),
 							absolutePoint: point,
 							radius: radiusInPixels,
 						});
@@ -72,15 +73,21 @@ class NodeRender {
 						/* Calculate all potential focus tiles for this part.
 						 * Potential focus tiles lie along the outer radius of the part. */
 						for(let r = 0; r < Math.PI * 2; r += 8 / part.radius) {
-							const pos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.absolutePoint);
+							const pos = (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius - 1).add(part.absolutePoint);
 							const tilePos = pos.divideScalar(tileSize).map(Math.floor);
 							let tilesX = focusTiles[tilePos.x];
 							if(tilesX === undefined) {
 								tilesX = focusTiles[tilePos.x] = {};
 							}
 
+							const absolutePoint = tilePos.multiplyScalar(tileSize);
+
 							tilesX[tilePos.y] = {
-								absolutePoint: tilePos.multiplyScalar(tileSize),
+								absolutePoint: absolutePoint,
+								centerPoint: absolutePoint.map(c => c + tileSize / 2),
+								part: part,
+								layer: await part.nodeRef.getLayer(),
+								nodeType: await part.nodeRef.getType(),
 							};
 						}
 					}
@@ -93,7 +100,7 @@ class NodeRender {
 							const tile = focusTilesX[tY];
 							const point = tile.absolutePoint;
 							for(const part of toRender) {
-								if(part.absolutePoint.subtract(point).length() < part.radius - tileSize) {
+								if(part.absolutePoint.subtract(point).length() < part.radius - tileSize * 2) {
 									delete focusTilesX[tY];
 									break;
 								}
