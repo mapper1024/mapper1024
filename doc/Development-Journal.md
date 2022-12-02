@@ -195,6 +195,13 @@ During development I ran into an issue where objects rendered to canvases that w
 
 Immediate future development will reach feature parity with the old renderer.
 
+# Through 2022-12-04
+This is the final development period for the Fall 2022 semester.
+
+I implemented a prototype for transitions generated based on focus/border tiles between nodes.
+
+I developed an idea that the primary representation for objects should be their foreground images---such as trees for the forest, or blades of grass for the grass/plains---and the background color should be secondary. This separation of foreground and background will enable much smoother transitions, as well as more Tolkien-style rendering where the background color is quite similar across terrain types; terrain there is only identified by its foreground images.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
