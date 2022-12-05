@@ -202,6 +202,8 @@ I implemented a prototype for transitions generated based on focus/border tiles 
 
 I developed an idea that the primary representation for objects should be their foreground images---such as trees for the forest, or blades of grass for the grass/plains---and the background color should be secondary. This separation of foreground and background will enable much smoother transitions, as well as more Tolkien-style rendering where the background color is quite similar across terrain types; terrain there is only identified by its foreground images.
 
+Over the next development period---Winter break---I intend to bring the new renderer up to feature parity with the old renderer, and release a new version for testers to evaluate.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

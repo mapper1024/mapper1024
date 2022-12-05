@@ -46,6 +46,7 @@ class RenderContext {
 		this.megaTiles = {};
 		this.nodeIdsToMegatiles = {};
 		this.drawnNodeIds = {};
+		this.labelPositions = {};
 
 		this.backgroundColor = "#997";
 
@@ -229,7 +230,7 @@ class RenderContext {
 			else if(event.key === "n") {
 				const nodeRef = await this.hoverSelection.getParent();
 				if(nodeRef) {
-					const where = (await this.getNamePosition(nodeRef)).where;
+					const where = (await this.getNamePosition(nodeRef)).center;
 
 					const input = document.createElement("input");
 					input.value = (await nodeRef.getPString("name")) || "";
@@ -322,6 +323,21 @@ class RenderContext {
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	async getNamePosition(nodeRef) {
+		const labelPositions = this.labelPositions[this.zoom];
+		if(labelPositions !== undefined) {
+			const labelPositionOnCanvas = labelPositions[nodeRef.id];
+			if(labelPositionOnCanvas !== undefined) {
+				return labelPositionOnCanvas;
+			}
+		}
+
+		return {
+			center: this.mapPointToAbsoluteCanvas(await nodeRef.getCenter()),
+			size: 24,
+		}
 	}
 
 	getCurrentLayer() {
@@ -569,6 +585,10 @@ class RenderContext {
 		return new Vector3(v.x, v.y, 0).map((a) => this.unitsToPixels(a)).subtract(this.scrollOffset);
 	}
 
+	mapPointToAbsoluteCanvas(v) {
+		return new Vector3(v.x, v.y, 0).map((a) => this.unitsToPixels(a));
+	}
+
 	canvasPathToMap(path) {
 		return path.mapOrigin((origin) => this.canvasPointToMap(origin)).mapLines((v) => v.map((a) => this.pixelsToUnits(a)));
 	}
@@ -653,6 +673,11 @@ class RenderContext {
 			drawnNodeIds = this.drawnNodeIds[this.zoom] = new Set();
 		}
 
+		let labelPositions = this.labelPositions[this.zoom];
+		if(labelPositions === undefined) {
+			labelPositions = this.labelPositions[this.zoom] = {};
+		}
+
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleObjectNodes(), nodeRef => nodeRef.id));
 
 		for(const visibleNodeId of visibleNodeIds) {
@@ -672,6 +697,7 @@ class RenderContext {
 			this.removeNodeRender(actualNodeRef);
 			redrawNodeIds.add(actualNodeRef.id);
 			drawnNodeIds.delete(actualNodeRef.id);
+			delete labelPositions[actualNodeRef.id];
 		}
 
 		for(const nodeRef of translatedNodeRefs) {
@@ -699,6 +725,7 @@ class RenderContext {
 			delete this.nodeIdsToMegatiles[actualNodeRef.id];
 		}
 
+		const screenBox = this.absoluteScreenBox();
 		const screenBoxInTiles = this.absoluteScreenBox().map(v => v.divideScalar(tileSize).map(Math.floor));
 		const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
@@ -767,6 +794,16 @@ class RenderContext {
 							megaTile.parts.push(...layer.parts);
 
 							drewToMegaTiles.add(megaTile);
+
+							let averagePartPoint = Vector3.ZERO;
+							for(const part of layer.parts) {
+								averagePartPoint = averagePartPoint.add(part.absolutePoint);
+							}
+
+							labelPositions[nodeId] = {
+								center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
+								size: Math.max(16, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 5)),
+							}
 						}
 
 						if(firstAppearanceInMegaTile) {
@@ -1124,11 +1161,42 @@ class RenderContext {
 		}
 	}
 
+	async drawLabels() {
+		const c = this.canvas.getContext("2d");
+		c.textBaseline = "top";
+
+		const currentLayer = this.getCurrentLayer();
+
+		for await (const nodeRef of this.drawnNodes()) {
+			const labelText = await nodeRef.getPString("name");
+			if(labelText !== undefined && labelText.length > 0) {
+				const labelPositionOnCanvas = await this.getNamePosition(nodeRef);
+				const layer = (await nodeRef.getType()).getLayer();
+				const layerSelected = layer.id === currentLayer.id;
+				const selected = (this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef));
+				const fontSize = (selected ? 24 : labelPositionOnCanvas.size) * (layerSelected ? 1 : 0.5);
+				const font = layerSelected ? "serif" : "sans";
+				c.font = selected ? `bold ${fontSize}px ${font}` : `${fontSize}px ${font}`;
+
+				const measure = c.measureText(labelText);
+				const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
+				const where = labelPositionOnCanvas.center.subtract(this.scrollOffset).subtract(new Vector3(measure.width / 2, height / 2, 0, 0));
+				c.globalAlpha = 0.25;
+				c.fillStyle = "black";
+				c.fillRect(where.x, where.y, measure.width, height);
+				c.globalAlpha = 1;
+				c.fillStyle = "white";
+				c.fillText(labelText, where.x, where.y);
+			}
+		}
+	}
+
 	/** Completely redraw the displayed UI. */
 	async redraw() {
 		await this.clearCanvas();
 
 		await this.drawNodes();
+		await this.drawLabels();
 
 		if(this.isCalculatingDistance()) {
 			await this.drawPegs();
