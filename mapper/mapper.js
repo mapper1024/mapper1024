@@ -337,7 +337,7 @@ class RenderContext {
 		return {
 			center: this.mapPointToAbsoluteCanvas(await nodeRef.getCenter()),
 			size: 24,
-		}
+		};
 	}
 
 	getCurrentLayer() {
@@ -802,8 +802,8 @@ class RenderContext {
 
 							labelPositions[nodeId] = {
 								center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
-								size: Math.max(16, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 5)),
-							}
+								size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
+							};
 						}
 
 						if(firstAppearanceInMegaTile) {
