@@ -35,6 +35,7 @@ class RenderContext {
 		this.recalculateUpdate = [];
 		this.recalculateRemoved = [];
 		this.recalculateTranslated = [];
+		this.recalculateSelected = [];
 
 		this.wantRecheckSelection = true;
 		this.wantUpdateSelection = true;
@@ -414,12 +415,29 @@ class RenderContext {
 	async recalculateSelection() {
 		if(this.wantRecheckSelection) {
 			this.wantRecheckSelection = false;
+
+			const oldHoverIds = this.hoverSelection.parentNodeIds;
+
 			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
 			if(closestNodeRef) {
 				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
 			}
 			else {
 				this.hoverSelection = new Selection(this, []);
+			}
+
+			const newHoverIds = this.hoverSelection.parentNodeIds;
+
+			for(const nodeId of oldHoverIds) {
+				if(!newHoverIds.has(nodeId)) {
+					this.recalculateNodesSelected([this.mapper.backend.getNodeRef(nodeId)]);
+				}
+			}
+
+			for(const nodeId of newHoverIds) {
+				if(!oldHoverIds.has(nodeId)) {
+					this.recalculateNodesSelected([this.mapper.backend.getNodeRef(nodeId)]);
+				}
 			}
 		}
 
@@ -497,9 +515,9 @@ class RenderContext {
 		}
 
 		// If anything's changed on the map, try to recalculate the renderings.
-		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0) {
+		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0 || this.recalculateSelected.length > 0) {
+			await this.recalculate(this.recalculateViewport, this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length), this.recalculateSelected.splice(0, this.recalculateSelected.length));
 			this.recalculateViewport = false;
-			await this.recalculate(this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
 		}
 
 		if(this.alive) {
@@ -664,9 +682,15 @@ class RenderContext {
 		this.recalculateTranslated.push(...nodeRefs);
 	}
 
-	async recalculate(updatedNodeRefs, removedNodeRefs, translatedNodeRefs) {
+	recalculateNodesSelected(nodeRefs) {
+		this.recalculateSelected.push(...nodeRefs);
+	}
+
+	async recalculate(viewport, updatedNodeRefs, removedNodeRefs, translatedNodeRefs, selectedNodeRefs) {
 		const redrawNodeIds = new Set();
 		const updateNodeIds = new Set();
+
+		updatedNodeRefs.push(...selectedNodeRefs);
 
 		let drawnNodeIds = this.drawnNodeIds[this.zoom];
 		if(drawnNodeIds === undefined) {
@@ -681,8 +705,10 @@ class RenderContext {
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleObjectNodes(), nodeRef => nodeRef.id));
 
 		for(const visibleNodeId of visibleNodeIds) {
-			redrawNodeIds.add(visibleNodeId);
-			updateNodeIds.add(visibleNodeId);
+			if(viewport || !drawnNodeIds.has(visibleNodeId)) {
+				redrawNodeIds.add(visibleNodeId);
+				updateNodeIds.add(visibleNodeId);
+			}
 		}
 
 		for(const nodeRef of updatedNodeRefs) {
@@ -787,7 +813,21 @@ class RenderContext {
 							const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
 							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
 							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
-							megaTile.context.drawImage(await layer.canvas(), realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
+							const layerImage = await layer.canvas();
+							let toRenderCanvas = layerImage;
+							if(this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId)) {
+								toRenderCanvas = document.createElement("canvas");
+								toRenderCanvas.width = layerImage.width;
+								toRenderCanvas.height = layerImage.height;
+
+								const c = toRenderCanvas.getContext("2d");
+								c.drawImage(layerImage, 0, 0);
+								c.globalCompositeOperation = "source-atop";
+								c.fillStyle = "black";
+								c.globalAlpha = 0.1;
+								c.fillRect(0, 0, toRenderCanvas.width, toRenderCanvas.height);
+							}
+							megaTile.context.drawImage(toRenderCanvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
 
 							this.nodeIdsToMegatiles[nodeId].add(megaTile);
 							megaTile.nodeIds.add(nodeId);

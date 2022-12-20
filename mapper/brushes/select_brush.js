@@ -22,6 +22,8 @@ class SelectBrush extends Brush {
 	}
 
 	async activate(where) {
+		const oldSelectedIds = this.selection.parentNodeIds;
+
 		if(!this.context.hoveringOverSelection()) {
 			if(this.context.hoverSelection.exists()) {
 				const newSelection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
@@ -40,11 +42,27 @@ class SelectBrush extends Brush {
 			}
 		}
 
+		const ret = undefined;
+
 		if(this.context.hoveringOverSelection()) {
-			return new TranslateEvent(this.context, where, Array.from(this.context.selection.getOrigins()));
+			ret = new TranslateEvent(this.context, where, Array.from(this.context.selection.getOrigins()));
 		}
 		else {
 			this.context.selection = new Selection(this, []);
+		}
+
+		const newSelectedIds = this.selection.parentNodeIds;
+
+		for(const nodeId of oldSelectedIds) {
+			if(!newSelectedIds.has(nodeId)) {
+				this.recalculateNodesSelected([this.mapper.backend.getNodeRef(nodeId)]);
+			}
+		}
+
+		for(const nodeId of newSelectedIds) {
+			if(!oldSelectedIds.has(nodeId)) {
+				this.recalculateNodesSelected([this.mapper.backend.getNodeRef(nodeId)]);
+			}
 		}
 	}
 }
