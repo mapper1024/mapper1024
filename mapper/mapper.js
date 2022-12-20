@@ -788,6 +788,7 @@ class RenderContext {
 
 			for(const layer of layers) {
 				const nodeId = layer.nodeRender.nodeRef.id;
+				const nodeInSelection = this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId);
 
 				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
 				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
@@ -813,9 +814,11 @@ class RenderContext {
 							const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
 							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
 							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
+
 							const layerImage = await layer.canvas();
 							let toRenderCanvas = layerImage;
-							if(this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId)) {
+
+							if(nodeInSelection) {
 								toRenderCanvas = document.createElement("canvas");
 								toRenderCanvas.width = layerImage.width;
 								toRenderCanvas.height = layerImage.height;
@@ -919,6 +922,16 @@ class RenderContext {
 									c.beginPath();
 									c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
 									c.fill();
+
+									const nodeInSelection = this.selection.hasNodeRef(neighbor.nodeRef) || this.hoverSelection.hasNodeRef(neighbor.nodeRef);
+									if(nodeInSelection) {
+										c.globalAlpha = 0.05;
+										c.fillStyle = "black";
+
+										c.beginPath();
+										c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
+										c.fill();
+									}
 
 									//const p = tile.absolutePoint.subtract(megaTile.corner);
 									//c.strokeRect(p.x, p.y, tileSize, tileSize);
