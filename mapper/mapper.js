@@ -413,7 +413,7 @@ class RenderContext {
 	}
 
 	async recalculateSelection() {
-		if(this.wantRecheckSelection) {
+		if(this.wantRecheckSelection && !this.isAnyMouseButtonDown()) {
 			this.wantRecheckSelection = false;
 
 			const oldHoverIds = this.hoverSelection.parentNodeIds;
@@ -551,7 +551,7 @@ class RenderContext {
 	}
 
 	requestUpdateSelection() {
-		this.wantRecheckSelection = true;
+		this.wantUpdateSelection = true;
 	}
 
 	requestRedraw() {
@@ -564,6 +564,14 @@ class RenderContext {
 
 	isKeyDown(key) {
 		return !!this.pressedKeys[key];
+	}
+
+	isAnyMouseButtonDown() {
+		for(const button in this.mouseDragEvents) {
+			return true;
+		}
+
+		return false;
 	}
 
 	isMouseButtonDown(button) {
