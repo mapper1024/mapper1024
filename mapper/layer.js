@@ -17,7 +17,7 @@ class Layer {
 	}
 
 	getZ() {
-		return this.def.z ?? 0;
+		return this.def.z ? this.def.z : 0;
 	}
 }
 
