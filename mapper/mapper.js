@@ -800,7 +800,7 @@ class RenderContext {
 						this.nodeIdsToMegatiles[nodeId] = new Set();
 				}
 
-				layers.sort((a, b) => a.layerZ == b.layerZ ? a.z - b.z : a.layerZ - b.layerZ);
+				layers.sort((a, b) => a.z - b.z);
 
 				for(const layer of layers) {
 					const nodeId = layer.nodeRender.nodeRef.id;
