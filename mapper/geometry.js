@@ -91,6 +91,10 @@ class Vector3 {
 	map(f) {
 		return new Vector3(f(this.x), f(this.y), f(this.z));
 	}
+
+	noZ() {
+		return new Vector3(this.x, this.y, 0);
+	}
 }
 
 Vector3.ZERO = new Vector3(0, 0, 0);

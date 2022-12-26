@@ -11,6 +11,14 @@ class Layer {
 	getType() {
 		return this.def.type;
 	}
+
+	getDrawType() {
+		return this.getType() === "geographical" ? "area" : "border";
+	}
+
+	getZ() {
+		return this.def.z ?? 0;
+	}
 }
 
 class LayerRegistry {
@@ -19,14 +27,17 @@ class LayerRegistry {
 
 		this.registerLayer(new Layer("geographical", {
 			type: "geographical",
+			z: 0,
 		}));
 
 		this.registerLayer(new Layer("political", {
-			type: "political"
+			type: "political",
+			z: 10,
 		}));
 
 		this.registerLayer(new Layer("annotation", {
 			type: "annotation",
+			z: 15,
 		}));
 	}
 

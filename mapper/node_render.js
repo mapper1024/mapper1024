@@ -25,12 +25,17 @@ class NodeRender {
 		if(render === undefined) {
 			render = [];
 
-			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1 && (await this.nodeRef.getLayer()).getType() === "geographical") {
+			const drawType = (await this.nodeRef.getLayer()).getDrawType();
+			const areaDrawType = drawType === "area";
+
+			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1) {
+
+				const layerZ = (await this.nodeRef.getLayer()).getZ();
 
 				const layers = {};
 
 				for await(const childNodeRef of this.nodeRef.getChildren()) {
-					const z = (await childNodeRef.getCenter()).z;
+					const z = areaDrawType ? (await childNodeRef.getCenter()).z : 0;
 					let layer = layers[z];
 					if(layer === undefined) {
 						layers[z] = layer = [];
@@ -49,8 +54,8 @@ class NodeRender {
 
 					for(const childNodeRef of children) {
 						const radiusInPixels = this.context.unitsToPixels(await childNodeRef.getRadius());
-						const radiusVector = Vector3.UNIT.multiplyScalar(radiusInPixels);
-						const point = (await childNodeRef.getEffectiveCenter()).map((c) => this.context.unitsToPixels(c));
+						const radiusVector = Vector3.UNIT.multiplyScalar(radiusInPixels).noZ();
+						const point = (await childNodeRef.getEffectiveCenter()).map((c) => this.context.unitsToPixels(c)).noZ();
 
 						topLeftCorner = Vector3.min(topLeftCorner, point.subtract(radiusVector));
 						bottomRightCorner = Vector3.max(bottomRightCorner, point.add(radiusVector));
@@ -84,7 +89,7 @@ class NodeRender {
 
 							tilesX[tilePos.y] = {
 								absolutePoint: absolutePoint,
-								centerPoint: absolutePoint.map(c => c + tileSize / 2),
+								centerPoint: absolutePoint.add(new Vector3(tileSize / 2, tileSize / 2, 0)),
 								part: part,
 								layer: await part.nodeRef.getLayer(),
 								nodeType: await part.nodeRef.getType(),
@@ -92,15 +97,17 @@ class NodeRender {
 						}
 					}
 
+					const focusTileEliminationDistance = areaDrawType ? tileSize * 2 : tileSize;
+
 					/* Loop through all focus tiles and delete those that fall fully within another part;
 					 * they would certainly not be borders. */
 					for(const tX in focusTiles) {
 						const focusTilesX = focusTiles[tX];
 						for(const tY in focusTilesX) {
 							const tile = focusTilesX[tY];
-							const point = tile.absolutePoint;
+							const point = tile.centerPoint;
 							for(const part of toRender) {
-								if(part.absolutePoint.subtract(point).length() < part.radius - tileSize * 2) {
+								if(part.absolutePoint.subtract(point).length() < part.radius - focusTileEliminationDistance) {
 									delete focusTilesX[tY];
 									break;
 								}
@@ -122,41 +129,88 @@ class NodeRender {
 							const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
 							const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
 
-							let canvas;
+							if(areaDrawType) {
+								let canvas;
 
-							const canvasFunction = async () => {
-								if(canvas) {
+								const canvasFunction = async () => {
+									if(canvas) {
+										return canvas;
+									}
+
+									canvas = document.createElement("canvas");
+									canvas.width = width;
+									canvas.height = height;
+
+									const c = canvas.getContext("2d");
+
+									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+
+									for(const part of toRender) {
+										const point = part.point.subtract(offset);
+										c.beginPath();
+										c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
+										c.fill();
+									}
+
 									return canvas;
-								}
+								};
 
-								canvas = document.createElement("canvas");
-								canvas.width = width;
-								canvas.height = height;
+								render.push({
+									nodeRender: this,
+									corner: topLeftCorner.add(offset),
+									z: z,
+									layerZ: layerZ,
+									canvas: canvasFunction,
+									width: width,
+									height: height,
+									focusTiles: focusTiles,
+									parts: toRender,
+									drawType: drawType,
+								});
+							}
+							else {
+								let canvas;
 
-								const c = canvas.getContext("2d");
+								const canvasFunction = async () => {
+									if(canvas) {
+										return canvas;
+									}
 
-								c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+									canvas = document.createElement("canvas");
+									canvas.width = width;
+									canvas.height = height;
 
-								for(const part of toRender) {
-									const point = part.point.subtract(offset);
-									c.beginPath();
-									c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
-									c.fill();
-								}
+									const c = canvas.getContext("2d");
 
-								return canvas;
-							};
+									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
 
-							render.push({
-								nodeRender: this,
-								corner: topLeftCorner.add(offset),
-								z: z,
-								canvas: canvasFunction,
-								width: width,
-								height: height,
-								focusTiles: focusTiles,
-								parts: toRender,
-							});
+									for(const tX in focusTiles) {
+										const focusTilesX = focusTiles[tX];
+										for(const tY in focusTilesX) {
+											const tile = focusTilesX[tY];
+											const point = tile.centerPoint.subtract(topLeftCorner).subtract(offset);
+											c.beginPath();
+											c.arc(point.x, point.y, tileSize / 4, 0, 2 * Math.PI, false);
+											c.fill();
+										}
+									}
+
+									return canvas;
+								};
+
+								render.push({
+									nodeRender: this,
+									corner: topLeftCorner.add(offset),
+									z: z,
+									layerZ: layerZ,
+									canvas: canvasFunction,
+									width: width,
+									height: height,
+									focusTiles: {},
+									parts: toRender,
+									drawType: drawType,
+								});
+							}
 						}
 					}
 				}
