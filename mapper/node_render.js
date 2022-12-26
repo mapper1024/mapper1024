@@ -73,16 +73,47 @@ class NodeRender {
 
 		for(const part of toRender) {
 			part.point = part.absolutePoint.subtract(topLeftCorner);
+		}
 
+		for(const part of toRender) {
 			const pointAt = r => (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point);
-			const connect = (previous, next) => lines.push({
-				line: new Line3(previous, next),
-				part: part,
-			});
+			const connect = (previous, next) => {
+				const line = new Line3(previous, next);
+
+				for(const otherPart of toRender) {
+					if(otherPart === part) {
+						continue;
+					}
+
+					let aIn;
+					let bIn;
+
+					do {
+						aIn = otherPart.point.subtract(line.a).length() < otherPart.radius - 1;
+						bIn = otherPart.point.subtract(line.b).length() < otherPart.radius - 1;
+
+						if(aIn && bIn) {
+							return;
+						}
+
+						if(aIn) {
+							line.a = line.a.add(line.b).divideScalar(2);
+						}
+						else if(bIn) {
+							line.b = line.a.add(line.b).divideScalar(2);
+						}
+					} while(aIn || bIn);
+				}
+
+				lines.push({
+					line: line.map(v => v.map(c => Math.floor(c + 0.5))),
+					part: part,
+				});
+			};
 
 			let previousPoint = pointAt(0);
 
-			const increment = 32 / part.radius;
+			const increment = 8 / part.radius;
 
 			for(let r = increment; r < Math.PI * 2; r += increment) {
 				const currentPoint = pointAt(r);
