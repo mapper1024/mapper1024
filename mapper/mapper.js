@@ -763,8 +763,6 @@ class RenderContext {
 		const screenBoxInTiles = this.absoluteScreenBox().map(v => v.divideScalar(tileSize).map(Math.floor));
 		const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
-		const focusTiles = {};
-
 		let megaTiles = this.megaTiles[this.zoom];
 		if(megaTiles === undefined) {
 			megaTiles = this.megaTiles[this.zoom] = {};
@@ -772,179 +770,189 @@ class RenderContext {
 
 		const drewToMegaTiles = new Set();
 
-		const drawNodeIds = async (nodeIds) => {
-			const drawAgainIds = new Set();
-			const layers = [];
+		const nodeLayers = Array.from(this.mapper.backend.layerRegistry.getLayers());
+		nodeLayers.sort((a, b) => a.getZ() - b.getZ());
 
-			const focusTileLists = new Set();
+		for(const nodeLayer of nodeLayers) {
+			const focusTiles = {};
 
-			for(const nodeId of nodeIds) {
-				const nodeRef = this.mapper.backend.getNodeRef(nodeId);
-				drawnNodeIds.add(nodeRef.id);
+			const drawNodeIds = async (nodeIds) => {
+				const drawAgainIds = new Set();
+				const layers = [];
 
-				const nodeRender = this.getNodeRender(nodeRef);
-				for(const layer of await nodeRender.getLayers(this.zoom)) {
-					layers.push(layer);
-					focusTileLists.add(layer.focusTiles);
+				const focusTileLists = new Set();
+
+				for(const nodeId of nodeIds) {
+					const nodeRef = this.mapper.backend.getNodeRef(nodeId);
+					if((await nodeRef.getLayer()).id !== nodeLayer.id)
+						continue;
+
+					drawnNodeIds.add(nodeRef.id);
+
+					const nodeRender = this.getNodeRender(nodeRef);
+					for(const layer of await nodeRender.getLayers(this.zoom)) {
+						layers.push(layer);
+						focusTileLists.add(layer.focusTiles);
+					}
+
+					if(this.nodeIdsToMegatiles[nodeId] === undefined)
+						this.nodeIdsToMegatiles[nodeId] = new Set();
 				}
 
-				if(this.nodeIdsToMegatiles[nodeId] === undefined)
-					this.nodeIdsToMegatiles[nodeId] = new Set();
-			}
+				layers.sort((a, b) => a.layerZ == b.layerZ ? a.z - b.z : a.layerZ - b.layerZ);
 
-			layers.sort((a, b) => a.layerZ == b.layerZ ? a.z - b.z : a.layerZ - b.layerZ);
+				for(const layer of layers) {
+					const nodeId = layer.nodeRender.nodeRef.id;
+					const nodeInSelection = this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId);
 
-			for(const layer of layers) {
-				const nodeId = layer.nodeRender.nodeRef.id;
-				const nodeInSelection = this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId);
+					const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
+					const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
 
-				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
-				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
-
-				for(let x = Math.max(layerBoxInMegaTiles.a.x, screenBoxInMegaTiles.a.x); x <= Math.min(layerBoxInMegaTiles.b.x, screenBoxInMegaTiles.b.x); x++) {
-					let megaTileX = megaTiles[x];
-					if(megaTileX === undefined) {
-						megaTileX = megaTiles[x] = {};
-					}
-
-					for(let y = Math.max(layerBoxInMegaTiles.a.y, screenBoxInMegaTiles.a.y); y <= Math.min(layerBoxInMegaTiles.b.y, screenBoxInMegaTiles.b.y); y++) {
-						const megaTilePoint = new Vector3(x, y, 0);
-
-						let megaTile = megaTileX[y];
-						if(megaTile === undefined) {
-							megaTile = megaTileX[y] = new MegaTile(this, this.zoom, megaTilePoint);
-							redrawMegaTiles.add(megaTile);
+					for(let x = Math.max(layerBoxInMegaTiles.a.x, screenBoxInMegaTiles.a.x); x <= Math.min(layerBoxInMegaTiles.b.x, screenBoxInMegaTiles.b.x); x++) {
+						let megaTileX = megaTiles[x];
+						if(megaTileX === undefined) {
+							megaTileX = megaTiles[x] = {};
 						}
 
-						const firstAppearanceInMegaTile = !megaTile.nodeIds.has(nodeId);
+						for(let y = Math.max(layerBoxInMegaTiles.a.y, screenBoxInMegaTiles.a.y); y <= Math.min(layerBoxInMegaTiles.b.y, screenBoxInMegaTiles.b.y); y++) {
+							const megaTilePoint = new Vector3(x, y, 0);
 
-						if(redrawMegaTiles.has(megaTile) || firstAppearanceInMegaTile) {
-							const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
-							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
-							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
-
-							const layerImage = await layer.canvas();
-							let toRenderCanvas = layerImage;
-
-							if(nodeInSelection) {
-								toRenderCanvas = document.createElement("canvas");
-								toRenderCanvas.width = layerImage.width;
-								toRenderCanvas.height = layerImage.height;
-
-								const c = toRenderCanvas.getContext("2d");
-								c.drawImage(layerImage, 0, 0);
-								c.globalCompositeOperation = "source-atop";
-								c.fillStyle = "black";
-								c.globalAlpha = 0.1;
-								c.fillRect(0, 0, toRenderCanvas.width, toRenderCanvas.height);
-							}
-							megaTile.context.drawImage(toRenderCanvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
-
-							this.nodeIdsToMegatiles[nodeId].add(megaTile);
-							megaTile.nodeIds.add(nodeId);
-							megaTile.parts.push(...layer.parts);
-
-							drewToMegaTiles.add(megaTile);
-
-							let averagePartPoint = Vector3.ZERO;
-							for(const part of layer.parts) {
-								averagePartPoint = averagePartPoint.add(part.absolutePoint);
+							let megaTile = megaTileX[y];
+							if(megaTile === undefined) {
+								megaTile = megaTileX[y] = new MegaTile(this, this.zoom, megaTilePoint);
+								redrawMegaTiles.add(megaTile);
 							}
 
-							labelPositions[nodeId] = {
-								center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
-								size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
-							};
-						}
+							const firstAppearanceInMegaTile = !megaTile.nodeIds.has(nodeId);
 
-						if(firstAppearanceInMegaTile) {
-							for(const otherNodeId of megaTile.nodeIds) {
-								drawAgainIds.add(otherNodeId);
-							}
-						}
-					}
-				}
-			}
+							if(redrawMegaTiles.has(megaTile) || firstAppearanceInMegaTile) {
+								const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
+								const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
+								const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
 
-			for(const subFocusTiles of focusTileLists) {
-				for(const tX in subFocusTiles) {
-					const subFocusTilesX = subFocusTiles[tX];
-					let focusTilesX = focusTiles[tX];
-					if(focusTilesX === undefined) {
-						focusTilesX = focusTiles[tX] = {};
-					}
-					for(const tY in subFocusTilesX) {
-						focusTilesX[tY] = subFocusTilesX[tY];
-					}
-				}
-			}
+								const layerImage = await layer.canvas();
+								let toRenderCanvas = layerImage;
 
-			return drawAgainIds;
-		};
+								if(nodeInSelection) {
+									toRenderCanvas = document.createElement("canvas");
+									toRenderCanvas.width = layerImage.width;
+									toRenderCanvas.height = layerImage.height;
 
-		const secondPassNodeIds = await drawNodeIds(updateNodeIds);
-		await drawNodeIds(secondPassNodeIds);
+									const c = toRenderCanvas.getContext("2d");
+									c.drawImage(layerImage, 0, 0);
+									c.globalCompositeOperation = "source-atop";
+									c.fillStyle = "black";
+									c.globalAlpha = 0.1;
+									c.fillRect(0, 0, toRenderCanvas.width, toRenderCanvas.height);
+								}
+								megaTile.context.drawImage(toRenderCanvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
 
-		for(let tX in focusTiles) {
-			tX = +tX;
-			if(tX >= screenBoxInTiles.a.x && tX <= screenBoxInTiles.b.x) {
-				const megaTilePointX = Math.floor(tX * tileSize / megaTileSize);
-				const megaTileX = megaTiles[megaTilePointX];
-				if(megaTileX !== undefined) {
-					const focusTilesX = focusTiles[tX];
-					for(let tY in focusTilesX) {
-						tY = +tY;
-						if(tY >= screenBoxInTiles.a.y && tY <= screenBoxInTiles.b.y) {
-							const megaTilePointY = Math.floor(tY * tileSize / megaTileSize);
-							const megaTile = megaTileX[megaTilePointY];
-							if(drewToMegaTiles.has(megaTile)) {
-								const tile = focusTilesX[tY];
-								const center = tile.centerPoint;
-								const drawPoint = center.subtract(megaTile.corner);
+								this.nodeIdsToMegatiles[nodeId].add(megaTile);
+								megaTile.nodeIds.add(nodeId);
+								megaTile.parts.push(...layer.parts);
 
-								const neighbors = [];
+								drewToMegaTiles.add(megaTile);
 
-								for(const dirKey of dirKeys) {
-									const tileDir = dirs[dirKey].multiplyScalar(tileSize);
-									const neighborPoint = center.add(tileDir.divideScalar(2));
-									const neighborNode = await this.getDrawnNodeAtAbsoluteCanvasPointTileAligned(neighborPoint, tile.layer);
-									if(neighborNode) {
-										neighbors.push({
-											nodeRef: neighborNode,
-											angle: dirAngles[dirKey],
-											normalizedDir: normalizedDirs[dirKey],
-										});
-									}
+								let averagePartPoint = Vector3.ZERO;
+								for(const part of layer.parts) {
+									averagePartPoint = averagePartPoint.add(part.absolutePoint);
 								}
 
-								for(const neighbor of neighbors) {
-									const c = megaTile.context;
+								labelPositions[nodeId] = {
+									center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
+									size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
+								};
+							}
 
-									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await neighbor.nodeRef.getType());
-									c.globalAlpha = 0.5;
+							if(firstAppearanceInMegaTile) {
+								for(const otherNodeId of megaTile.nodeIds) {
+									drawAgainIds.add(otherNodeId);
+								}
+							}
+						}
+					}
+				}
 
-									const angle = neighbor.angle;
+				for(const subFocusTiles of focusTileLists) {
+					for(const tX in subFocusTiles) {
+						const subFocusTilesX = subFocusTiles[tX];
+						let focusTilesX = focusTiles[tX];
+						if(focusTilesX === undefined) {
+							focusTilesX = focusTiles[tX] = {};
+						}
+						for(const tY in subFocusTilesX) {
+							focusTilesX[tY] = subFocusTilesX[tY];
+						}
+					}
+				}
 
-									const arcPoint = drawPoint.add(neighbor.normalizedDir.multiplyScalar(tileSize / 2));
+				return drawAgainIds;
+			};
 
-									c.beginPath();
-									c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
-									c.fill();
+			const secondPassNodeIds = await drawNodeIds(updateNodeIds);
+			await drawNodeIds(secondPassNodeIds);
 
-									const nodeInSelection = this.selection.hasNodeRef(neighbor.nodeRef) || this.hoverSelection.hasNodeRef(neighbor.nodeRef);
-									if(nodeInSelection) {
-										c.globalAlpha = 0.05;
-										c.fillStyle = "black";
+			for(let tX in focusTiles) {
+				tX = +tX;
+				if(tX >= screenBoxInTiles.a.x && tX <= screenBoxInTiles.b.x) {
+					const megaTilePointX = Math.floor(tX * tileSize / megaTileSize);
+					const megaTileX = megaTiles[megaTilePointX];
+					if(megaTileX !== undefined) {
+						const focusTilesX = focusTiles[tX];
+						for(let tY in focusTilesX) {
+							tY = +tY;
+							if(tY >= screenBoxInTiles.a.y && tY <= screenBoxInTiles.b.y) {
+								const megaTilePointY = Math.floor(tY * tileSize / megaTileSize);
+								const megaTile = megaTileX[megaTilePointY];
+								if(drewToMegaTiles.has(megaTile)) {
+									const tile = focusTilesX[tY];
+									const center = tile.centerPoint;
+									const drawPoint = center.subtract(megaTile.corner);
+
+									const neighbors = [];
+
+									for(const dirKey of dirKeys) {
+										const tileDir = dirs[dirKey].multiplyScalar(tileSize);
+										const neighborPoint = center.add(tileDir.divideScalar(2));
+										const neighborNode = await this.getDrawnNodeAtAbsoluteCanvasPointTileAligned(neighborPoint, tile.layer);
+										if(neighborNode) {
+											neighbors.push({
+												nodeRef: neighborNode,
+												angle: dirAngles[dirKey],
+												normalizedDir: normalizedDirs[dirKey],
+											});
+										}
+									}
+
+									for(const neighbor of neighbors) {
+										const c = megaTile.context;
+
+										c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await neighbor.nodeRef.getType());
+										c.globalAlpha = 0.5;
+
+										const angle = neighbor.angle;
+
+										const arcPoint = drawPoint.add(neighbor.normalizedDir.multiplyScalar(tileSize / 2));
 
 										c.beginPath();
 										c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
 										c.fill();
+
+										const nodeInSelection = this.selection.hasNodeRef(neighbor.nodeRef) || this.hoverSelection.hasNodeRef(neighbor.nodeRef);
+										if(nodeInSelection) {
+											c.globalAlpha = 0.05;
+											c.fillStyle = "black";
+
+											c.beginPath();
+											c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
+											c.fill();
+										}
+
+										//const p = tile.absolutePoint.subtract(megaTile.corner);
+										//c.strokeRect(p.x, p.y, tileSize, tileSize);
+
+										c.globalAlpha = 1;
 									}
-
-									//const p = tile.absolutePoint.subtract(megaTile.corner);
-									//c.strokeRect(p.x, p.y, tileSize, tileSize);
-
-									c.globalAlpha = 1;
 								}
 							}
 						}

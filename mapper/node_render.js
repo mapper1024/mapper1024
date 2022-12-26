@@ -28,7 +28,7 @@ class NodeRender {
 			const drawType = (await this.nodeRef.getLayer()).getDrawType();
 			const areaDrawType = drawType === "area";
 
-			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1 && areaDrawType) {
+			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1) {
 
 				const layerZ = (await this.nodeRef.getLayer()).getZ();
 
