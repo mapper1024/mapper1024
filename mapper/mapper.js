@@ -349,6 +349,7 @@ class RenderContext {
 		this.currentLayer = layer;
 		this.brush.signalLayerChange(layer);
 		this.hooks.call("current_layer_change", layer);
+		this.requestRecheckSelection();
 	}
 
 	isPanning() {

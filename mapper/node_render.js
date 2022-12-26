@@ -129,44 +129,88 @@ class NodeRender {
 							const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
 							const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
 
-							let canvas;
+							if(areaDrawType) {
+								let canvas;
 
-							const canvasFunction = async () => {
-								if(canvas) {
+								const canvasFunction = async () => {
+									if(canvas) {
+										return canvas;
+									}
+
+									canvas = document.createElement("canvas");
+									canvas.width = width;
+									canvas.height = height;
+
+									const c = canvas.getContext("2d");
+
+									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+
+									for(const part of toRender) {
+										const point = part.point.subtract(offset);
+										c.beginPath();
+										c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
+										c.fill();
+									}
+
 									return canvas;
-								}
+								};
 
-								canvas = document.createElement("canvas");
-								canvas.width = width;
-								canvas.height = height;
+								render.push({
+									nodeRender: this,
+									corner: topLeftCorner.add(offset),
+									z: z,
+									layerZ: layerZ,
+									canvas: canvasFunction,
+									width: width,
+									height: height,
+									focusTiles: focusTiles,
+									parts: toRender,
+									drawType: drawType,
+								});
+							}
+							else {
+								let canvas;
 
-								const c = canvas.getContext("2d");
+								const canvasFunction = async () => {
+									if(canvas) {
+										return canvas;
+									}
 
-								c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+									canvas = document.createElement("canvas");
+									canvas.width = width;
+									canvas.height = height;
 
-								for(const part of toRender) {
-									const point = part.point.subtract(offset);
-									c.beginPath();
-									c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
-									c.fill();
-								}
+									const c = canvas.getContext("2d");
 
-								return canvas;
-							};
+									c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
 
-							render.push({
-								nodeRender: this,
-								corner: topLeftCorner.add(offset),
-								z: z,
-								layerZ: layerZ,
-								canvas: canvasFunction,
-								width: width,
-								height: height,
-								focusTiles: focusTiles,
-								parts: toRender,
-								drawType: drawType,
-							});
+									for(const tX in focusTiles) {
+										const focusTilesX = focusTiles[tX];
+										for(const tY in focusTilesX) {
+											const tile = focusTilesX[tY];
+											const point = tile.centerPoint.subtract(topLeftCorner).subtract(offset);
+											c.beginPath();
+											c.arc(point.x, point.y, tileSize / 4, 0, 2 * Math.PI, false);
+											c.fill();
+										}
+									}
 
+									return canvas;
+								};
+
+								render.push({
+									nodeRender: this,
+									corner: topLeftCorner.add(offset),
+									z: z,
+									layerZ: layerZ,
+									canvas: canvasFunction,
+									width: width,
+									height: height,
+									focusTiles: {},
+									parts: toRender,
+									drawType: drawType,
+								});
+							}
 						}
 					}
 				}
