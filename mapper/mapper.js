@@ -850,7 +850,7 @@ class RenderContext {
 
 								this.nodeIdsToMegatiles[nodeId].add(megaTile);
 								megaTile.nodeIds.add(nodeId);
-								megaTile.parts.push(...layer.parts);
+								megaTile.addParts(layer.parts);
 
 								drewToMegaTiles.add(megaTile);
 

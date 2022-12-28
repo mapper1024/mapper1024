@@ -12,6 +12,10 @@ class NodeType {
 		return this.def.color || "black";
 	}
 
+	isBackground() {
+		return !!this.def.background;
+	}
+
 	getImageName() {
 		return this.def.image;
 	}
@@ -43,12 +47,13 @@ class NodeTypeRegistry {
 		}));
 
 		this.registerType(new NodeType("grass", {
-			color: "lightgreen",
+			color: "green",
 			image: "grass",
+			background: true,
 		}));
 
 		this.registerType(new NodeType("forest", {
-			color: "darkgreen",
+			color: "green",
 			image: "forest",
 		}));
 

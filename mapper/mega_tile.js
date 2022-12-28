@@ -17,6 +17,8 @@ class MegaTile {
 		this.nodeIds = new Set();
 		this.parts = [];
 		this.tileCenterNodeRefCache = {};
+
+		this.tiles = {};
 	}
 
 	/**
@@ -65,6 +67,10 @@ class MegaTile {
 			nodeRef = cacheX[tileCenterPoint.y] = this.getDrawnNodeAtPoint(tileCenterPoint, layer);
 		}
 		return nodeRef;
+	}
+
+	async addParts(parts) {
+		this.parts.push(...parts);
 	}
 }
 

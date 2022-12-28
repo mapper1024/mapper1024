@@ -116,11 +116,11 @@ class Brushbar {
 		this.recalculate();
 
 		this.context.hooks.add("size_change", this.recalculate.bind(this));
-		this.context.hooks.add("changed_brush", (brush) => {
+		this.context.hooks.add("changed_brush", async (brush) => {
 			this.brushStrip.remove();
 			this.brushStrip = document.createElement("div");
 			this.brushStrip.setAttribute("class", "mapper1024_brush_strip");
-			brush.displaySidebar(this, this.brushStrip);
+			await brush.displaySidebar(this, this.brushStrip);
 			this.element.appendChild(this.brushStrip);
 		});
 		this.context.hooks.add("disconnect", this.disconnect.bind(this));

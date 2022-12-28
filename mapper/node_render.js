@@ -3,6 +3,8 @@ import { images } from "./images/index.js";
 
 const tileSize = 16;
 
+const fillStyles = {};
+
 class NodeRender {
 	constructor(context, nodeRef) {
 		this.context = context;
@@ -11,13 +13,23 @@ class NodeRender {
 	}
 
 	static async getNodeTypeFillStyle(context, nodeType) {
-		const imageName = await nodeType.getImageName();
-		if(imageName) {
-			return context.createPattern(await images[imageName].image, "repeat");
+		let fillStyle = fillStyles[nodeType.id];
+
+		if(fillStyle === undefined) {
+			const image = document.createElement("canvas");
+			image.width = image.height = tileSize;
+
+			const c = image.getContext("2d");
+
+			const imageName = await nodeType.getImageName();
+			if(imageName) {
+				c.drawImage(await images[imageName].image, 0, 0);
+			}
+
+			fillStyles[nodeType.id] = fillStyle = context.createPattern(image, "repeat");
 		}
-		else {
-			return nodeType.getColor();
-		}
+
+		return fillStyle;
 	}
 
 	async getLayers(zoom) {

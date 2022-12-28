@@ -3,6 +3,7 @@ import { DrawEvent } from "../drag_events/draw_event.js";
 import { DrawPathAction } from "../actions/draw_path_action.js";
 import { mod } from "../utils.js";
 import { HookContainer } from "../hook_container.js";
+import { NodeRender } from "../node_render.js";
 
 class AddBrush extends Brush {
 	constructor(context) {
@@ -29,8 +30,8 @@ class AddBrush extends Brush {
 		button.title = "Add Objects";
 	}
 
-	displaySidebar(brushbar, container) {
-		const make = (layer) => {
+	async displaySidebar(brushbar, container) {
+		const make = async (layer) => {
 			container.innerHTML = "";
 
 			const list = document.createElement("ul");
@@ -54,15 +55,17 @@ class AddBrush extends Brush {
 
 					const c = button.getContext("2d");
 
-					c.fillStyle = nodeType.getColor();
+					for(const fillStyle of [nodeType.getColor(), await NodeRender.getNodeTypeFillStyle(c, nodeType)]) {
+						c.fillStyle = fillStyle;
 
-					if(nodeType.getScale() === "explicit") {
-						c.beginPath();
-						c.arc(button.width / 2, button.height / 2, Math.min(button.height, button.width) / 2, 0, 2 * Math.PI, false);
-						c.fill();
-					}
-					else {
-						c.fillRect(0, 0, button.width, button.height);
+						if(nodeType.getScale() === "explicit") {
+							c.beginPath();
+							c.arc(button.width / 2, button.height / 2, Math.min(button.height, button.width) / 2, 0, 2 * Math.PI, false);
+							c.fill();
+						}
+						else {
+							c.fillRect(0, 0, button.width, button.height);
+						}
 					}
 
 					c.textBaseline = "top";
@@ -102,8 +105,8 @@ class AddBrush extends Brush {
 			}
 		};
 
-		make(this.context.getCurrentLayer());
-		this.hooks.add("current_layer_change", (layer) => make(layer));
+		await make(this.context.getCurrentLayer());
+		this.hooks.add("current_layer_change", async (layer) => await make(layer));
 	}
 
 	signalLayerChange(layer) {
