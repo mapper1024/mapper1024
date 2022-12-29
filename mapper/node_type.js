@@ -13,7 +13,7 @@ class NodeType {
 	}
 
 	receivesBackground() {
-		return ((this.def.receivesBackground === false) ? false : true) && !this.givesBackground();
+		return ((this.def.receivesBackground === false) ? false : true) && !this.givesBackground() && this.getImageName();
 	}
 
 	givesBackground() {

@@ -25,9 +25,9 @@ class MegaTile {
 	 * Get the node drawn at a specific absolute (canvas) point in the specified layer.
 	 * @param absolutePoint {Vector3}
 	 * @param layer {Layer}
-	 * @returns {NodeRef|null}
+	 * @returns {node render part|null}
 	 */
-	async getDrawnNodeAtPoint(absolutePoint, layer) {
+	async getDrawnNodePartAtPoint(absolutePoint, layer) {
 		// For each part in order of most recently rendered first
 		for(let i = this.parts.length - 1; i >= 0; i--) {
 			const part = this.parts[i];
@@ -35,8 +35,8 @@ class MegaTile {
 			if(layer.id === part.layer.id) {
 				// And if this part contains the target point
 				if(part.absolutePoint.subtract(absolutePoint).length() < part.radius) {
-					// Return this part's nodeRef.
-					return part.nodeRef;
+					// Return this part.
+					return part;
 				}
 			}
 		}
@@ -49,9 +49,9 @@ class MegaTile {
 	 * This method is intended to be faster (more cacheable) than the more specific #getDrawnNodeAtPoint
 	 * @param tileCenterPoint {Vector3}
 	 * @param layer {Layer}
-	 * @returns {NodeRef|null}
+	 * @returns {node render part|null}
 	 */
-	async getDrawnNodeAtPointTileAligned(tileCenterPoint, layer) {
+	async getDrawnNodePartAtPointTileAligned(tileCenterPoint, layer) {
 		let cache = this.tileCenterNodeRefCache[layer.id];
 		if(cache === undefined) {
 			cache = this.tileCenterNodeRefCache[layer.id] = {};
@@ -62,11 +62,11 @@ class MegaTile {
 			cacheX = cache[tileCenterPoint.x] = {};
 		}
 
-		let nodeRef = cacheX[tileCenterPoint.y];
-		if(nodeRef === undefined) {
-			nodeRef = cacheX[tileCenterPoint.y] = this.getDrawnNodeAtPoint(tileCenterPoint, layer);
+		let nodePart = cacheX[tileCenterPoint.y];
+		if(nodePart === undefined) {
+			nodePart = cacheX[tileCenterPoint.y] = this.getDrawnNodePartAtPoint(tileCenterPoint, layer);
 		}
-		return nodeRef;
+		return nodePart;
 	}
 
 	async addParts(parts) {

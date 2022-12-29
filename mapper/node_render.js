@@ -201,6 +201,12 @@ class NodeRender {
 	}
 
 	async renderArea() {
+		const fakeCanvas = document.createElement("canvas");
+		fakeCanvas.width = tileSize;
+		fakeCanvas.height = tileSize;
+
+		const fakeContext = fakeCanvas.getContext("2d");
+
 		const render = [];
 
 		const layers = {};
@@ -235,9 +241,19 @@ class NodeRender {
 
 				const backgroundNodeRef = receivesBackground ? await this.context.getBackgroundNode(childNodeRef) : null;
 
+				let fillStyle;
+
+				if(backgroundNodeRef) {
+					fillStyle = await NodeRender.getNodeTypeFillStyle(fakeContext, await this.nodeRef.getType(), await backgroundNodeRef.getType());
+				}
+				else {
+					fillStyle = await NodeRender.getNodeTypeFillStyle(fakeContext, await this.nodeRef.getType());
+				}
+
 				toRender.push({
 					nodeRef: childNodeRef,
 					backgroundNodeRef: backgroundNodeRef,
+					fillStyle: fillStyle,
 					layer: await childNodeRef.getLayer(),
 					absolutePoint: point,
 					radius: radiusInPixels,
@@ -318,15 +334,8 @@ class NodeRender {
 
 						const c = canvas.getContext("2d");
 
-						const defaultFillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
-
 						for(const part of toRender) {
-							if(part.backgroundNodeRef) {
-								c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType(), await part.backgroundNodeRef.getType());
-							}
-							else {
-								c.fillStyle = defaultFillStyle;
-							}
+							c.fillStyle = part.fillStyle;
 
 							const point = part.point.subtract(offset);
 							c.beginPath();
