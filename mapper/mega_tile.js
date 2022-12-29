@@ -46,7 +46,7 @@ class MegaTile {
 	/**
 	 * Get the node drawn at a specific absolute (canvas) point in the specified layer.
 	 * The absolute point must be snapped to the nearest tile center.
-	 * This method is intended to be faster (more cacheable) than the more specific #getDrawnNodeAtPoint
+	 * This method is intended to be faster (more cacheable) than the more specific #getDrawnNodePartAtPoint
 	 * @param tileCenterPoint {Vector3}
 	 * @param layer {Layer}
 	 * @returns {node render part|null}
