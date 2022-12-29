@@ -3,6 +3,8 @@ import { images } from "./images/index.js";
 
 const tileSize = 16;
 
+const fillStyles = {};
+
 class NodeRender {
 	constructor(context, nodeRef) {
 		this.context = context;
@@ -10,14 +12,34 @@ class NodeRender {
 		this.renders = {};
 	}
 
-	static async getNodeTypeFillStyle(context, nodeType) {
-		const imageName = await nodeType.getImageName();
-		if(imageName) {
-			return context.createPattern(await images[imageName].image, "repeat");
+	static async getNodeTypeFillStyle(context, nodeType, backgroundType) {
+		const id = nodeType.id + ":" + (backgroundType ? backgroundType.id : "");
+		let fillStyle = fillStyles[id];
+
+		if(fillStyle === undefined) {
+			const image = document.createElement("canvas");
+			image.width = image.height = tileSize;
+
+			const c = image.getContext("2d");
+
+			if(backgroundType) {
+				c.fillStyle = backgroundType.getColor();
+			}
+			else {
+				c.fillStyle = nodeType.getColor();
+			}
+
+			c.fillRect(0, 0, tileSize, tileSize);
+
+			const imageName = await nodeType.getImageName();
+			if(imageName) {
+				c.drawImage(await images[imageName].image, 0, 0);
+			}
+
+			fillStyles[id] = fillStyle = context.createPattern(image, "repeat");
 		}
-		else {
-			return nodeType.getColor();
-		}
+
+		return fillStyle;
 	}
 
 	async getLayers(zoom) {
@@ -179,6 +201,12 @@ class NodeRender {
 	}
 
 	async renderArea() {
+		const fakeCanvas = document.createElement("canvas");
+		fakeCanvas.width = tileSize;
+		fakeCanvas.height = tileSize;
+
+		const fakeContext = fakeCanvas.getContext("2d");
+
 		const render = [];
 
 		const layers = {};
@@ -191,6 +219,8 @@ class NodeRender {
 			}
 			layer.push(childNodeRef);
 		}
+
+		const receivesBackground = (await this.nodeRef.getType()).receivesBackground();
 
 		for(const z in layers) {
 			const children = layers[z];
@@ -209,8 +239,21 @@ class NodeRender {
 				topLeftCorner = Vector3.min(topLeftCorner, point.subtract(radiusVector));
 				bottomRightCorner = Vector3.max(bottomRightCorner, point.add(radiusVector));
 
+				const backgroundNodeRef = receivesBackground ? await this.context.getBackgroundNode(childNodeRef) : null;
+
+				let fillStyle;
+
+				if(backgroundNodeRef) {
+					fillStyle = await NodeRender.getNodeTypeFillStyle(fakeContext, await this.nodeRef.getType(), await backgroundNodeRef.getType());
+				}
+				else {
+					fillStyle = await NodeRender.getNodeTypeFillStyle(fakeContext, await this.nodeRef.getType());
+				}
+
 				toRender.push({
 					nodeRef: childNodeRef,
+					backgroundNodeRef: backgroundNodeRef,
+					fillStyle: fillStyle,
 					layer: await childNodeRef.getLayer(),
 					absolutePoint: point,
 					radius: radiusInPixels,
@@ -291,9 +334,9 @@ class NodeRender {
 
 						const c = canvas.getContext("2d");
 
-						c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
-
 						for(const part of toRender) {
+							c.fillStyle = part.fillStyle;
+
 							const point = part.point.subtract(offset);
 							c.beginPath();
 							c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);

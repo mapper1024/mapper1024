@@ -419,9 +419,9 @@ class RenderContext {
 
 			const oldHoverIds = this.hoverSelection.parentNodeIds;
 
-			const closestNodeRef = await this.getDrawnNodeAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
-			if(closestNodeRef) {
-				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodeRef]);
+			const closestNodePart = await this.getDrawnNodePartAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
+			if(closestNodePart) {
+				this.hoverSelection = await Selection.fromNodeRefs(this, [closestNodePart.nodeRef]);
 			}
 			else {
 				this.hoverSelection = new Selection(this, []);
@@ -470,9 +470,9 @@ class RenderContext {
 	/** Get the node drawn at a specific canvas point in the specified layer.
 	 * @param point {Vector3}
 	 * @param layer {Layer}
-	 * @returns {NodeRef|null}
+	 * @returns {node render part|null}
 	 */
-	async getDrawnNodeAtCanvasPoint(point, layer) {
+	async getDrawnNodePartAtCanvasPoint(point, layer) {
 		const absolutePoint = point.add(this.scrollOffset);
 		const absoluteMegaTile = absolutePoint.divideScalar(megaTileSize).map(Math.floor);
 		const megaTiles = this.megaTiles[this.zoom];
@@ -481,14 +481,14 @@ class RenderContext {
 			if(megaTileX !== undefined) {
 				const megaTile = megaTileX[absoluteMegaTile.y];
 				if(megaTile !== undefined) {
-					return megaTile.getDrawnNodeAtPoint(absolutePoint, layer);
+					return megaTile.getDrawnNodePartAtPoint(absolutePoint, layer);
 				}
 			}
 		}
 		return null;
 	}
 
-	async getDrawnNodeAtAbsoluteCanvasPointTileAligned(absolutePoint, layer) {
+	async getDrawnNodePartAtAbsoluteCanvasPointTileAligned(absolutePoint, layer) {
 		const absoluteMegaTile = absolutePoint.divideScalar(megaTileSize).map(Math.floor);
 		const megaTiles = this.megaTiles[this.zoom];
 		if(megaTiles !== undefined) {
@@ -496,11 +496,28 @@ class RenderContext {
 			if(megaTileX !== undefined) {
 				const megaTile = megaTileX[absoluteMegaTile.y];
 				if(megaTile !== undefined) {
-					return megaTile.getDrawnNodeAtPointTileAligned(absolutePoint, layer);
+					return megaTile.getDrawnNodePartAtPointTileAligned(absolutePoint, layer);
 				}
 			}
 		}
 		return null;
+	}
+
+	async getBackgroundNode(nodeRef) {
+		let bestNode = null;
+
+		for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1)).map(v => v.noZ()), this.pixelsToUnits(1))) {
+			const candidateType = await candidateNodeRef.getType();
+			if(!candidateType.givesBackground() || candidateType.id === (await nodeRef.getType()).id || (await candidateNodeRef.getLayer()).id !== (await nodeRef.getLayer()).id || (await candidateNodeRef.getEffectiveCenter()).subtract(await nodeRef.getEffectiveCenter()).length() >= (await candidateNodeRef.getRadius())) {
+				continue;
+			}
+
+			if(!bestNode || (await candidateNodeRef.getEffectiveCenter()).z > (await bestNode.getEffectiveCenter()).z) {
+				bestNode = candidateNodeRef;
+			}
+		}
+
+		return bestNode;
 	}
 
 	async recalculateLoop() {
@@ -850,7 +867,7 @@ class RenderContext {
 
 								this.nodeIdsToMegatiles[nodeId].add(megaTile);
 								megaTile.nodeIds.add(nodeId);
-								megaTile.parts.push(...layer.parts);
+								megaTile.addParts(layer.parts);
 
 								drewToMegaTiles.add(megaTile);
 
@@ -915,10 +932,11 @@ class RenderContext {
 									for(const dirKey of dirKeys) {
 										const tileDir = dirs[dirKey].multiplyScalar(tileSize);
 										const neighborPoint = center.add(tileDir.divideScalar(2));
-										const neighborNode = await this.getDrawnNodeAtAbsoluteCanvasPointTileAligned(neighborPoint, tile.layer);
-										if(neighborNode) {
+										const neighborNodePart = await this.getDrawnNodePartAtAbsoluteCanvasPointTileAligned(neighborPoint, tile.layer);
+										if(neighborNodePart) {
 											neighbors.push({
-												nodeRef: neighborNode,
+												nodeRef: neighborNodePart.nodeRef,
+												part: neighborNodePart,
 												angle: dirAngles[dirKey],
 												normalizedDir: normalizedDirs[dirKey],
 											});
@@ -928,7 +946,7 @@ class RenderContext {
 									for(const neighbor of neighbors) {
 										const c = megaTile.context;
 
-										c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await neighbor.nodeRef.getType());
+										c.fillStyle = neighbor.part.fillStyle;
 										c.globalAlpha = 0.5;
 
 										const angle = neighbor.angle;

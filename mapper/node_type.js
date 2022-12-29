@@ -12,6 +12,14 @@ class NodeType {
 		return this.def.color || "black";
 	}
 
+	receivesBackground() {
+		return ((this.def.receivesBackground === false) ? false : true) && !this.givesBackground() && this.getImageName();
+	}
+
+	givesBackground() {
+		return !!this.def.givesBackground;
+	}
+
 	getImageName() {
 		return this.def.image;
 	}
@@ -40,15 +48,17 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("water", {
 			color: "darkblue",
 			image: "water",
+			receivesBackground: false,
 		}));
 
 		this.registerType(new NodeType("grass", {
-			color: "lightgreen",
+			color: "green",
 			image: "grass",
+			givesBackground: true,
 		}));
 
 		this.registerType(new NodeType("forest", {
-			color: "darkgreen",
+			color: "green",
 			image: "forest",
 		}));
 
