@@ -503,6 +503,23 @@ class RenderContext {
 		return null;
 	}
 
+	async getBackgroundNode(nodeRef) {
+		let bestNode = null;
+
+		for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1)), this.pixelsToUnits(1))) {
+			const candidateType = await candidateNodeRef.getType();
+			if(!candidateType.givesBackground() || candidateType.id === (await nodeRef.getType()).id || (await candidateNodeRef.getLayer()).id !== (await nodeRef.getLayer()).id) {
+				continue;
+			}
+
+			if(!bestNode || (await candidateNodeRef.getEffectiveCenter()).z > (await bestNode.getEffectiveCenter()).z) {
+				bestNode = candidateNodeRef;
+			}
+		}
+
+		return bestNode;
+	}
+
 	async recalculateLoop() {
 		// Change the zoom level if requested.
 		// We do this in the same async loop method as recalculating the renderings so that the rendering is never out of sync between zoom levels.

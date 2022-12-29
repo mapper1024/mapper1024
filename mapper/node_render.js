@@ -12,8 +12,9 @@ class NodeRender {
 		this.renders = {};
 	}
 
-	static async getNodeTypeFillStyle(context, nodeType) {
-		let fillStyle = fillStyles[nodeType.id];
+	static async getNodeTypeFillStyle(context, nodeType, backgroundType) {
+		const id = nodeType.id + ":" + (backgroundType ? backgroundType.id : "");
+		let fillStyle = fillStyles[id];
 
 		if(fillStyle === undefined) {
 			const image = document.createElement("canvas");
@@ -21,12 +22,21 @@ class NodeRender {
 
 			const c = image.getContext("2d");
 
+			if(backgroundType) {
+				c.fillStyle = backgroundType.getColor();
+			}
+			else {
+				c.fillStyle = nodeType.getColor();
+			}
+
+			c.fillRect(0, 0, tileSize, tileSize);
+
 			const imageName = await nodeType.getImageName();
 			if(imageName) {
 				c.drawImage(await images[imageName].image, 0, 0);
 			}
 
-			fillStyles[nodeType.id] = fillStyle = context.createPattern(image, "repeat");
+			fillStyles[id] = fillStyle = context.createPattern(image, "repeat");
 		}
 
 		return fillStyle;
@@ -204,6 +214,8 @@ class NodeRender {
 			layer.push(childNodeRef);
 		}
 
+		const receivesBackground = (await this.nodeRef.getType()).receivesBackground();
+
 		for(const z in layers) {
 			const children = layers[z];
 			const toRender = [];
@@ -221,8 +233,11 @@ class NodeRender {
 				topLeftCorner = Vector3.min(topLeftCorner, point.subtract(radiusVector));
 				bottomRightCorner = Vector3.max(bottomRightCorner, point.add(radiusVector));
 
+				const backgroundNodeRef = receivesBackground ? await this.context.getBackgroundNode(childNodeRef) : null;
+
 				toRender.push({
 					nodeRef: childNodeRef,
+					backgroundNodeRef: backgroundNodeRef,
 					layer: await childNodeRef.getLayer(),
 					absolutePoint: point,
 					radius: radiusInPixels,
@@ -303,9 +318,16 @@ class NodeRender {
 
 						const c = canvas.getContext("2d");
 
-						c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
+						const defaultFillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType());
 
 						for(const part of toRender) {
+							if(part.backgroundNodeRef) {
+								c.fillStyle = await NodeRender.getNodeTypeFillStyle(c, await this.nodeRef.getType(), await part.backgroundNodeRef.getType());
+							}
+							else {
+								c.fillStyle = defaultFillStyle;
+							}
+
 							const point = part.point.subtract(offset);
 							c.beginPath();
 							c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);

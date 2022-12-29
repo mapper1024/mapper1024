@@ -12,8 +12,12 @@ class NodeType {
 		return this.def.color || "black";
 	}
 
-	isBackground() {
-		return !!this.def.background;
+	receivesBackground() {
+		return ((this.def.receivesBackground === false) ? false : true) && !this.givesBackground();
+	}
+
+	givesBackground() {
+		return !!this.def.givesBackground;
 	}
 
 	getImageName() {
@@ -44,12 +48,13 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("water", {
 			color: "darkblue",
 			image: "water",
+			receivesBackground: false,
 		}));
 
 		this.registerType(new NodeType("grass", {
 			color: "green",
 			image: "grass",
-			background: true,
+			givesBackground: true,
 		}));
 
 		this.registerType(new NodeType("forest", {
