@@ -19,8 +19,9 @@ class DrawPathAction extends Action {
 		/* Get the altitude (Z) we need at a specific point on the map in order to be on top of all other map objects. */
 		const getAltitudeAdd = async (point) => {
 			// Find the nodeRef being drawn on top currently.
-			const closestNodeRef = await this.context.getDrawnNodeAtCanvasPoint(this.context.mapPointToCanvas(point), this.options.layer);
-			if(closestNodeRef) {
+			const closestNodePart = await this.context.getDrawnNodePartAtCanvasPoint(this.context.mapPointToCanvas(point), this.options.layer);
+			if(closestNodePart) {
+				const closestNodeRef = closestNodePart.nodeRef;
 				// There is a node below us.
 				const closestParent = await closestNodeRef.getParent();
 				// Get it's Z level at that position.
