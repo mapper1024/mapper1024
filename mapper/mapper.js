@@ -470,7 +470,7 @@ class RenderContext {
 	/** Get the node drawn at a specific canvas point in the specified layer.
 	 * @param point {Vector3}
 	 * @param layer {Layer}
-	 * @returns {node render part|null}
+	 * @returns {part|null}
 	 */
 	async getDrawnNodePartAtCanvasPoint(point, layer) {
 		const absolutePoint = point.add(this.scrollOffset);

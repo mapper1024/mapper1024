@@ -25,7 +25,7 @@ class MegaTile {
 	 * Get the node drawn at a specific absolute (canvas) point in the specified layer.
 	 * @param absolutePoint {Vector3}
 	 * @param layer {Layer}
-	 * @returns {node render part|null}
+	 * @returns {part|null}
 	 */
 	async getDrawnNodePartAtPoint(absolutePoint, layer) {
 		// For each part in order of most recently rendered first
@@ -49,7 +49,7 @@ class MegaTile {
 	 * This method is intended to be faster (more cacheable) than the more specific #getDrawnNodePartAtPoint
 	 * @param tileCenterPoint {Vector3}
 	 * @param layer {Layer}
-	 * @returns {node render part|null}
+	 * @returns {part|null}
 	 */
 	async getDrawnNodePartAtPointTileAligned(tileCenterPoint, layer) {
 		let cache = this.tileCenterNodeRefCache[layer.id];
