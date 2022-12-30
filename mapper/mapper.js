@@ -86,6 +86,8 @@ class RenderContext {
 		this.hoverSelection = new Selection(this, []);
 		this.selection = new Selection(this, []);
 
+		this.backgroundNodeCache = {};
+
 		this.styleElement = style();
 		document.head.appendChild(this.styleElement);
 
@@ -504,17 +506,21 @@ class RenderContext {
 	}
 
 	async getBackgroundNode(nodeRef) {
-		let bestNode = null;
+		let bestNode = this.backgroundNodeCache[nodeRef.id];
 
-		for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1)).map(v => v.noZ()), this.pixelsToUnits(1))) {
-			const candidateType = await candidateNodeRef.getType();
-			if(!candidateType.givesBackground() || candidateType.id === (await nodeRef.getType()).id || (await candidateNodeRef.getLayer()).id !== (await nodeRef.getLayer()).id || (await candidateNodeRef.getEffectiveCenter()).subtract(await nodeRef.getEffectiveCenter()).length() >= (await candidateNodeRef.getRadius())) {
-				continue;
+		if(bestNode === undefined) {
+			for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1)).map(v => v.noZ()), this.pixelsToUnits(1))) {
+				const candidateType = await candidateNodeRef.getType();
+				if(!candidateType.givesBackground() || candidateType.id === (await nodeRef.getType()).id || (await candidateNodeRef.getLayer()).id !== (await nodeRef.getLayer()).id || (await candidateNodeRef.getEffectiveCenter()).subtract(await nodeRef.getEffectiveCenter()).length() >= (await candidateNodeRef.getRadius())) {
+					continue;
+				}
+
+				if(!bestNode || (await candidateNodeRef.getEffectiveCenter()).z > (await bestNode.getEffectiveCenter()).z) {
+					bestNode = candidateNodeRef;
+				}
 			}
 
-			if(!bestNode || (await candidateNodeRef.getEffectiveCenter()).z > (await bestNode.getEffectiveCenter()).z) {
-				bestNode = candidateNodeRef;
-			}
+			this.backgroundNodeCache[nodeRef.id] = bestNode;
 		}
 
 		return bestNode;
