@@ -80,13 +80,14 @@ class NodeTypeRegistry {
 		}));
 
 		this.registerType(new NodeType("road", {
-			color: "brown",
+			color: "sandybrown",
 			image: "road",
 			path: true,
 		}));
 
 		this.registerType(new NodeType("buildings", {
-			color: "yellow",
+			color: "slategray",
+			image: "buildings",
 		}));
 
 		this.registerType(new NodeType("tower", {
