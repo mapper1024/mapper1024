@@ -914,7 +914,7 @@ class RenderContext {
 						waitLayers.add(layer);
 					}
 					else {
-						drawLayer(layer, drawAgainIds);
+						await drawLayer(layer, drawAgainIds);
 					}
 				}
 
