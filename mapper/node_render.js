@@ -190,8 +190,12 @@ class NodeRender {
 		const render = [];
 		const toRender = [];
 
+		const nodeType = await this.nodeRef.getType();
+
 		let topLeftCorner = new Vector3(Infinity, Infinity, Infinity);
 		let bottomRightCorner = new Vector3(-Infinity, -Infinity, -Infinity);
+
+		const nodeIdsToPart = {};
 
 		for await (const childNodeRef of this.nodeRef.getChildren()) {
 			const radiusInPixels = this.context.unitsToPixels(await childNodeRef.getRadius());
@@ -201,12 +205,16 @@ class NodeRender {
 			topLeftCorner = Vector3.min(topLeftCorner, point.subtract(radiusVector));
 			bottomRightCorner = Vector3.max(bottomRightCorner, point.add(radiusVector));
 
-			toRender.push({
+			const part = {
 				nodeRef: childNodeRef,
 				layer: await childNodeRef.getLayer(),
 				absolutePoint: point,
 				radius: radiusInPixels,
-			});
+			};
+
+			toRender.push(part);
+
+			nodeIdsToPart[part.nodeRef.id] = part;
 		}
 
 		// Align the node render to the tile grid.
@@ -219,53 +227,72 @@ class NodeRender {
 			part.point = part.absolutePoint.subtract(topLeftCorner);
 		}
 
-		for(const part of toRender) {
-			const pointAt = r => (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point);
-			const connect = (previous, next) => {
-				const line = new Line3(previous, next);
+		if(nodeType.isPath()) {
+			const foundEdges = new Set();
 
-				for(const otherPart of toRender) {
-					if(otherPart === part) {
-						continue;
+			for(const part of toRender) {
+				if(await part.nodeRef.getNodeType() === "path") {
+					for await (const dirEdgeRef of part.nodeRef.getEdges()) {
+						const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+						const k = part.nodeRef.id < otherNodeRef.id ? (part.nodeRef.id + "," + otherNodeRef.id) : (otherNodeRef.id + "," + part.nodeRef.id);
+						if(!foundEdges.has(k)) {
+							foundEdges.add(k);
+
+							const otherPart = nodeIdsToPart[otherNodeRef.id];
+
+							lines.push(new Line3(part.point, otherPart.point));
+						}
+					}
+				}
+			}
+		}
+		else {
+
+			for(const part of toRender) {
+				const pointAt = r => (new Vector3(Math.cos(r), Math.sin(r), 0)).multiplyScalar(part.radius).add(part.point);
+				const connect = (previous, next) => {
+					const line = new Line3(previous, next);
+
+					for(const otherPart of toRender) {
+						if(otherPart === part) {
+							continue;
+						}
+
+						let aIn;
+						let bIn;
+
+						do {
+							aIn = otherPart.point.subtract(line.a).length() < otherPart.radius - 1;
+							bIn = otherPart.point.subtract(line.b).length() < otherPart.radius - 1;
+
+							if(aIn && bIn) {
+								return;
+							}
+
+							if(aIn) {
+								line.a = line.a.add(line.b).divideScalar(2);
+							}
+							else if(bIn) {
+								line.b = line.a.add(line.b).divideScalar(2);
+							}
+						} while(aIn || bIn);
 					}
 
-					let aIn;
-					let bIn;
+					lines.push(line.map(v => v.map(c => Math.floor(c + 0.5))));
+				};
 
-					do {
-						aIn = otherPart.point.subtract(line.a).length() < otherPart.radius - 1;
-						bIn = otherPart.point.subtract(line.b).length() < otherPart.radius - 1;
+				let previousPoint = pointAt(0);
 
-						if(aIn && bIn) {
-							return;
-						}
+				const increment = 8 / part.radius;
 
-						if(aIn) {
-							line.a = line.a.add(line.b).divideScalar(2);
-						}
-						else if(bIn) {
-							line.b = line.a.add(line.b).divideScalar(2);
-						}
-					} while(aIn || bIn);
+				for(let r = increment; r < Math.PI * 2; r += increment) {
+					const currentPoint = pointAt(r);
+					connect(previousPoint, currentPoint);
+					previousPoint = currentPoint;
 				}
 
-				lines.push({
-					line: line.map(v => v.map(c => Math.floor(c + 0.5))),
-					part: part,
-				});
-			};
-
-			let previousPoint = pointAt(0);
-
-			const increment = 8 / part.radius;
-
-			for(let r = increment; r < Math.PI * 2; r += increment) {
-				const currentPoint = pointAt(r);
-				connect(previousPoint, currentPoint);
-				previousPoint = currentPoint;
+				connect(previousPoint, pointAt(0));
 			}
-
-			connect(previousPoint, pointAt(0));
 		}
 
 		const miniCanvasSize = 2048;
@@ -295,8 +322,8 @@ class NodeRender {
 					c.strokeStyle = (await this.nodeRef.getType()).getColor();
 
 					for(const line of lines) {
-						const a = line.line.a.subtract(offset);
-						const b = line.line.b.subtract(offset);
+						const a = line.a.subtract(offset);
+						const b = line.b.subtract(offset);
 						c.beginPath();
 						c.moveTo(a.x, a.y);
 						c.lineTo(b.x, b.y);
@@ -329,6 +356,8 @@ class NodeRender {
 
 		const fakeContext = fakeCanvas.getContext("2d");
 
+		const nodeType = await this.nodeRef.getType();
+
 		const render = [];
 
 		const layers = {};
@@ -353,6 +382,8 @@ class NodeRender {
 
 			const focusTiles = {};
 
+			const nodeIdsToPart = {};
+
 			for(const childNodeRef of children) {
 				const radiusInPixels = this.context.unitsToPixels(await childNodeRef.getRadius());
 				const radiusVector = Vector3.UNIT.multiplyScalar(radiusInPixels).noZ();
@@ -372,14 +403,18 @@ class NodeRender {
 					fillStyle = await NodeRender.getNodeTypeFillStyle(fakeContext, await this.nodeRef.getType());
 				}
 
-				toRender.push({
+				const part = {
 					nodeRef: childNodeRef,
 					backgroundNodeRef: backgroundNodeRef,
 					fillStyle: fillStyle,
 					layer: await childNodeRef.getLayer(),
 					absolutePoint: point,
 					radius: radiusInPixels,
-				});
+				};
+
+				toRender.push(part);
+
+				nodeIdsToPart[part.nodeRef.id] = part;
 			}
 
 			// Align the node render to the tile grid.
@@ -408,6 +443,28 @@ class NodeRender {
 						layer: await part.nodeRef.getLayer(),
 						nodeType: await part.nodeRef.getType(),
 					};
+				}
+			}
+
+			const lines = [];
+
+			if(nodeType.isPath()) {
+				const foundEdges = new Set();
+
+				for(const part of toRender) {
+					if(await part.nodeRef.getNodeType() === "path") {
+						for await (const dirEdgeRef of part.nodeRef.getEdges()) {
+							const otherNodeRef = await dirEdgeRef.getDirOtherNode();
+							const k = part.nodeRef.id < otherNodeRef.id ? (part.nodeRef.id + "," + otherNodeRef.id) : (otherNodeRef.id + "," + part.nodeRef.id);
+							if(!foundEdges.has(k)) {
+								foundEdges.add(k);
+
+								const otherPart = nodeIdsToPart[otherNodeRef.id];
+
+								lines.push(new Line3(part.point, otherPart.point));
+							}
+						}
+					}
 				}
 			}
 
@@ -443,41 +500,84 @@ class NodeRender {
 					const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
 					const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
 
-					let canvas;
+					{
+						let canvas;
 
-					const canvasFunction = async () => {
-						if(canvas) {
+						const canvasFunction = async () => {
+							if(canvas) {
+								return canvas;
+							}
+
+							canvas = document.createElement("canvas");
+							canvas.width = width;
+							canvas.height = height;
+
+							const c = canvas.getContext("2d");
+
+							for(const part of toRender) {
+								c.fillStyle = part.fillStyle;
+
+								const point = part.point.subtract(offset);
+								c.beginPath();
+								c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
+								c.fill();
+							}
+
 							return canvas;
-						}
+						};
 
-						canvas = document.createElement("canvas");
-						canvas.width = width;
-						canvas.height = height;
+						render.push({
+							nodeRender: this,
+							corner: topLeftCorner.add(offset),
+							z: z,
+							canvas: canvasFunction,
+							width: width,
+							height: height,
+							focusTiles: focusTiles,
+							parts: toRender,
+						});
+					}
 
-						const c = canvas.getContext("2d");
+					{
+						let canvas;
 
-						for(const part of toRender) {
-							c.fillStyle = part.fillStyle;
+						const canvasFunction = async () => {
+							if(canvas) {
+								return canvas;
+							}
 
-							const point = part.point.subtract(offset);
-							c.beginPath();
-							c.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
-							c.fill();
-						}
+							canvas = document.createElement("canvas");
+							canvas.width = width;
+							canvas.height = height;
 
-						return canvas;
-					};
+							const c = canvas.getContext("2d");
 
-					render.push({
-						nodeRender: this,
-						corner: topLeftCorner.add(offset),
-						z: z,
-						canvas: canvasFunction,
-						width: width,
-						height: height,
-						focusTiles: focusTiles,
-						parts: toRender,
-					});
+							c.strokeStyle = (await this.nodeRef.getType()).getColor();
+
+							for(const line of lines) {
+								const a = line.a.subtract(offset);
+								const b = line.b.subtract(offset);
+								c.beginPath();
+								c.moveTo(a.x, a.y);
+								c.lineTo(b.x, b.y);
+								c.stroke();
+							}
+
+							return canvas;
+						};
+
+						render.push({
+							nodeRender: this,
+							corner: topLeftCorner.add(offset),
+							z: z,
+							zWait: true,
+							canvas: canvasFunction,
+							width: width,
+							height: height,
+							focusTiles: {},
+							parts: toRender,
+						});
+					}
 				}
 			}
 		}

@@ -810,8 +810,81 @@ class RenderContext {
 		for(const filter of filters) {
 			const focusTiles = {};
 
-			const drawNodeIds = async (nodeIds) => {
-				const drawAgainIds = new Set();
+			const drawLayer = async (layer, drawAgainIds) => {
+				const nodeId = layer.nodeRender.nodeRef.id;
+				const nodeInSelection = this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId);
+
+				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
+				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
+
+				for(let x = Math.max(layerBoxInMegaTiles.a.x, screenBoxInMegaTiles.a.x); x <= Math.min(layerBoxInMegaTiles.b.x, screenBoxInMegaTiles.b.x); x++) {
+					let megaTileX = megaTiles[x];
+					if(megaTileX === undefined) {
+						megaTileX = megaTiles[x] = {};
+					}
+
+					for(let y = Math.max(layerBoxInMegaTiles.a.y, screenBoxInMegaTiles.a.y); y <= Math.min(layerBoxInMegaTiles.b.y, screenBoxInMegaTiles.b.y); y++) {
+						const megaTilePoint = new Vector3(x, y, 0);
+
+						let megaTile = megaTileX[y];
+						if(megaTile === undefined) {
+							megaTile = megaTileX[y] = new MegaTile(this, this.zoom, megaTilePoint);
+							redrawMegaTiles.add(megaTile);
+						}
+
+						const firstAppearanceInMegaTile = !megaTile.nodeIds.has(nodeId);
+
+						if(redrawMegaTiles.has(megaTile) || firstAppearanceInMegaTile) {
+							const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
+							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
+							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
+
+							const layerImage = await layer.canvas();
+							let toRenderCanvas = layerImage;
+
+							if(nodeInSelection) {
+								toRenderCanvas = document.createElement("canvas");
+								toRenderCanvas.width = layerImage.width;
+								toRenderCanvas.height = layerImage.height;
+
+								const c = toRenderCanvas.getContext("2d");
+								c.drawImage(layerImage, 0, 0);
+								c.globalCompositeOperation = "source-atop";
+								c.fillStyle = "black";
+								c.globalAlpha = 0.1;
+								c.fillRect(0, 0, toRenderCanvas.width, toRenderCanvas.height);
+							}
+							megaTile.context.drawImage(toRenderCanvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
+
+							this.nodeIdsToMegatiles[nodeId].add(megaTile);
+							megaTile.nodeIds.add(nodeId);
+							megaTile.addParts(layer.parts);
+
+							drewToMegaTiles.add(megaTile);
+
+							let averagePartPoint = Vector3.ZERO;
+							for(const part of layer.parts) {
+								averagePartPoint = averagePartPoint.add(part.absolutePoint);
+							}
+
+							labelPositions[nodeId] = {
+								center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
+								size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
+							};
+						}
+
+						if(firstAppearanceInMegaTile && drawAgainIds) {
+							for(const otherNodeId of megaTile.nodeIds) {
+								drawAgainIds.add(otherNodeId);
+							}
+						}
+					}
+				}
+			};
+
+			const waitLayers = new Set();
+
+			const drawNodeIds = async (nodeIds, drawAgainIds) => {
 				const layers = [];
 
 				const focusTileLists = new Set();
@@ -837,74 +910,11 @@ class RenderContext {
 				layers.sort((a, b) => a.z - b.z);
 
 				for(const layer of layers) {
-					const nodeId = layer.nodeRender.nodeRef.id;
-					const nodeInSelection = this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId);
-
-					const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
-					const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
-
-					for(let x = Math.max(layerBoxInMegaTiles.a.x, screenBoxInMegaTiles.a.x); x <= Math.min(layerBoxInMegaTiles.b.x, screenBoxInMegaTiles.b.x); x++) {
-						let megaTileX = megaTiles[x];
-						if(megaTileX === undefined) {
-							megaTileX = megaTiles[x] = {};
-						}
-
-						for(let y = Math.max(layerBoxInMegaTiles.a.y, screenBoxInMegaTiles.a.y); y <= Math.min(layerBoxInMegaTiles.b.y, screenBoxInMegaTiles.b.y); y++) {
-							const megaTilePoint = new Vector3(x, y, 0);
-
-							let megaTile = megaTileX[y];
-							if(megaTile === undefined) {
-								megaTile = megaTileX[y] = new MegaTile(this, this.zoom, megaTilePoint);
-								redrawMegaTiles.add(megaTile);
-							}
-
-							const firstAppearanceInMegaTile = !megaTile.nodeIds.has(nodeId);
-
-							if(redrawMegaTiles.has(megaTile) || firstAppearanceInMegaTile) {
-								const pointOnLayer = megaTilePoint.multiplyScalar(megaTileSize).subtract(absoluteLayerBox.a);
-								const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
-								const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
-
-								const layerImage = await layer.canvas();
-								let toRenderCanvas = layerImage;
-
-								if(nodeInSelection) {
-									toRenderCanvas = document.createElement("canvas");
-									toRenderCanvas.width = layerImage.width;
-									toRenderCanvas.height = layerImage.height;
-
-									const c = toRenderCanvas.getContext("2d");
-									c.drawImage(layerImage, 0, 0);
-									c.globalCompositeOperation = "source-atop";
-									c.fillStyle = "black";
-									c.globalAlpha = 0.1;
-									c.fillRect(0, 0, toRenderCanvas.width, toRenderCanvas.height);
-								}
-								megaTile.context.drawImage(toRenderCanvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
-
-								this.nodeIdsToMegatiles[nodeId].add(megaTile);
-								megaTile.nodeIds.add(nodeId);
-								megaTile.addParts(layer.parts);
-
-								drewToMegaTiles.add(megaTile);
-
-								let averagePartPoint = Vector3.ZERO;
-								for(const part of layer.parts) {
-									averagePartPoint = averagePartPoint.add(part.absolutePoint);
-								}
-
-								labelPositions[nodeId] = {
-									center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
-									size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
-								};
-							}
-
-							if(firstAppearanceInMegaTile) {
-								for(const otherNodeId of megaTile.nodeIds) {
-									drawAgainIds.add(otherNodeId);
-								}
-							}
-						}
+					if(layer.zWait) {
+						waitLayers.add(layer);
+					}
+					else {
+						drawLayer(layer, drawAgainIds);
 					}
 				}
 
@@ -920,11 +930,10 @@ class RenderContext {
 						}
 					}
 				}
-
-				return drawAgainIds;
 			};
 
-			const secondPassNodeIds = await drawNodeIds(updateNodeIds);
+			const secondPassNodeIds = new Set();
+			await drawNodeIds(updateNodeIds, secondPassNodeIds);
 			await drawNodeIds(secondPassNodeIds);
 
 			for(let tX in focusTiles) {
@@ -994,6 +1003,10 @@ class RenderContext {
 						}
 					}
 				}
+			}
+
+			for(const layer of waitLayers) {
+				drawLayer(layer);
 			}
 		}
 
