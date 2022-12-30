@@ -1,6 +1,6 @@
 {
 	"name": "mapper1024",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "An accessible and efficient map making tool",
 	"main": "src/electron/main.js",
 	"scripts": {
