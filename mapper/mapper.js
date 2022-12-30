@@ -868,15 +868,17 @@ class RenderContext {
 
 							drewToMegaTiles.add(megaTile);
 
-							let averagePartPoint = Vector3.ZERO;
-							for(const part of layer.parts) {
-								averagePartPoint = averagePartPoint.add(part.absolutePoint);
-							}
+							if(!layer.zWait) {
+								let averagePartPoint = Vector3.ZERO;
+								for(const part of layer.parts) {
+									averagePartPoint = averagePartPoint.add(part.absolutePoint);
+								}
 
-							labelPositions[nodeId] = {
-								center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
-								size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
-							};
+								labelPositions[nodeId] = {
+									center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
+									size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
+								};
+							}
 						}
 
 						if(firstAppearanceInMegaTile && drawAgainIds) {

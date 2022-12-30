@@ -575,7 +575,7 @@ class NodeRender {
 							width: width,
 							height: height,
 							focusTiles: {},
-							parts: toRender,
+							parts: [],
 						});
 					}
 				}
