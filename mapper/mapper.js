@@ -788,10 +788,26 @@ class RenderContext {
 
 		const drewToMegaTiles = new Set();
 
+		// Sort all layers by Z order.
 		const nodeLayers = Array.from(this.mapper.backend.layerRegistry.getLayers());
 		nodeLayers.sort((a, b) => a.getZ() - b.getZ());
 
-		for(const nodeLayer of nodeLayers) {
+		// A list of filters in order; nodes matching each filter will be rendered on the same Z level.
+		const filters = [];
+
+		// Add a filter for each layer in order.
+		for(const layer of nodeLayers) {
+			if(layer.id === "geographical") {
+				// If this is the geographical layer, render terrain objects before explicit objects.
+				filters.push(async nodeRef => (await nodeRef.getLayer()).id === layer.id && (await nodeRef.getType()).getScale() === "terrain");
+				filters.push(async nodeRef => (await nodeRef.getLayer()).id === layer.id && (await nodeRef.getType()).getScale() === "explicit");
+			}
+			else {
+				filters.push(async nodeRef => (await nodeRef.getLayer()).id === layer.id);
+			}
+		}
+
+		for(const filter of filters) {
 			const focusTiles = {};
 
 			const drawNodeIds = async (nodeIds) => {
@@ -802,7 +818,8 @@ class RenderContext {
 
 				for(const nodeId of nodeIds) {
 					const nodeRef = this.mapper.backend.getNodeRef(nodeId);
-					if((await nodeRef.getLayer()).id !== nodeLayer.id)
+					// Only render nodes in the current filter.
+					if(!await filter(nodeRef))
 						continue;
 
 					drawnNodeIds.add(nodeRef.id);

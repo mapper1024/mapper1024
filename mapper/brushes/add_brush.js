@@ -48,22 +48,22 @@ class AddBrush extends Brush {
 					const button = document.createElement("canvas");
 					li.appendChild(button);
 
-					button.width = brushbar.size.x - 8;
-					button.height = brushbar.size.x - 8;
+					const squareSize = brushbar.size.x - 8;
+					const squareRadius = Math.floor(squareSize / 2 + 0.5);
+
+					button.width = squareSize;
+					button.height = squareSize;
 
 					button.title = nodeType.id;
 
 					const c = button.getContext("2d");
 
-					for(const fillStyle of [nodeType.getColor(), await NodeRender.getNodeTypeFillStyle(c, nodeType)]) {
-						c.fillStyle = fillStyle;
-
-						if(nodeType.getScale() === "explicit") {
-							c.beginPath();
-							c.arc(button.width / 2, button.height / 2, Math.min(button.height, button.width) / 2, 0, 2 * Math.PI, false);
-							c.fill();
-						}
-						else {
+					if(nodeType.getScale() === "explicit") {
+						await NodeRender.drawExplicitNode(c, nodeType, squareRadius, squareRadius, squareRadius);
+					}
+					else {
+						for(const fillStyle of [nodeType.getColor(), await NodeRender.getNodeTypeFillStyle(c, nodeType)]) {
+							c.fillStyle = fillStyle;
 							c.fillRect(0, 0, button.width, button.height);
 						}
 					}

@@ -65,6 +65,7 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("tree", {
 			color: "darkgreen",
 			scale: "explicit",
+			image: "tree",
 		}));
 
 		this.registerType(new NodeType("rocks", {
@@ -75,10 +76,12 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("stone", {
 			color: "gray",
 			scale: "explicit",
+			image: "stone",
 		}));
 
 		this.registerType(new NodeType("road", {
 			color: "brown",
+			image: "road",
 			path: true,
 		}));
 
@@ -89,6 +92,7 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("tower", {
 			color: "yellow",
 			scale: "explicit",
+			image: "tower",
 		}));
 
 		this.registerType(new NodeType("region", {

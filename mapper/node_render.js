@@ -33,7 +33,7 @@ class NodeRender {
 
 			const imageName = await nodeType.getImageName();
 			if(imageName) {
-				c.drawImage(await images[imageName].image, 0, 0);
+				c.drawImage(await images[imageName].image, 0, 0, image.width, image.height);
 			}
 
 			fillStyles[id] = fillStyle = context.createPattern(image, "repeat");
@@ -42,17 +42,39 @@ class NodeRender {
 		return fillStyle;
 	}
 
+	static async drawExplicitNode(context, nodeType, x, y, radius) {
+		const imageName = await nodeType.getImageName();
+		if(imageName) {
+			const image = await images[imageName].image;
+			context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
+		}
+		else {
+			context.fillStyle = nodeType.getColor();
+
+			context.beginPath();
+			context.arc(x, y, radius, 0, 2 * Math.PI, false);
+			context.fill();
+		}
+	}
+
 	async getLayers(zoom) {
 		let render = this.renders[zoom];
 		if(render === undefined) {
 			render = [];
 
-			const drawType = (await this.nodeRef.getLayer()).getDrawType();
-			const areaDrawType = drawType === "area";
-
 			if(this.context.unitsToPixels(await this.nodeRef.getRadius()) >= 1) {
-				if(areaDrawType) {
-					render = this.renderArea();
+				const nodeLayer = await this.nodeRef.getLayer();
+				const drawType = nodeLayer.getDrawType();
+
+				if(drawType === "area") {
+					const nodeType = await this.nodeRef.getType();
+
+					if(nodeType.getScale() === "terrain") {
+						render = this.renderTerrain();
+					}
+					else {
+						render = this.renderExplicit();
+					}
 				}
 				else {
 					render = this.renderBorder();
@@ -61,6 +83,105 @@ class NodeRender {
 
 			this.renders[zoom] = render;
 		}
+		return render;
+	}
+
+	async renderExplicit() {
+		const render = [];
+
+		const nodeType = await this.nodeRef.getType();
+
+		const layers = {};
+
+		for await(const childNodeRef of this.nodeRef.getChildren()) {
+			const z = (await childNodeRef.getCenter()).z;
+			let layer = layers[z];
+			if(layer === undefined) {
+				layers[z] = layer = [];
+			}
+			layer.push(childNodeRef);
+		}
+
+		for(const z in layers) {
+			const children = layers[z];
+			const toRender = [];
+
+			let topLeftCorner = new Vector3(Infinity, Infinity, Infinity);
+			let bottomRightCorner = new Vector3(-Infinity, -Infinity, -Infinity);
+
+			for(const childNodeRef of children) {
+				const radiusInPixels = this.context.unitsToPixels(await childNodeRef.getRadius());
+				const radiusVector = Vector3.UNIT.multiplyScalar(radiusInPixels).noZ();
+				const point = (await childNodeRef.getEffectiveCenter()).map((c) => this.context.unitsToPixels(c)).noZ();
+
+				topLeftCorner = Vector3.min(topLeftCorner, point.subtract(radiusVector));
+				bottomRightCorner = Vector3.max(bottomRightCorner, point.add(radiusVector));
+
+				toRender.push({
+					nodeRef: childNodeRef,
+					layer: await childNodeRef.getLayer(),
+					absolutePoint: point,
+					radius: radiusInPixels,
+				});
+			}
+
+			// Align the node render to the tile grid.
+			topLeftCorner = topLeftCorner.map(Math.floor).map((c) => c - c % tileSize);
+			bottomRightCorner = bottomRightCorner.map(Math.ceil);
+
+			for(const part of toRender) {
+				part.point = part.absolutePoint.subtract(topLeftCorner);
+			}
+
+			const miniCanvasSize = 2048;
+			const totalCanvasSize = new Vector3(bottomRightCorner.x - topLeftCorner.x, bottomRightCorner.y - topLeftCorner.y, 0);
+			if(totalCanvasSize.x === 0 || totalCanvasSize.y === 0) {
+				continue;
+			}
+
+			const miniCanvasLimit = totalCanvasSize.divideScalar(miniCanvasSize).map(Math.floor);
+			for(let x = 0; x <= miniCanvasLimit.x; x++) {
+				for(let y = 0; y <= miniCanvasLimit.y; y++) {
+					const offset = new Vector3(x, y, 0).multiplyScalar(miniCanvasSize);
+
+					const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
+					const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
+
+					let canvas;
+
+					const canvasFunction = async () => {
+						if(canvas) {
+							return canvas;
+						}
+
+						canvas = document.createElement("canvas");
+						canvas.width = width;
+						canvas.height = height;
+
+						const c = canvas.getContext("2d");
+
+						for(const part of toRender) {
+							const point = part.point.subtract(offset);
+							await NodeRender.drawExplicitNode(c, nodeType, point.x, point.y, part.radius);
+						}
+
+						return canvas;
+					};
+
+					render.push({
+						nodeRender: this,
+						corner: topLeftCorner.add(offset),
+						z: z,
+						canvas: canvasFunction,
+						width: width,
+						height: height,
+						focusTiles: {},
+						parts: toRender,
+					});
+				}
+			}
+		}
+
 		return render;
 	}
 
@@ -200,7 +321,7 @@ class NodeRender {
 		return render;
 	}
 
-	async renderArea() {
+	async renderTerrain() {
 		const fakeCanvas = document.createElement("canvas");
 		fakeCanvas.width = tileSize;
 		fakeCanvas.height = tileSize;
