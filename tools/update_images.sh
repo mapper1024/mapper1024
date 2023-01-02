@@ -27,9 +27,9 @@ process() {
 
 	while read f_path; do
 		i_name="$(basename "$f_path" "$extension")"
-		echo "	$i_name: {image: new Promise((resolve) => {const image = new Image(); image.src = \"data:"$mime";base64,$(base64 -w 0 "$f_path")\"; resolve(image); })}," >> "$INDEX_FILE"
+		echo "	\"$i_name\": {image: new Promise((resolve) => {const image = new Image(); image.src = \"data:"$mime";base64,$(base64 -w 0 "$f_path")\"; resolve(image); })}," >> "$INDEX_FILE"
 
-		echo " Written: $i_name [size: $(du --apparent-size -h "$f_path" | awk '{print $1}')]"
+		echo " Written: \"$i_name\" [size: $(du --apparent-size -h "$f_path" | awk '{print $1}')]"
 		n_images=$((n_images+1))
 	done < <(find images -name "*$extension")
 }

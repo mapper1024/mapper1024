@@ -39,6 +39,33 @@ class NodeType {
 	isPath() {
 		return !!this.def.path;
 	}
+
+	getParent() {
+		if(this.def.parent) {
+			const parent = this.registry.get(this.def.parent);
+			return parent.getParent() || parent;
+		}
+		else {
+			return undefined;
+		}
+	}
+
+	* getChildren() {
+		for(const nodeType of this.registry.getTypes()) {
+			const parent = nodeType.getParent();
+			if(parent && parent.id === this.id) {
+				yield nodeType;
+			}
+		}
+	}
+
+	isParent() {
+		for(const child of this.getChildren()) {
+			return true;
+		}
+
+		return false;
+	}
 }
 
 class NodeTypeRegistry {
@@ -57,15 +84,34 @@ class NodeTypeRegistry {
 			givesBackground: true,
 		}));
 
+		this.registerType(new NodeType("thick vegetation", {
+			color: "green",
+			image: "thick vegetation",
+			parent: "grass",
+		}));
+
+		this.registerType(new NodeType("sand", {
+			color: "sandybrown",
+			image: "sand",
+			givesBackground: true,
+		}));
+
 		this.registerType(new NodeType("forest", {
 			color: "green",
 			image: "forest",
+		}));
+
+		this.registerType(new NodeType("cold forest", {
+			color: "green",
+			image: "cold forest",
+			parent: "forest",
 		}));
 
 		this.registerType(new NodeType("tree", {
 			color: "darkgreen",
 			scale: "explicit",
 			image: "tree",
+			parent: "forest",
 		}));
 
 		this.registerType(new NodeType("rocks", {
@@ -77,6 +123,7 @@ class NodeTypeRegistry {
 			color: "gray",
 			scale: "explicit",
 			image: "stone",
+			parent: "rocks",
 		}));
 
 		this.registerType(new NodeType("road", {
@@ -94,6 +141,21 @@ class NodeTypeRegistry {
 			color: "yellow",
 			scale: "explicit",
 			image: "tower",
+			parent: "buildings",
+		}));
+
+		this.registerType(new NodeType("house", {
+			color: "yellow",
+			scale: "explicit",
+			image: "house",
+			parent: "buildings",
+		}));
+
+		this.registerType(new NodeType("castle", {
+			color: "yellow",
+			scale: "explicit",
+			image: "castle",
+			parent: "buildings",
 		}));
 
 		this.registerType(new NodeType("region", {
@@ -115,6 +177,7 @@ class NodeTypeRegistry {
 	}
 
 	registerType(nodeType) {
+		nodeType.registry = this;
 		this.types[nodeType.id] = nodeType;
 	}
 

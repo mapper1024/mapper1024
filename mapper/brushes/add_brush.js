@@ -3,7 +3,7 @@ import { DrawEvent } from "../drag_events/draw_event.js";
 import { DrawPathAction } from "../actions/draw_path_action.js";
 import { mod } from "../utils.js";
 import { HookContainer } from "../hook_container.js";
-import { NodeRender } from "../node_render.js";
+import { NodeRender, tileSize } from "../node_render.js";
 
 class AddBrush extends Brush {
 	constructor(context) {
@@ -38,8 +38,24 @@ class AddBrush extends Brush {
 			list.setAttribute("class", "mapper1024_add_brush_strip");
 			container.appendChild(list);
 
+			const shouldDisplay = (nodeType) => {
+				if(!nodeType.getParent()) {
+					return true;
+				}
+
+				if(this.getNodeType().id === nodeType.getParent().id) {
+					return true;
+				}
+
+				if(this.getNodeType().getParent() && this.getNodeType().getParent().id === nodeType.getParent().id) {
+					return true;
+				}
+
+				return false;
+			};
+
 			for(const nodeType of this.nodeTypes) {
-				if(nodeType.getLayer() === layer.getType()) {
+				if(nodeType.getLayer() === layer.getType() && shouldDisplay(nodeType)) {
 					const index = this.nodeTypes.indexOf(nodeType);
 
 					const li = document.createElement("li");
@@ -58,15 +74,7 @@ class AddBrush extends Brush {
 
 					const c = button.getContext("2d");
 
-					if(nodeType.getScale() === "explicit") {
-						await NodeRender.drawExplicitNode(c, nodeType, squareRadius, squareRadius, squareRadius);
-					}
-					else {
-						for(const fillStyle of [nodeType.getColor(), await NodeRender.getNodeTypeFillStyle(c, nodeType)]) {
-							c.fillStyle = fillStyle;
-							c.fillRect(0, 0, button.width, button.height);
-						}
-					}
+					await NodeRender.drawThumbnail(c, nodeType, squareRadius, squareRadius, squareRadius);
 
 					c.textBaseline = "top";
 					c.font = "12px sans";
@@ -83,6 +91,18 @@ class AddBrush extends Brush {
 					c.globalAlpha = 1;
 					c.fillStyle = "white";
 					c.fillText(text, 0, 0);
+
+					const children = Array.from(nodeType.getChildren());
+					const childWidth = Math.ceil(button.width / children.length);
+					const childHeight = Math.ceil(button.height / 3);
+					const childRadius = Math.ceil(Math.min(childWidth, childHeight) / 2);
+
+					for(let i = 0; i < children.length; i++) {
+						await NodeRender.drawThumbnail(c, children[i], i * childRadius * 2 + childRadius, button.height - childRadius, childRadius);
+
+						c.strokeStyle = this.getNodeType().id === children[i].id ? "black" : "white";
+						c.strokeRect(i * childRadius * 2, button.height - childRadius * 2, childRadius * 2, childRadius * 2);
+					}
 
 					button.onclick = () => {
 						this.setNodeTypeIndex(index);
@@ -103,10 +123,13 @@ class AddBrush extends Brush {
 					this.hooks.add("type_changed", update);
 				}
 			}
+
+			await brushbar.recalculate();
 		};
 
 		await make(this.context.getCurrentLayer());
 		this.hooks.add("current_layer_change", async (layer) => await make(layer));
+		this.hooks.add("type_changed", async () => await make(this.context.getCurrentLayer()));
 	}
 
 	signalLayerChange(layer) {

@@ -204,6 +204,9 @@ I developed an idea that the primary representation for objects should be their 
 
 Over the next development period---Winter break---I intend to bring the new renderer up to feature parity with the old renderer, and release a new version for testers to evaluate.
 
+# Through 2023-01-12
+I implemented the new renderer. I used public domain graphics from Openclipart for explicit objects, temporarily.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

@@ -57,6 +57,18 @@ class NodeRender {
 		}
 	}
 
+	static async drawThumbnail(context, nodeType, x, y, radius) {
+		if(nodeType.getScale() === "explicit") {
+			await NodeRender.drawExplicitNode(context, nodeType, x, y, radius);
+		}
+		else {
+			for(const fillStyle of [nodeType.getColor(), await NodeRender.getNodeTypeFillStyle(context, nodeType)]) {
+				context.fillStyle = fillStyle;
+				context.fillRect(Math.ceil(x - radius), Math.ceil(y - radius), Math.floor(x + radius), Math.floor(y + radius));
+			}
+		}
+	}
+
 	async getLayers(zoom) {
 		let render = this.renders[zoom];
 		if(render === undefined) {

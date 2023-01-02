@@ -342,11 +342,13 @@ class RenderContext {
 	}
 
 	async getNamePosition(nodeRef) {
-		const labelPositions = this.labelPositions[this.zoom];
-		if(labelPositions !== undefined) {
-			const labelPositionOnCanvas = labelPositions[nodeRef.id];
-			if(labelPositionOnCanvas !== undefined) {
-				return labelPositionOnCanvas;
+		if(!(await nodeRef.getType()).getScale() === "explicit") {
+			const labelPositions = this.labelPositions[this.zoom];
+			if(labelPositions !== undefined) {
+				const labelPositionOnCanvas = labelPositions[nodeRef.id];
+				if(labelPositionOnCanvas !== undefined) {
+					return labelPositionOnCanvas;
+				}
 			}
 		}
 

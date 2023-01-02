@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:svg="http://www.w3.org/2000/svg" id="svg3260" viewBox="0 0 64 64" version="1.1">
+  <title id="title4311">netalloy home icon</title>
+  <defs id="defs3262">
+    <linearGradient id="linearGradient4294" y2="30.375" gradientUnits="userSpaceOnUse" y1="18.5" x2="39.69" x1="42.25">
+      <stop id="stop4269" stop-color="#f2f2f2" offset="0"/>
+      <stop id="stop4271" stop-color="#f2f2f2" stop-opacity="0" offset="1"/>
+    </linearGradient>
+  </defs>
+  <g id="layer1">
+    <g id="g4298">
+      <g id="g4283" transform="translate(1.25)">
+        <path id="path4257" stroke-width="0" fill="url(#linearGradient4294)" d="m26.186 32.257 15.546-16.318 11.469 9.7216-0.01776 22.652-27.004 6.6799 0.0072-22.735h-0.000045z"/>
+        <path id="path4219" stroke="#d6d6e0" stroke-width=".6" fill="#e6e6e6" d="m26.186 32.257 15.546-16.318 11.469 9.7216-0.01776 22.652-27.004 6.6799 0.0072-22.735h-0.000045z"/>
+        <path id="path4215" stroke="#ada7a7" stroke-width=".5" fill="#b3b3b3" d="m26.233 54.725-0.088-22.638-5.09 5.137-12.657-7.713 0.2092 15.24 17.626 9.974z"/>
+        <path id="path3628" stroke="#7e1515" stroke-width=".073" fill="#ea0000" d="m19.993 35.793-17.105-10.681 16.287-15.387 22.671 3.802-21.853 22.266z"/>
+        <path id="path3630" stroke="#c20000" stroke-width=".633" fill="#c10402" d="m20.157 35.793 1.064 1.267 20.543-21.361 14.487 12.853 0.818-1.448-15.059-13.577-21.853 22.266z"/>
+        <path id="path3632" stroke="#b00000" stroke-width=".23339" fill="#ea0000" d="m38.818 12.984-0.0819-3.349 4.3378 0.0906-0.0819 4.6161-1.2277-0.99565-2.9464-0.36204z"/>
+        <path id="path3634" stroke="#ac0000" stroke-width=".23339" fill="#c10402" d="m20.913 37.371-17.943-11.082-0.164-1.086l17.678 10.499 0.4282 1.6686z"/>
+        <path id="rect3685" stroke-width="0" fill="#808080" d="m36.218 37.625 9.3643-2.2497-0.13516 14.436-8.9588 2.1145-0.27033-14.301z"/>
+        <path id="path4148" stroke="#b00000" stroke-width=".23339" fill="#ea0000" d="m38.818 12.984-0.0819-3.349 4.3378 0.0906-0.0819 4.6161-1.2277-0.99565-2.9464-0.36204z"/>
+      </g>
+      <rect id="rect4296" opacity="0" height="63.508" width="63.508" y=".44155" x=".43941" stroke-width=".49231"/>
+    </g>
+  </g>
+  <metadata>
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <cc:license rdf:resource="http://creativecommons.org/licenses/publicdomain/"/>
+        <dc:publisher>
+          <cc:Agent rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title>Home icon</dc:title>
+        <dc:date>2010-04-07T08:23:18</dc:date>
+        <dc:description>Real estate clipart by netalloy</dc:description>
+        <dc:source>http://openclipart.org/detail/38737/home-icon-by-netalloy-38737</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>netalloy</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>building</rdf:li>
+            <rdf:li>clip art</rdf:li>
+            <rdf:li>clipart</rdf:li>
+            <rdf:li>cottage</rdf:li>
+            <rdf:li>home</rdf:li>
+            <rdf:li>house</rdf:li>
+            <rdf:li>icon</rdf:li>
+            <rdf:li>property</rdf:li>
+            <rdf:li>real estate</rdf:li>
+            <rdf:li>realty</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License rdf:about="http://creativecommons.org/licenses/publicdomain/">
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Reproduction"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Distribution"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#DerivativeWorks"/>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>
