@@ -127,7 +127,7 @@ class NodeRender {
 			let bottomRightCorner = new Vector3(-Infinity, -Infinity, -Infinity);
 
 			for(const childNodeRef of children) {
-				const minumumPixelRadius = Math.ceil(tileSize / 2);
+				const minumumPixelRadius = tileSize;
 				const radiusInPixels = Math.max(this.context.unitsToPixels(await childNodeRef.getRadius()), minumumPixelRadius);
 				const radiusVector = Vector3.UNIT.multiplyScalar(radiusInPixels).noZ();
 				const point = (await childNodeRef.getEffectiveCenter()).map((c) => this.context.unitsToPixels(c)).noZ();

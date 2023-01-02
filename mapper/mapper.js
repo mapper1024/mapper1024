@@ -242,7 +242,7 @@ class RenderContext {
 			else if(event.key === "n") {
 				const nodeRef = await this.hoverSelection.getParent();
 				if(nodeRef) {
-					const where = (await this.getNamePosition(nodeRef)).center;
+					const where = (await this.getNamePosition(nodeRef)).center.subtract(this.scrollOffset);
 
 					const input = document.createElement("input");
 					input.value = (await nodeRef.getPString("name")) || "";
@@ -423,6 +423,7 @@ class RenderContext {
 				this.hooks.add("changed_zoom", f);
 
 				this.requestZoomChange(zoom);
+				this.lastZoomRequest = 0;
 			}
 		});
 	}
@@ -1461,6 +1462,28 @@ class RenderContext {
 		if(drawnNodeIds !== undefined) {
 			for(const nodeId of drawnNodeIds) {
 				yield this.mapper.backend.getNodeRef(nodeId);
+			}
+		}
+	}
+
+	async * allDrawnNodes() {
+		yield* this.drawnNodes();
+
+		const megaTiles = this.megaTiles[this.zoom];
+		if(megaTiles !== undefined) {
+			const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
+			for(let x = screenBoxInMegaTiles.a.x; x <= screenBoxInMegaTiles.b.x; x++) {
+				const megaTileX = megaTiles[x];
+				if(megaTileX !== undefined) {
+					for(let y = screenBoxInMegaTiles.a.y; y <= screenBoxInMegaTiles.b.y; y++) {
+						const megaTile = megaTileX[y];
+						if(megaTile !== undefined) {
+							for(const part of megaTile.parts) {
+								yield part.nodeRef;
+							}
+						}
+					}
+				}
 			}
 		}
 	}

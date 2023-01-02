@@ -139,7 +139,12 @@ class MapBackend {
 	 * @returns {boolean}
 	 */
 	async nodeHasChildren(nodeId) {
-		return (await asyncFrom(this.getNodeChildren(nodeId))).length > 0;
+		for await(const child of this.getNodeChildren(nodeId)) {
+			child;
+			return true;
+		}
+
+		return false;
 	}
 
 	/** Get a node's type.

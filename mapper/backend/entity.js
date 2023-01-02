@@ -143,7 +143,7 @@ class NodeRef extends EntityRef {
 	}
 
 	async hasChildren() {
-		return this.backend.nodeHasChildren(this.id);
+		return await this.backend.nodeHasChildren(this.id);
 	}
 
 	async * getAllDescendants() {

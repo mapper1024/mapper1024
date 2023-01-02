@@ -61,6 +61,7 @@ class NodeType {
 
 	isParent() {
 		for(const child of this.getChildren()) {
+			child;
 			return true;
 		}
 

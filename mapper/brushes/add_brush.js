@@ -3,7 +3,7 @@ import { DrawEvent } from "../drag_events/draw_event.js";
 import { DrawPathAction } from "../actions/draw_path_action.js";
 import { mod } from "../utils.js";
 import { HookContainer } from "../hook_container.js";
-import { NodeRender, tileSize } from "../node_render.js";
+import { NodeRender } from "../node_render.js";
 
 class AddBrush extends Brush {
 	constructor(context) {
