@@ -62,8 +62,11 @@ class RenderContext {
 
 		this.scrollOffset = Vector3.ZERO;
 		this.defaultZoom = 5;
+		this.maxZoom = 30;
 		this.zoom = this.defaultZoom;
 		this.requestedZoom = this.zoom;
+		this.lastZoomRequest = 0;
+		this.zoomRequestTimeout = 1000;
 
 		this.altitudeIncrement = this.mapper.metersToUnits(5);
 
@@ -115,6 +118,12 @@ class RenderContext {
 		});
 
 		this.canvas.addEventListener("mousedown", async (event) => {
+			if(this.requestedZoom !== this.zoom) {
+				// Forcibly apply the last zoom request.
+				this.lastZoomRequest = 0;
+				return;
+			}
+
 			if(this.mouseDragEvents[event.button] === undefined) {
 				const where = new Vector3(event.x, event.y, 0);
 
@@ -187,11 +196,11 @@ class RenderContext {
 					this.setScrollOffset(Vector3.ZERO);
 				}
 				else if(event.key === "=") {
-					this.requestZoomChange(this.zoom - 1);
+					this.requestZoomChangeDelta(-1);
 					event.preventDefault();
 				}
 				else if(event.key === "-") {
-					this.requestZoomChange(this.zoom + 1);
+					this.requestZoomChangeDelta(1);
 					event.preventDefault();
 				}
 			}
@@ -305,7 +314,7 @@ class RenderContext {
 					}
 				}
 				else {
-					this.requestZoomChange(this.zoom + (delta < 0 ? -1 : 1));
+					this.requestZoomChangeDelta((delta < 0 ? -1 : 1));
 				}
 
 				this.scrollDelta = 0;
@@ -326,6 +335,10 @@ class RenderContext {
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	msSinceLastZoomRequest() {
+		return performance.now() - this.lastZoomRequest;
 	}
 
 	async getNamePosition(nodeRef) {
@@ -382,7 +395,15 @@ class RenderContext {
 	}
 
 	requestZoomChange(zoom) {
-		this.requestedZoom = Math.max(1, Math.min(zoom, 30));
+		if(this.requestedZoom !== zoom) {
+			this.requestedZoom = Math.max(1, Math.min(zoom, this.maxZoom));
+			this.lastZoomRequest = performance.now();
+			this.requestRedraw();
+		}
+	}
+
+	requestZoomChangeDelta(zoomDelta) {
+		this.requestZoomChange(this.requestedZoom + zoomDelta);
 	}
 
 	forceZoom(zoom) {
@@ -529,7 +550,7 @@ class RenderContext {
 	async recalculateLoop() {
 		// Change the zoom level if requested.
 		// We do this in the same async loop method as recalculating the renderings so that the rendering is never out of sync between zoom levels.
-		if(this.zoom !== this.requestedZoom) {
+		if(this.zoom !== this.requestedZoom && this.msSinceLastZoomRequest() > this.zoomRequestTimeout) {
 			const oldLandmark = this.canvasPointToMap(this.mousePosition);
 			this.zoom = this.requestedZoom;
 			const newLandmark = this.canvasPointToMap(this.mousePosition);
@@ -643,8 +664,17 @@ class RenderContext {
 		return path.mapOrigin((origin) => this.canvasPointToMap(origin)).mapLines((v) => v.map((a) => this.pixelsToUnits(a)));
 	}
 
+	/**
+	 * Get the zoom factor based on a specific zoom level.
+	 * @param zoom {number}
+	 * @returns {number} Zoom factor, multiply number of pixels by this factor to get map units.
+	 */
+	zoomFactor(zoom) {
+		return zoom / (1 + 20 / zoom);
+	}
+
 	pixelsToUnits(pixels) {
-		return pixels * this.zoom / (1 + 20 / this.zoom);
+		return pixels * this.zoomFactor(this.zoom);
 	}
 
 	unitsToPixels(units) {
@@ -1317,6 +1347,59 @@ class RenderContext {
 		}
 	}
 
+	async drawZoom() {
+		const timeoutFraction = Math.max(0, this.msSinceLastZoomRequest() / this.zoomRequestTimeout);
+
+		const pixelToMeters = this.mapper.unitsToMeters(this.zoomFactor(this.requestedZoom));
+
+		const lines = [
+			`Zoom ${this.requestedZoom} / ${this.maxZoom}`,
+			`1px = ${pixelToMeters.toFixed(2)}m`,
+			`Brush diameter ${(pixelToMeters * this.brush.getRadius()).toFixed(2)}m`,
+			"Click to apply",
+		];
+
+		const c = this.canvas.getContext("2d");
+
+		let width = 0;
+		let height = 0;
+
+		for(const text of lines) {
+			const measure = c.measureText(text);
+			height = Math.max(height, Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent));
+			width = Math.max(width, measure.width);
+		}
+
+		const totalHeight = height * lines.length;
+
+		const screenCenter = this.screenSize().divideScalar(2).round();
+
+		const radius = Math.ceil(Math.max(width, totalHeight) / 2);
+
+		const where = new Vector3(screenCenter.x - width / 2, screenCenter.y - totalHeight / 2, 0);
+
+		c.fillStyle = "black";
+		c.globalAlpha = 0.5;
+		c.beginPath();
+		c.arc(screenCenter.x, screenCenter.y, radius * Math.sqrt(2), 0, 2 * Math.PI, false);
+		c.fill();
+		c.globalAlpha = 1;
+
+		c.lineWidth = 2;
+		c.strokeStyle = "white";
+		c.beginPath();
+		c.arc(screenCenter.x, screenCenter.y, radius * Math.sqrt(2) + 2, 0, (1 - timeoutFraction) * 2 * Math.PI, false);
+		c.stroke();
+
+		for(let i = 0; i < lines.length; i++) {
+			const text = lines[i];
+			c.fillStyle = "white";
+			c.textBaseline = "top";
+			c.font = "16px mono";
+			c.fillText(text, where.x, where.y + height * i);
+		}
+	}
+
 	/** Completely redraw the displayed UI. */
 	async redraw() {
 		await this.clearCanvas();
@@ -1328,6 +1411,11 @@ class RenderContext {
 			await this.drawPegs();
 		}
 		await this.drawBrush();
+
+		if(this.msSinceLastZoomRequest() < this.zoomRequestTimeout) {
+			await this.drawZoom();
+			this.requestRedraw();
+		}
 
 		await this.drawHelp();
 		await this.drawScale();
