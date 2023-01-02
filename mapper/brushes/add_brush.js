@@ -74,7 +74,7 @@ class AddBrush extends Brush {
 
 					const c = button.getContext("2d");
 
-					await NodeRender.drawThumbnail(c, nodeType, squareRadius, squareRadius, squareRadius);
+					await NodeRender.drawThumbnailRadius(c, nodeType, squareRadius, squareRadius, squareRadius);
 
 					c.textBaseline = "top";
 					c.font = "12px sans";
@@ -98,7 +98,7 @@ class AddBrush extends Brush {
 					const childRadius = Math.ceil(Math.min(childWidth, childHeight) / 2);
 
 					for(let i = 0; i < children.length; i++) {
-						await NodeRender.drawThumbnail(c, children[i], i * childRadius * 2 + childRadius, button.height - childRadius, childRadius);
+						await NodeRender.drawThumbnailRadius(c, children[i], i * childRadius * 2 + childRadius, button.height - childRadius, childRadius);
 
 						c.strokeStyle = this.getNodeType().id === children[i].id ? "black" : "white";
 						c.strokeRect(i * childRadius * 2, button.height - childRadius * 2, childRadius * 2, childRadius * 2);

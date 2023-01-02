@@ -532,7 +532,15 @@ class RenderContext {
 		let bestNode = this.backgroundNodeCache[nodeRef.id];
 
 		if(bestNode === undefined) {
-			for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1)).map(v => v.noZ()), this.pixelsToUnits(1))) {
+			const box = Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1));
+			box.a.z = -Infinity;
+			box.b.z = Infinity;
+
+			for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(box, this.pixelsToUnits(1))) {
+				if(await candidateNodeRef.getNodeType() !== "point") {
+					continue;
+				}
+
 				const candidateType = await candidateNodeRef.getType();
 				if(!candidateType.givesBackground() || candidateType.id === (await nodeRef.getType()).id || (await candidateNodeRef.getLayer()).id !== (await nodeRef.getLayer()).id || (await candidateNodeRef.getEffectiveCenter()).subtract(await nodeRef.getEffectiveCenter()).length() >= (await candidateNodeRef.getRadius())) {
 					continue;

@@ -57,14 +57,19 @@ class NodeRender {
 		}
 	}
 
-	static async drawThumbnail(context, nodeType, x, y, radius) {
+	static async drawThumbnailRadius(context, nodeType, x, y, radius) {
+		return NodeRender.drawThumbnailRect(context, nodeType, x - radius, y - radius, radius * 2, radius * 2);
+	}
+
+	static async drawThumbnailRect(context, nodeType, x, y, width, height) {
 		if(nodeType.getScale() === "explicit") {
-			await NodeRender.drawExplicitNode(context, nodeType, x, y, radius);
+			const radius = Math.ceil(Math.min(width, height) / 2);
+			await NodeRender.drawExplicitNode(context, nodeType, x + radius, y + radius, radius);
 		}
 		else {
 			for(const fillStyle of [nodeType.getColor(), await NodeRender.getNodeTypeFillStyle(context, nodeType)]) {
 				context.fillStyle = fillStyle;
-				context.fillRect(Math.ceil(x - radius), Math.ceil(y - radius), Math.floor(x + radius), Math.floor(y + radius));
+				context.fillRect(x, y, width, height);
 			}
 		}
 	}
