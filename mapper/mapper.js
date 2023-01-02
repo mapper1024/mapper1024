@@ -530,32 +530,73 @@ class RenderContext {
 	}
 
 	async getBackgroundNode(nodeRef) {
-		let bestNode = this.backgroundNodeCache[nodeRef.id];
+		let backgroundNode = this.backgroundNodeCache[nodeRef.id];
 
-		if(bestNode === undefined) {
-			const box = Box3.fromRadius(await nodeRef.getEffectiveCenter(), this.pixelsToUnits(1));
-			box.a.z = -Infinity;
-			box.b.z = Infinity;
+		if(backgroundNode === undefined) {
+			const parent = await nodeRef.getParent();
 
-			for await (const candidateNodeRef of this.mapper.getNodesTouchingArea(box, this.pixelsToUnits(1))) {
-				if(await candidateNodeRef.getNodeType() !== "point") {
-					continue;
-				}
-
-				const candidateType = await candidateNodeRef.getType();
-				if(!candidateType.givesBackground() || candidateType.id === (await nodeRef.getType()).id || (await candidateNodeRef.getLayer()).id !== (await nodeRef.getLayer()).id || (await candidateNodeRef.getEffectiveCenter()).subtract(await nodeRef.getEffectiveCenter()).length() >= (await candidateNodeRef.getRadius())) {
-					continue;
-				}
-
-				if(!bestNode || (await candidateNodeRef.getEffectiveCenter()).z > (await bestNode.getEffectiveCenter()).z) {
-					bestNode = candidateNodeRef;
-				}
+			if(parent && this.backgroundNodeCache[parent.id] === undefined) {
+				await this.buildBackgroundNodeCache(parent);
+			}
+			else {
+				await this.buildBackgroundNodeCache(nodeRef);
 			}
 
-			this.backgroundNodeCache[nodeRef.id] = bestNode;
+			backgroundNode = this.backgroundNodeCache[nodeRef.id];
 		}
 
-		return bestNode;
+		return backgroundNode;
+	}
+
+	async buildBackgroundNodeCache(nodeRef) {
+		const box = Box3.fromRadius(await nodeRef.getCenter(), await nodeRef.getRadius());
+		box.a.z = -Infinity;
+		box.b.z = Infinity;
+
+		const candidates = [];
+
+		const layer = await nodeRef.getLayer();
+
+		for await(const candidateNodeRef of this.mapper.getNodesTouchingArea(box, 0)) {
+			if(await candidateNodeRef.getNodeType() !== "point") {
+				continue;
+			}
+
+			const candidateType = await candidateNodeRef.getType();
+
+			if(candidateType.givesBackground()) {
+				const candidateLayer = await candidateNodeRef.getLayer();
+				if(candidateLayer.id === layer.id) {
+					const center = (await candidateNodeRef.getEffectiveCenter());
+
+					candidates.push({
+						nodeRef: candidateNodeRef,
+						point: center.noZ(),
+						z: center.z,
+						radius: await candidateNodeRef.getRadius(),
+					});
+				}
+			}
+		}
+
+		for(const iterable of [[nodeRef], await asyncFrom(nodeRef.getChildren())]) {
+			for(const tryNodeRef of iterable) {
+				const tryCenter = (await tryNodeRef.getEffectiveCenter()).noZ();
+				let best = null;
+				let bestZ = null;
+
+				for(const candidate of candidates) {
+					if(candidate.point.subtract(tryCenter).length() <= candidate.radius) {
+						if(!best || bestZ < candidate.z) {
+							best = candidate.nodeRef;
+							bestZ = candidate.z;
+						}
+					}
+				}
+
+				this.backgroundNodeCache[tryNodeRef.id] = best;
+			}
+		}
 	}
 
 	async recalculateLoop() {
