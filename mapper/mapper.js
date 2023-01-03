@@ -819,8 +819,11 @@ class RenderContext {
 		const visibleNodeIds = new Set(await asyncFrom(this.visibleObjectNodes(), nodeRef => nodeRef.id));
 
 		for(const visibleNodeId of visibleNodeIds) {
-			if(viewport || !drawnNodeIds.has(visibleNodeId)) {
+			if(!drawnNodeIds.has(visibleNodeId)) {
 				redrawNodeIds.add(visibleNodeId);
+				updateNodeIds.add(visibleNodeId);
+			}
+			else if(viewport) {
 				updateNodeIds.add(visibleNodeId);
 			}
 		}
@@ -1041,6 +1044,7 @@ class RenderContext {
 								if(drewToMegaTiles.has(megaTile)) {
 									const tile = focusTilesX[tY];
 									const center = tile.centerPoint;
+
 									const drawPoint = center.subtract(megaTile.corner);
 
 									const neighbors = [];
@@ -1059,9 +1063,9 @@ class RenderContext {
 										}
 									}
 
-									for(const neighbor of neighbors) {
-										const c = megaTile.context;
+									const c = megaTile.context;
 
+									for(const neighbor of neighbors) {
 										c.fillStyle = neighbor.part.fillStyle;
 										c.globalAlpha = 0.5;
 
@@ -1082,12 +1086,9 @@ class RenderContext {
 											c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
 											c.fill();
 										}
-
-										//const p = tile.absolutePoint.subtract(megaTile.corner);
-										//c.strokeRect(p.x, p.y, tileSize, tileSize);
-
-										c.globalAlpha = 1;
 									}
+
+									c.globalAlpha = 1;
 								}
 							}
 						}

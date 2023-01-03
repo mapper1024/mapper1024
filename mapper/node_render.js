@@ -374,6 +374,7 @@ class NodeRender {
 		const fakeContext = fakeCanvas.getContext("2d");
 
 		const nodeType = await this.nodeRef.getType();
+		const nodeLayer = await this.nodeRef.getLayer();
 
 		const render = [];
 
@@ -453,13 +454,17 @@ class NodeRender {
 
 					const absolutePoint = tilePos.multiplyScalar(tileSize);
 
-					tilesX[tilePos.y] = {
-						absolutePoint: absolutePoint,
-						centerPoint: absolutePoint.add(new Vector3(tileSize / 2, tileSize / 2, 0)),
-						part: part,
-						layer: await part.nodeRef.getLayer(),
-						nodeType: await part.nodeRef.getType(),
-					};
+					let tile = tilesX[tilePos.y];
+					if(tile === undefined) {
+						tile = tilesX[tilePos.y] = {
+							absolutePoint: absolutePoint,
+							centerPoint: absolutePoint.add(new Vector3(tileSize / 2, tileSize / 2, 0)),
+							layer: nodeLayer,
+							fillStyles: new Set(),
+						};
+
+						tile.fillStyles.add(part.fillStyle);
+					}
 				}
 			}
 
@@ -485,7 +490,7 @@ class NodeRender {
 				}
 			}
 
-			const focusTileEliminationDistance = tileSize * 2;
+			const focusTileEliminationDistance = tileSize;
 
 			/* Loop through all focus tiles and delete those that fall fully within another part;
 			* they would certainly not be borders. */
@@ -494,8 +499,14 @@ class NodeRender {
 				for(const tY in focusTilesX) {
 					const tile = focusTilesX[tY];
 					const point = tile.centerPoint;
+					if(tile.fillStyles.size > 1) {
+						continue;
+					}
 					for(const part of toRender) {
-						if(part.absolutePoint.subtract(point).length() < part.radius - focusTileEliminationDistance) {
+						if(!tile.fillStyles.has(part.fillStyle)) {
+							break;
+						}
+						if(part.absolutePoint.subtract(point).length() <= part.radius - focusTileEliminationDistance) {
 							delete focusTilesX[tY];
 							break;
 						}
