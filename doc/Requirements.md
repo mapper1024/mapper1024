@@ -1,7 +1,7 @@
 # Mapping Tool
 * Benjamin Leskey
 * Mount Vernon Nazarene University
-* 2022-10-23
+* 2023-01-03
 
 ## Introduction
 
@@ -37,14 +37,6 @@ See the *System Environment Constraints* section below for information on librar
 The user community consists of people with all levels of computer expertise; they should need no prior experience with, e.g., image-editing to be able to use the software.
 
 ## Functional or System Requirements
-
-### The mapping tool should support a variety of map object types
-In order for a wide variety of maps to be supported, a broad number of generic terrain/map object types should be supported.
-
-See [issue #51](https://github.com/mapper1024/mapper1024/issues/51) for a current list of required terrain and objects.
-
-* Criticality: MEDIUM
-* Dependencies: Explicit objects, multiple layers
 
 ### The map must graphically satisfy median user expectations
 The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
@@ -90,6 +82,14 @@ Users should have a way to easily transfer pieces or objects of their maps to ot
 * Issues: [#14](https://github.com/mapper1024/mapper1024/issues/14)
 * Risks: Copying objects between maps may require additional subsystems for inter-process communication or OS clipboard methods.
 * Criticality: LOW
+
+### Done: The mapping tool should support a variety of map object types
+In order for a wide variety of maps to be supported, a broad number of generic terrain/map object types should be supported.
+
+See [issue #51](https://github.com/mapper1024/mapper1024/issues/51) for a current list of required terrain and objects.
+
+* Criticality: MEDIUM
+* Dependencies: Explicit objects, multiple layers
 
 ### DONE: The user should be able to discover the distance between arbitrary points on the map
 The user should be able to discover the distance between arbitrary points on the map.
