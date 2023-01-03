@@ -878,7 +878,7 @@ class RenderContext {
 				updateNodeIds.add(visibleNodeId);
 			}
 			else if(viewport) {
-				updateNodeIds.add(visibleNodeId);
+				redrawNodeIds.add(visibleNodeId);
 			}
 		}
 
