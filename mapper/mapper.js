@@ -898,7 +898,9 @@ class RenderContext {
 		}
 
 		for(const nodeRef of translatedNodeRefs) {
-			redrawNodeIds.add(nodeRef.id);
+			const actualNodeRef = await this.objectNode(nodeRef);
+			this.invalidateNodeRender(actualNodeRef);
+			redrawNodeIds.add(actualNodeRef.id);
 		}
 
 		const redrawMegaTiles = new Set();
