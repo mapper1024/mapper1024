@@ -35,7 +35,6 @@ class RenderContext {
 		this.recalculateUpdate = [];
 		this.recalculateRemoved = [];
 		this.recalculateTranslated = [];
-		this.recalculateSelected = [];
 
 		this.wantRecheckSelection = true;
 		this.wantUpdateSelection = true;
@@ -97,6 +96,8 @@ class RenderContext {
 		// The UI is just a canvas.
 		// We will keep its size filling the parent element.
 		this.canvas = document.createElement("canvas");
+		this.selectionCanvas = document.createElement("canvas");
+		this.selectionCanvasScroll = Vector3.ZERO;
 		this.canvas.tabIndex = 1;
 		this.parent.appendChild(this.canvas);
 
@@ -439,11 +440,46 @@ class RenderContext {
 		}
 	}
 
+	async redrawSelection() {
+		const sc = this.selectionCanvas.getContext("2d");
+
+		sc.clearRect(0, 0, this.selectionCanvas.width, this.selectionCanvas.height);
+
+		sc.fillStyle = "black";
+
+		const megaTiles = this.megaTiles[this.zoom];
+		if(megaTiles !== undefined) {
+			const screenBoxInMegaTiles = this.absoluteScreenBox().map(v => v.divideScalar(megaTileSize).map(Math.floor));
+			for(let x = screenBoxInMegaTiles.a.x; x <= screenBoxInMegaTiles.b.x; x++) {
+				const megaTileX = megaTiles[x];
+				if(megaTileX !== undefined) {
+					for(let y = screenBoxInMegaTiles.a.y; y <= screenBoxInMegaTiles.b.y; y++) {
+						const megaTile = megaTileX[y];
+						if(megaTile !== undefined) {
+							for(const part of megaTile.parts) {
+								const nodeRef = part.nodeRef;
+								if(this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) {
+									const point = part.absolutePoint.subtract(this.scrollOffset);
+									sc.beginPath();
+									sc.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
+									sc.fill();
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		this.selectionCanvasScroll = this.scrollOffset;
+	}
+
 	async recalculateSelection() {
+		const oldHoverSelection = this.hoverSelection;
+		const oldSelection = this.selection;
+
 		if(this.wantRecheckSelection && !this.isAnyMouseButtonDown()) {
 			this.wantRecheckSelection = false;
-
-			const oldHoverIds = this.hoverSelection.parentNodeIds;
 
 			const closestNodePart = await this.getDrawnNodePartAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
 			if(closestNodePart) {
@@ -452,27 +488,17 @@ class RenderContext {
 			else {
 				this.hoverSelection = new Selection(this, []);
 			}
-
-			const newHoverIds = this.hoverSelection.parentNodeIds;
-
-			for(const nodeId of oldHoverIds) {
-				if(!newHoverIds.has(nodeId)) {
-					this.recalculateNodesSelected([this.mapper.backend.getNodeRef(nodeId)]);
-				}
-			}
-
-			for(const nodeId of newHoverIds) {
-				if(!oldHoverIds.has(nodeId)) {
-					this.recalculateNodesSelected([this.mapper.backend.getNodeRef(nodeId)]);
-				}
-			}
 		}
 
 		if(this.wantUpdateSelection) {
 			this.wantUpdateSelection = false;
-			await this.hoverSelection.update();
-			await this.selection.update();
+			this.hoverSelection = await this.hoverSelection.updated();
+			this.selection = await this.selection.updated();
 			this.requestRedraw();
+		}
+
+		if(!oldHoverSelection.equals(this.hoverSelection) || !oldSelection.equals(this.selection)) {
+			await this.redrawSelection();
 		}
 
 		if(this.alive) {
@@ -612,8 +638,9 @@ class RenderContext {
 		}
 
 		// If anything's changed on the map, try to recalculate the renderings.
-		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0 || this.recalculateSelected.length > 0) {
-			await this.recalculate(this.recalculateViewport, this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length), this.recalculateSelected.splice(0, this.recalculateSelected.length));
+		if(this.recalculateViewport || this.recalculateUpdate.length > 0 || this.recalculateRemoved.length > 0 || this.recalculateTranslated.length > 0) {
+			await this.recalculate(this.recalculateViewport, this.recalculateUpdate.splice(0, this.recalculateUpdate.length), this.recalculateRemoved.splice(0, this.recalculateRemoved.length), this.recalculateTranslated.splice(0, this.recalculateTranslated.length));
+			await this.redrawSelection();
 			this.recalculateViewport = false;
 		}
 
@@ -753,6 +780,9 @@ class RenderContext {
 		this.canvas.width = this.parent.clientWidth;
 		this.canvas.height = this.parent.clientHeight;
 
+		this.selectionCanvas.width = this.canvas.width;
+		this.selectionCanvas.height = this.canvas.height;
+
 		this.hooks.call("size_change");
 		this.recalculateEntireViewport();
 	}
@@ -796,15 +826,10 @@ class RenderContext {
 		this.recalculateTranslated.push(...nodeRefs);
 	}
 
-	recalculateNodesSelected(nodeRefs) {
-		this.recalculateSelected.push(...nodeRefs);
-	}
 
-	async recalculate(viewport, updatedNodeRefs, removedNodeRefs, translatedNodeRefs, selectedNodeRefs) {
+	async recalculate(viewport, updatedNodeRefs, removedNodeRefs, translatedNodeRefs) {
 		const redrawNodeIds = new Set();
 		const updateNodeIds = new Set();
-
-		updatedNodeRefs.push(...selectedNodeRefs);
 
 		let drawnNodeIds = this.drawnNodeIds[this.zoom];
 		if(drawnNodeIds === undefined) {
@@ -903,7 +928,6 @@ class RenderContext {
 
 			const drawLayer = async (layer, drawAgainIds) => {
 				const nodeId = layer.nodeRender.nodeRef.id;
-				const nodeInSelection = this.selection.hasNodeId(nodeId) || this.hoverSelection.hasNodeId(nodeId);
 
 				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
 				const layerBoxInMegaTiles = absoluteLayerBox.map(v => v.divideScalar(megaTileSize).map(Math.floor));
@@ -930,22 +954,7 @@ class RenderContext {
 							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
 							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
 
-							const layerImage = await layer.canvas();
-							let toRenderCanvas = layerImage;
-
-							if(nodeInSelection) {
-								toRenderCanvas = document.createElement("canvas");
-								toRenderCanvas.width = layerImage.width;
-								toRenderCanvas.height = layerImage.height;
-
-								const c = toRenderCanvas.getContext("2d");
-								c.drawImage(layerImage, 0, 0);
-								c.globalCompositeOperation = "source-atop";
-								c.fillStyle = "black";
-								c.globalAlpha = 0.1;
-								c.fillRect(0, 0, toRenderCanvas.width, toRenderCanvas.height);
-							}
-							megaTile.context.drawImage(toRenderCanvas, realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
+							megaTile.context.drawImage(await layer.canvas(), realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
 
 							this.nodeIdsToMegatiles[nodeId].add(megaTile);
 							megaTile.nodeIds.add(nodeId);
@@ -1076,16 +1085,6 @@ class RenderContext {
 										c.beginPath();
 										c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
 										c.fill();
-
-										const nodeInSelection = this.selection.hasNodeRef(neighbor.nodeRef) || this.hoverSelection.hasNodeRef(neighbor.nodeRef);
-										if(nodeInSelection) {
-											c.globalAlpha = 0.05;
-											c.fillStyle = "black";
-
-											c.beginPath();
-											c.arc(arcPoint.x, arcPoint.y, tileSize / 2, angle - Math.PI / 2, angle + Math.PI / 2, false);
-											c.fill();
-										}
 									}
 
 									c.globalAlpha = 1;
@@ -1368,6 +1367,11 @@ class RenderContext {
 				}
 			}
 		}
+
+		c.globalAlpha = 0.1;
+		const offset = this.selectionCanvasScroll.subtract(this.scrollOffset);
+		c.drawImage(this.selectionCanvas, offset.x, offset.y);
+		c.globalAlpha = 1;
 	}
 
 	async drawLabels() {

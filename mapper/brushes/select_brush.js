@@ -22,8 +22,6 @@ class SelectBrush extends Brush {
 	}
 
 	async activate(where) {
-		const oldSelectedIds = this.context.selection.parentNodeIds;
-
 		if(!this.context.hoveringOverSelection()) {
 			if(this.context.hoverSelection.exists()) {
 				const newSelection = await Selection.fromNodeIds(this.context, this.context.hoverSelection.parentNodeIds);
@@ -49,20 +47,6 @@ class SelectBrush extends Brush {
 		}
 		else {
 			this.context.selection = new Selection(this, []);
-		}
-
-		const newSelectedIds = this.context.selection.parentNodeIds;
-
-		for(const nodeId of oldSelectedIds) {
-			if(!newSelectedIds.has(nodeId)) {
-				this.context.recalculateNodesSelected([this.context.mapper.backend.getNodeRef(nodeId)]);
-			}
-		}
-
-		for(const nodeId of newSelectedIds) {
-			if(!oldSelectedIds.has(nodeId)) {
-				this.context.recalculateNodesSelected([this.context.mapper.backend.getNodeRef(nodeId)]);
-			}
 		}
 
 		return ret;

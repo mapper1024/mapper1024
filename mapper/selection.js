@@ -23,6 +23,12 @@ class Selection {
 		return Selection.fromNodeRefs(this.context, [...this.getOrigins(), ...other.getOrigins()]);
 	}
 
+	async updated() {
+		const selection = new Selection(this.context, this.originIds);
+		await selection.update();
+		return selection;
+	}
+
 	async update() {
 		const selectedNodeIds = new Set(this.originIds);
 		const parentNodeIds = new Set();
@@ -92,6 +98,20 @@ class Selection {
 
 	exists() {
 		return this.originIds.size > 0;
+	}
+
+	equals(other) {
+		if(this.selectedNodeIds.size !== other.selectedNodeIds.size) {
+			return false;
+		}
+
+		for(const nodeId of this.selectedNodeIds) {
+			if(!other.selectedNodeIds.has(nodeId)) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	contains(other) {
