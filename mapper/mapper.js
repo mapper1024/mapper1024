@@ -175,6 +175,9 @@ class RenderContext {
 			for(const shortcut of this.keyboardShortcuts) {
 				if(shortcut.filter(this, event)) {
 					if(await shortcut.handler() !== true) {
+						// Shortcuts can do anything, so let's forget about keeping track of which keys are down.
+						// It's possible that a dialog might absorb the keyup event, leaving modifiers stuck in our pressed keys ledger.
+						this.clearKeysDown();
 						return;
 					}
 				}
@@ -717,6 +720,10 @@ class RenderContext {
 
 	isKeyDown(key) {
 		return !!this.pressedKeys[key];
+	}
+
+	clearKeysDown(key) {
+		this.pressedKeys = {};
 	}
 
 	isAnyMouseButtonDown() {
