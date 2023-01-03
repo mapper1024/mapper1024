@@ -722,7 +722,7 @@ class RenderContext {
 		return !!this.pressedKeys[key];
 	}
 
-	clearKeysDown(key) {
+	clearKeysDown() {
 		this.pressedKeys = {};
 	}
 
