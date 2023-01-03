@@ -40,7 +40,7 @@ class SelectBrush extends Brush {
 			}
 		}
 
-		let ret = undefined;
+		let ret;
 
 		if(this.context.hoveringOverSelection()) {
 			ret = new TranslateEvent(this.context, where, Array.from(this.context.selection.getOrigins()));

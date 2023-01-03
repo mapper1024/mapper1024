@@ -445,7 +445,27 @@ class RenderContext {
 
 		sc.clearRect(0, 0, this.selectionCanvas.width, this.selectionCanvas.height);
 
-		sc.fillStyle = "black";
+		const hoverPatternImage = document.createElement("canvas");
+		hoverPatternImage.width = hoverPatternImage.height = tileSize;
+
+		const hoverPatternContext = hoverPatternImage.getContext("2d");
+		hoverPatternContext.strokeStyle = "black";
+		hoverPatternContext.moveTo(0, 0);
+		hoverPatternContext.lineTo(tileSize, tileSize);
+		hoverPatternContext.stroke();
+
+		const hoverPattern = sc.createPattern(hoverPatternImage, "repeat");
+
+		const selectPatternImage = document.createElement("canvas");
+		selectPatternImage.width = selectPatternImage.height = tileSize;
+
+		const selectPatternContext = selectPatternImage.getContext("2d");
+		selectPatternContext.strokeStyle = "black";
+		selectPatternContext.moveTo(tileSize, 0);
+		selectPatternContext.lineTo(0, tileSize);
+		selectPatternContext.stroke();
+
+		const selectPattern = sc.createPattern(selectPatternImage, "repeat");
 
 		const megaTiles = this.megaTiles[this.zoom];
 		if(megaTiles !== undefined) {
@@ -458,8 +478,17 @@ class RenderContext {
 						if(megaTile !== undefined) {
 							for(const part of megaTile.parts) {
 								const nodeRef = part.nodeRef;
-								if(this.selection.hasNodeRef(nodeRef) || this.hoverSelection.hasNodeRef(nodeRef)) {
-									const point = part.absolutePoint.subtract(this.scrollOffset);
+								const point = part.absolutePoint.subtract(this.scrollOffset);
+
+								if(this.selection.hasNodeRef(nodeRef)) {
+									sc.fillStyle = selectPattern;
+									sc.beginPath();
+									sc.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
+									sc.fill();
+								}
+
+								if(this.hoverSelection.hasNodeRef(nodeRef)) {
+									sc.fillStyle = hoverPattern;
 									sc.beginPath();
 									sc.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
 									sc.fill();
@@ -1368,7 +1397,7 @@ class RenderContext {
 			}
 		}
 
-		c.globalAlpha = 0.1;
+		c.globalAlpha = 0.25;
 		const offset = this.selectionCanvasScroll.subtract(this.scrollOffset);
 		c.drawImage(this.selectionCanvas, offset.x, offset.y);
 		c.globalAlpha = 1;
