@@ -36,3 +36,6 @@
 # v0.3
 * Finalize 0.3 survey.
 * Fix undo bug with paths.
+
+# v0.4
+* New renderer
