@@ -60,5 +60,6 @@ app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();
 });
 
+// Tell chromium to ignore system scaling since we provide our own zoom/scaling.
 app.commandLine.appendSwitch("high-dpi-support", 1);
 app.commandLine.appendSwitch("force-device-scale-factor", 1);
