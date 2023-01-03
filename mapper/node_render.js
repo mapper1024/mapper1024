@@ -151,7 +151,7 @@ class NodeRender {
 				part.point = part.absolutePoint.subtract(topLeftCorner);
 			}
 
-			const miniCanvasSize = 2048;
+			const miniCanvasSize = 1024;
 			const totalCanvasSize = new Vector3(bottomRightCorner.x - topLeftCorner.x, bottomRightCorner.y - topLeftCorner.y, 0);
 			if(totalCanvasSize.x === 0 || totalCanvasSize.y === 0) {
 				continue;
