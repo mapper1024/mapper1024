@@ -8,15 +8,18 @@ class BulkAction extends Action {
 	async perform() {
 		const actions = [];
 
+		// Perform every action specified in the options, saving their undo actions.
 		for(const action of this.options.actions) {
 			actions.push(await this.context.performAction(action, false));
 		}
 
+		// The undo action for the entire bulk action is just another bulk action of the saved undo actions.
 		return new BulkAction(this.context, {
 			actions: actions.reverse(),
 		});
 	}
 
+	// A bulk action is empty if all of its sub actions are also empty.
 	empty() {
 		for(const action of this.options.actions) {
 			if(!action.empty()) {
