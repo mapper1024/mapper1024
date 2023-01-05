@@ -75,6 +75,7 @@ class EntityRef {
 		return this.backend.removeEntity(this.id);
 	}
 
+	/** Restore this entity to the database if it was previously removed. */
 	async unremove() {
 		return this.backend.unremoveEntity(this.id);
 	}
@@ -142,10 +143,16 @@ class NodeRef extends EntityRef {
 		yield* children;
 	}
 
+	/** Check if this node has any children.
+	 * @returns {boolean} does this node have children?
+	 */
 	async hasChildren() {
 		return await this.backend.nodeHasChildren(this.id);
 	}
 
+	/** Iterate through all children, grandchildren, and so forth of this node, recursively.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
 	async * getAllDescendants() {
 		for (const child of await asyncFrom(this.getChildren())) {
 			yield child;
@@ -153,6 +160,9 @@ class NodeRef extends EntityRef {
 		}
 	}
 
+	/** Iterate through all children, grandchildren, and so forth of this node, recursively. Includes this node itself.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
 	async * getSelfAndAllDescendants() {
 		yield this;
 		for (const child of await asyncFrom(this.getChildren())) {
@@ -160,6 +170,9 @@ class NodeRef extends EntityRef {
 		}
 	}
 
+	/** Get all neighbors of this node --- those nodes connected by edges to this node.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
 	async * getNeighbors() {
 		let neighbors = this.cache.neighbors;
 
@@ -170,6 +183,9 @@ class NodeRef extends EntityRef {
 		yield* neighbors;
 	}
 
+	/** Get all neighbors of this node --- those nodes connected by edges to this node. Includes this node.
+	 * @returns {AsyncIterable.<NodeRef>}
+	 */
 	async * getSelfAndNeighbors() {
 		yield this;
 		yield* this.getNeighbors();
@@ -189,35 +205,56 @@ class NodeRef extends EntityRef {
 		return this.getPVector3("center");
 	}
 
+	/** Set the effective center property of this node --- where it is actually displayed.
+	 * @param v {Vector3}
+	 */
 	async setEffectiveCenter(v) {
 		return this.setPVector3("eCenter", v);
 	}
 
+	/** Get the effective center property of this node --- where it is actually displayed.
+	 * @returns {Vector3}
+	 */
 	async getEffectiveCenter() {
 		return this.getPVector3("eCenter");
 	}
 
+	/** Set the type of this node.
+	 * @param type {NodeType}
+	 */
 	async setType(type) {
 		return this.setPString("type", type.id);
 	}
 
+	/** Get the type of this node from the map backend node type registry.
+	 * @returns {NodeType}
+	 */
 	async getType() {
 		return this.backend.nodeTypeRegistry.get(await this.getPString("type"));
 	}
 
+	/** Set the radius of the node. */
 	async setRadius(radius) {
 		return this.setPNumber("radius", radius);
 	}
 
+	/** Get the radius of the node */
 	async getRadius() {
 		return this.getPNumber("radius");
 	}
 
+	/** Get the layer of this node from the map backend layer registry.
+	 * Returns the default layer if no layer is specified.
+	 * @returns {Layer}
+	 */
 	async getLayer() {
 		const layerId = await this.getPString("layer");
 		return layerId ? this.backend.layerRegistry.get(layerId) : this.backend.layerRegistry.getDefault();
 	}
 
+	/** Set the layer of this node.
+	 * @param layer {Layer}
+	 */
 	async setLayer(layer) {
 		return this.setPString("layer", layer.id);
 	}
@@ -233,7 +270,6 @@ class NodeRef extends EntityRef {
 		yield* edges;
 	}
 
-	/** Remove this entity from the database. */
 	async remove() {
 		await this.clearParentCache();
 		await this.clearNeighborCache();

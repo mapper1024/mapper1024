@@ -1,7 +1,16 @@
 import { Action } from "./index.js";
 
+/**
+ * Set a node's space (center & radius) on the map.
+ * Options:
+ * - nodeRef: the {NodeRef} referring to the node to modify
+ * - center: the new center {Vector3}
+ * - effectiveCenter: the new effective center {Vector3}
+ * - radius: the new radius {Vector3}
+ */
 class SetNodeSpaceAction extends Action {
 	async perform() {
+		// The undo action just reverts back to the previous values.
 		const undoAction = new SetNodeSpaceAction(this.context, {
 			nodeRef: this.options.nodeRef,
 			center: await this.options.nodeRef.getCenter(),
