@@ -199,7 +199,7 @@ class RenderContext {
 					await this.forceZoom(this.defaultZoom);
 					this.setScrollOffset(Vector3.ZERO);
 				}
-				else if(event.key === "=") {
+				else if(event.key === "=" || event.key === "+") {
 					this.requestZoomChangeDelta(-1);
 					event.preventDefault();
 				}
