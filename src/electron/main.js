@@ -44,10 +44,10 @@ const createWindow = () => {
 	});
 
 	// Disable browser zoom.
-	win.webContents.on('did-finish-load', () => {
+	win.webContents.on("did-finish-load", () => {
 		win.webContents.setZoomFactor(1);
 		win.webContents.setVisualZoomLevelLimits(1, 1);
-	})
+	});
 
 	win.loadFile("src/electron/index.html");
 
