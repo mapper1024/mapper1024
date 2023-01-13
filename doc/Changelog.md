@@ -39,3 +39,6 @@
 
 # v0.4
 * New renderer
+
+# v0.4.2
+* Fix zooming issue where browser zoom shortcuts were not overridden (#76)
