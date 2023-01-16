@@ -13,6 +13,7 @@ function style() {
 .mapper1024_brush_button_container {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: space-around;
 }
 
 .mapper1024_brush_button {
@@ -33,16 +34,20 @@ function style() {
 	line-height: 0;
 }
 
+.mapper1024_zoom_row {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 0.1em;
+}
+
 .mapper1024_add_brush_strip {
-	margin: 0;
-	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
 }
 
-.mapper1024_add_brush_strip > li {
-	list-style-type: none;
-}
-
-.mapper1024_add_brush_strip > li > button {
+.mapper1024_add_brush_strip > canvas {
+	object-fit: none;
 }
 	`;
 	return styleElement;

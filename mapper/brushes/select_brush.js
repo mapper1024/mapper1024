@@ -8,8 +8,8 @@ class SelectBrush extends Brush {
 	}
 
 	displayButton(button) {
-		button.innerText = "(S)elect";
-		button.title = "Select Objects";
+		button.innerText = "Select";
+		button.title = "Select Objects [shortcut: 's']";
 	}
 
 	getDescription() {

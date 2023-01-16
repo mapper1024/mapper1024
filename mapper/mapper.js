@@ -405,6 +405,7 @@ class RenderContext {
 			this.requestedZoom = Math.max(1, Math.min(zoom, this.maxZoom));
 			this.lastZoomRequest = performance.now();
 			this.requestRedraw();
+			this.hooks.call("requested_zoom", zoom);
 		}
 	}
 

@@ -26,15 +26,15 @@ class AddBrush extends Brush {
 	}
 
 	displayButton(button) {
-		button.innerText = "(A)dd";
-		button.title = "Add Objects";
+		button.innerText = "Add";
+		button.title = "Add Objects [shortcut: 'a']";
 	}
 
 	async displaySidebar(brushbar, container) {
 		const make = async (layer) => {
 			container.innerHTML = "";
 
-			const list = document.createElement("ul");
+			const list = document.createElement("div");
 			list.setAttribute("class", "mapper1024_add_brush_strip");
 			container.appendChild(list);
 
@@ -58,17 +58,16 @@ class AddBrush extends Brush {
 				if(nodeType.getLayer() === layer.getType() && shouldDisplay(nodeType)) {
 					const index = this.nodeTypes.indexOf(nodeType);
 
-					const li = document.createElement("li");
-					list.appendChild(li);
-
 					const button = document.createElement("canvas");
-					li.appendChild(button);
+					list.appendChild(button);
 
-					const squareSize = brushbar.size.x - 8;
+					const squareSize = Math.floor((brushbar.size.x / 2) - 8);
 					const squareRadius = Math.floor(squareSize / 2 + 0.5);
 
 					button.width = squareSize;
 					button.height = squareSize;
+
+					button.setAttribute("style", `width: ${squareSize}px; height: ${squareSize}px`);
 
 					button.title = nodeType.id;
 

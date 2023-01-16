@@ -5,7 +5,7 @@ class Brushbar {
 	constructor(context) {
 		this.context = context;
 
-		this.targetWidth = 64;
+		this.targetWidth = 128;
 		this.hooks = new HookContainer();
 
 		this.element = document.createElement("div");
@@ -14,8 +14,38 @@ class Brushbar {
 		this.context.parent.appendChild(this.element);
 
 		const title = document.createElement("span");
-		title.innerText = "Brush";
+		title.innerText = "Mouse over buttons to see keyboard shortcuts";
 		this.element.appendChild(title);
+
+		this.element.appendChild(document.createElement("hr"));
+
+		const zoomLabel = document.createElement("span");
+		this.element.appendChild(zoomLabel);
+
+		const zoomRow = document.createElement("div");
+		zoomRow.setAttribute("class", "mapper1024_zoom_row");
+		this.element.appendChild(zoomRow);
+
+		const zoomIn = document.createElement("button");
+		zoomIn.setAttribute("class", "mapper1024_zoom_button");
+		zoomIn.innerText = "🔍+";
+		zoomIn.setAttribute("title", "Zoom in [shortcut: scroll up or press Control-'+' or Control-'=']");
+		zoomIn.onclick = () => {
+			this.context.requestZoomChangeDelta(-1);
+			this.context.focus();
+		};
+		zoomRow.appendChild(zoomIn);
+
+		const zoomOut = document.createElement("button");
+		zoomOut.setAttribute("class", "mapper1024_zoom_button");
+		zoomOut.innerText = "🔍-";
+		zoomOut.setAttribute("title", "Zoom out [shortcut: scroll down or press Control+'-']");
+		zoomOut.onclick = () => {
+			this.context.requestZoomChangeDelta(1);
+			this.context.focus();
+		};
+		zoomRow.appendChild(zoomOut);
+
 		this.element.appendChild(document.createElement("hr"));
 
 		const size = document.createElement("span");
@@ -23,7 +53,8 @@ class Brushbar {
 
 		const updateSize = (brush) => {
 			if(brush === this.context.brush) {
-				size.innerText = `Radius ${Math.floor(brush.sizeInMeters() + 0.5)}m\n1px = ${this.context.mapper.unitsToMeters(this.context.pixelsToUnits(1)).toFixed(2)}m`;
+				size.innerText = `Radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
+				zoomLabel.innerText = `Zoom ${this.context.requestedZoom}/${this.context.maxZoom}\n1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}m`;
 			}
 		};
 
@@ -34,26 +65,33 @@ class Brushbar {
 		this.context.hooks.add("brush_size_change", updateSize);
 		this.context.hooks.add("changed_brush", updateSize);
 		this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
+		this.context.hooks.add("requested_zoom", () => updateSize(this.context.brush));
+
+		const brushSizeRow = document.createElement("div");
+		brushSizeRow.setAttribute("class", "mapper1024_zoom_row");
+		this.element.appendChild(brushSizeRow);
 
 		const sizeUp = document.createElement("button");
 		sizeUp.setAttribute("class", "mapper1024_brush_size_button");
 		sizeUp.innerText = "+";
+		sizeUp.setAttribute("title", "Increase brush size [shortcut: Hold 'w' and scroll up]");
 		sizeUp.onclick = () => {
 			this.context.brush.enlarge();
 			this.context.requestRedraw();
 			this.context.focus();
 		};
-		this.element.appendChild(sizeUp);
+		brushSizeRow.appendChild(sizeUp);
 
 		const sizeDown = document.createElement("button");
 		sizeDown.setAttribute("class", "mapper1024_brush_size_button");
 		sizeDown.innerText = "-";
+		sizeDown.setAttribute("title", "Decrease brush size [shortcut: Hold 'w' and scroll down]");
 		sizeDown.onclick = () => {
 			this.context.brush.shrink();
 			this.context.requestRedraw();
 			this.context.focus();
 		};
-		this.element.appendChild(sizeDown);
+		brushSizeRow.appendChild(sizeDown);
 
 		this.element.appendChild(document.createElement("hr"));
 
@@ -92,6 +130,7 @@ class Brushbar {
 			const button = document.createElement("button");
 			button.setAttribute("class", "mapper1024_brush_button");
 			button.innerText = layer.getDescription();
+			button.title = `Switch to the ${layer.getDescription()} layer [shortcut: 'l']`;
 			button.onclick = () => {
 				this.context.setCurrentLayer(layer);
 				this.context.focus();
