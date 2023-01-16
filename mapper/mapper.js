@@ -184,16 +184,10 @@ class RenderContext {
 			}
 			if(this.isKeyDown("Control")) {
 				if(event.key === "z") {
-					const undo = this.undoStack.pop();
-					if(undo !== undefined) {
-						this.redoStack.push(await this.performAction(undo, false));
-					}
+					await this.undo();
 				}
 				else if(event.key === "y") {
-					const redo = this.redoStack.pop();
-					if(redo !== undefined) {
-						this.pushUndo(await this.performAction(redo, false), true);
-					}
+					await this.redo();
 				}
 				else if(event.key === "c") {
 					await this.resetOrientation();
@@ -338,6 +332,20 @@ class RenderContext {
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	async undo() {
+		const undo = this.undoStack.pop();
+		if(undo !== undefined) {
+			this.redoStack.push(await this.performAction(undo, false));
+		}
+	}
+
+	async redo() {
+		const redo = this.redoStack.pop();
+		if(redo !== undefined) {
+			this.pushUndo(await this.performAction(redo, false), true);
+		}
 	}
 
 	msSinceLastZoomRequest() {
@@ -1175,23 +1183,18 @@ class RenderContext {
 			infoLineY += 24;
 		}
 
-		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. Press 1 or 2 to measure distances.");
-
 		// Debug help
-		infoLine("Press N to set or edit an object's name. Scroll or Ctrl+Plus/Minus to zoom. L to change layer.");
+		infoLine("Press N to set or edit an object's name.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
-			infoLine("Hold Q while scrolling to change brush terrain/type; hold W while scrolling to change brush size.");
 		}
 		else if(this.brush instanceof SelectBrush) {
 			infoLine("Click to select, drag to move.");
-			infoLine("Hold Control to add to an existing selection.");
 		}
 		else if(this.brush instanceof DeleteBrush) {
-			infoLine("Click to delete an area. Hold Shift to delete an entire object.");
-			infoLine("Hold W while scrolling to change brush size.");
+			infoLine("Click to delete an area. Hold Shift and click to delete an entire object.");
 		}
-		infoLine("Right click or arrow keys to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
+		infoLine("Right click or arrow keys to move map. ` to toggle debug mode.");
 
 		await this.hooks.call("draw_help", {
 			infoLine: infoLine,

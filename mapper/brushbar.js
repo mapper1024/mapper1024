@@ -19,6 +19,32 @@ class Brushbar {
 
 		this.element.appendChild(document.createElement("hr"));
 
+		const undoRow = document.createElement("div");
+		undoRow.setAttribute("class", "mapper1024_zoom_row");
+		this.element.appendChild(undoRow);
+
+		const undo = document.createElement("button");
+		undo.setAttribute("class", "mapper1024_zoom_button");
+		undo.innerText = "⟲";
+		undo.setAttribute("title", "Undo [shortcut: Control+z]");
+		undo.onclick = async () => {
+			await this.context.undo();
+			this.context.focus();
+		};
+		undoRow.appendChild(undo);
+
+		const redo = document.createElement("button");
+		redo.setAttribute("class", "mapper1024_zoom_button");
+		redo.innerText = "⟳";
+		redo.setAttribute("title", "Redo [shortcut: Control+y]");
+		redo.onclick = async () => {
+			await this.context.redo();
+			this.context.focus();
+		};
+		undoRow.appendChild(redo);
+
+		this.element.appendChild(document.createElement("hr"));
+
 		const zoomLabel = document.createElement("span");
 		this.element.appendChild(zoomLabel);
 

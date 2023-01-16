@@ -69,7 +69,7 @@ class AddBrush extends Brush {
 
 					button.setAttribute("style", `width: ${squareSize}px; height: ${squareSize}px`);
 
-					button.title = nodeType.id;
+					button.title = `${nodeType.id} [shortcut: hold 'q' and scroll]`;
 
 					const c = button.getContext("2d");
 
