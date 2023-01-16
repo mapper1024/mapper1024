@@ -196,8 +196,7 @@ class RenderContext {
 					}
 				}
 				else if(event.key === "c") {
-					await this.forceZoom(this.defaultZoom);
-					this.setScrollOffset(Vector3.ZERO);
+					await this.resetOrientation();
 				}
 				else if(event.key === "=" || event.key === "+") {
 					this.requestZoomChangeDelta(-1);
@@ -360,6 +359,11 @@ class RenderContext {
 			center: this.mapPointToAbsoluteCanvas(await nodeRef.getCenter()),
 			size: 24,
 		};
+	}
+
+	async resetOrientation() {
+		await this.forceZoom(this.defaultZoom);
+		this.setScrollOffset(Vector3.ZERO);
 	}
 
 	getCurrentLayer() {

@@ -36,6 +36,16 @@ class Brushbar {
 		};
 		zoomRow.appendChild(zoomIn);
 
+		const reset = document.createElement("button");
+		reset.setAttribute("class", "mapper1024_zoom_button");
+		reset.innerText = "↺";
+		reset.setAttribute("title", "Reset zoom and pan [shortcut: Control+c]");
+		reset.onclick = async () => {
+			await this.context.resetOrientation();
+			this.context.focus();
+		};
+		zoomRow.appendChild(reset);
+
 		const zoomOut = document.createElement("button");
 		zoomOut.setAttribute("class", "mapper1024_zoom_button");
 		zoomOut.innerText = "🔍-";
