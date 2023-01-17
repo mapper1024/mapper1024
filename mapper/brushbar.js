@@ -19,6 +19,11 @@ class Brushbar {
 
 		this.element.appendChild(document.createElement("hr"));
 
+		this.systemButtons = document.createElement("span");
+		this.element.appendChild(this.systemButtons);
+
+		this.element.appendChild(document.createElement("hr"));
+
 		const undoRow = document.createElement("div");
 		undoRow.setAttribute("class", "mapper1024_zoom_row");
 		this.element.appendChild(undoRow);
@@ -199,6 +204,11 @@ class Brushbar {
 			this.element.appendChild(this.brushStrip);
 		});
 		this.context.hooks.add("disconnect", this.disconnect.bind(this));
+	}
+
+	setSystemButtons(systemButtons) {
+		this.systemButtons.replaceWith(systemButtons);
+		this.systemButtons = systemButtons;
 	}
 
 	async recalculate() {

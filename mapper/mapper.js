@@ -1196,10 +1196,6 @@ class RenderContext {
 		}
 		infoLine("Right click or arrow keys to move map. ` to toggle debug mode.");
 
-		await this.hooks.call("draw_help", {
-			infoLine: infoLine,
-		});
-
 		if(this.isCalculatingDistance()) {
 			const a = this.distanceMarkers[1];
 			const b = this.distanceMarkers[2];
