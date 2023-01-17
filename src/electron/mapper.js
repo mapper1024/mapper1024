@@ -64,7 +64,7 @@ async function loadMap(backend, failToBlank) {
 		if(await confirmClear()) {
 			await loadMap(await blankMap());
 		}
-	}
+	};
 
 	async function saveAs() {
 		const save = await dialog.showSaveDialog({
@@ -94,7 +94,7 @@ async function loadMap(backend, failToBlank) {
 			backend.flush();
 			mapper.clearUnsavedChangeState();
 		}
-	}
+	};
 
 	const openAction = async () => {
 		const open = await dialog.showOpenDialog({
@@ -111,7 +111,7 @@ async function loadMap(backend, failToBlank) {
 			}
 			return;
 		}
-	}
+	};
 
 	const systemButtons = document.createElement("div");
 	systemButtons.setAttribute("class", "mapper1024_zoom_row");

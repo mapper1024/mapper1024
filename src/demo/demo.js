@@ -29,11 +29,11 @@ function loadMap(map, failToBlank) {
 			};
 
 			input.click();
-		}
+		};
 
 		const newAction = async () => {
 			loadMap(new SqlJsMapBackend());
-		}
+		};
 
 		const saveAction = async () => {
 			const a = document.createElement("a");
@@ -42,7 +42,7 @@ function loadMap(map, failToBlank) {
 			a.download = `Map at ${new Date(Date.now()).toISOString()}.map`;
 			a.click();
 			window.URL.revokeObjectURL(url);
-		}
+		};
 
 		const newButton = document.createElement("button");
 		newButton.setAttribute("class", "mapper1024_zoom_button");
