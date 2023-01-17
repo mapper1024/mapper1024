@@ -1184,7 +1184,7 @@ class RenderContext {
 		}
 
 		// Debug help
-		infoLine("Press N to set or edit an object's name.");
+		infoLine("Press 'n' to set or edit an object's name.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 		}
