@@ -84,6 +84,9 @@ class SelectBrush extends Brush {
 		this.hooks.add("context_selection_change", async () => {
 			await make(await this.getSelectedNodeRef());
 		});
+		this.hooks.add("update", async () => {
+			await make(await this.getSelectedNodeRef());
+		});
 	}
 }
 
