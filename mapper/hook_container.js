@@ -39,6 +39,12 @@ class HookContainer {
 				await hookFunction(...args);
 			}
 		}
+
+		if("" in this.hooks) {
+			for(const hookFunction of this.hooks[""]) {
+				await hookFunction(hookName, ...args);
+			}
+		}
 	}
 }
 

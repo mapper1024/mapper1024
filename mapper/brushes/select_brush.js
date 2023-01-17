@@ -28,15 +28,15 @@ class SelectBrush extends Brush {
 
 				if(newSelection !== null) {
 					if(this.context.isKeyDown("Control")) {
-						this.context.selection = await this.context.selection.joinWith(newSelection);
+						await this.context.updateSelection(await this.context.selection.joinWith(newSelection));
 					}
 					else {
-						this.context.selection = newSelection;
+						await this.context.updateSelection(newSelection);
 					}
 				}
 			}
 			else {
-				this.context.selection = new Selection(this.context, []);
+				await this.context.updateSelection(new Selection(this.context, []));
 			}
 		}
 
@@ -46,10 +46,44 @@ class SelectBrush extends Brush {
 			ret = new TranslateEvent(this.context, where, Array.from(this.context.selection.getOrigins()));
 		}
 		else {
-			this.context.selection = new Selection(this, []);
+			await this.context.updateSelection(new Selection(this, []));
 		}
 
 		return ret;
+	}
+
+	async getSelectedNodeRef() {
+		const originNodeRefs = Array.from(this.context.selection.getOrigins());
+		if(originNodeRefs.length === 1) {
+			// Exactly one node selected.
+			const nodeRef = originNodeRefs[0];
+			if(await nodeRef.valid()) {
+				return nodeRef;
+			}
+			else {
+				return null;
+			}
+		}
+		else {
+			// 0 or 2+ nodes selected, so we can't return just one.
+			return null;
+		}
+	}
+
+	async displaySidebar(brushbar, container) {
+		const make = async (nodeRef) => {
+			if(nodeRef) {
+				container.innerText = `Node #${nodeRef.id}\n${(await nodeRef.getType()).getDescription()}`;
+			}
+			else {
+				container.innerText = "";
+			}
+		};
+
+		await make(await this.getSelectedNodeRef());
+		this.hooks.add("context_selection_change", async () => {
+			await make(await this.getSelectedNodeRef());
+		});
 	}
 }
 

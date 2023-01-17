@@ -2,7 +2,6 @@ import { Brush } from "./brush.js";
 import { DrawEvent } from "../drag_events/draw_event.js";
 import { DrawPathAction } from "../actions/draw_path_action.js";
 import { mod } from "../utils.js";
-import { HookContainer } from "../hook_container.js";
 import { NodeRender } from "../node_render.js";
 
 class AddBrush extends Brush {
@@ -12,8 +11,6 @@ class AddBrush extends Brush {
 		this.nodeTypeIndex = 0;
 		this.lastTypeChange = 0;
 
-		this.hooks = new HookContainer();
-
 		this.nodeTypes = this.originalNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
 		this.setNodeTypeIndex(0);
 
@@ -22,7 +19,7 @@ class AddBrush extends Brush {
 			this.setNodeTypeIndex(0);
 		};
 
-		this.hooks.add("current_layer_change", (layer) => reset(layer));
+		this.hooks.add("context_current_layer_change", (layer) => reset(layer));
 	}
 
 	displayButton(button) {
@@ -127,12 +124,8 @@ class AddBrush extends Brush {
 		};
 
 		await make(this.context.getCurrentLayer());
-		this.hooks.add("current_layer_change", async (layer) => await make(layer));
+		this.hooks.add("context_current_layer_change", async (layer) => await make(layer));
 		this.hooks.add("type_changed", async () => await make(this.context.getCurrentLayer()));
-	}
-
-	signalLayerChange(layer) {
-		this.hooks.call("current_layer_change", layer);
 	}
 
 	setNodeTypeIndex(index) {

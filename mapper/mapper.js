@@ -324,6 +324,10 @@ class RenderContext {
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
 		this.parentObserver.observe(this.parent);
 
+		this.hooks.add("", async (hookName, ...args) => {
+			this.brush.hooks.call("context_" + hookName, ...args);
+		});
+
 		this.recalculateSize();
 
 		window.requestAnimationFrame(this.redrawLoop.bind(this));
@@ -380,7 +384,6 @@ class RenderContext {
 
 	setCurrentLayer(layer) {
 		this.currentLayer = layer;
-		this.brush.signalLayerChange(layer);
 		this.hooks.call("current_layer_change", layer);
 		this.requestRecheckSelection();
 	}
@@ -517,6 +520,11 @@ class RenderContext {
 		}
 
 		this.selectionCanvasScroll = this.scrollOffset;
+	}
+
+	async updateSelection(newSelection) {
+		this.selection = newSelection;
+		this.hooks.call("selection_change", newSelection);
 	}
 
 	async recalculateSelection() {
