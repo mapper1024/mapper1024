@@ -10,6 +10,15 @@ function style() {
 	word-wrap: break-word;
 }
 
+.mapper1024_brush_strip > h2 {
+	padding: 0;
+	margin: 0;
+	margin-top: 0.1em;
+	margin-bottom: 0.1em;
+	font-weight: normal;
+	font-size: 1.1em;
+}
+
 .mapper1024_brush_button_container {
 	display: flex;
 	flex-wrap: wrap;
@@ -48,6 +57,15 @@ function style() {
 
 .mapper1024_add_brush_strip > canvas {
 	object-fit: none;
+}
+
+.mapper1024_property_row {
+	display: flex;
+	justify-content: space-around;
+}
+
+.mapper1024_property_row > input {
+	flex: 3 1 0;
 }
 	`;
 	return styleElement;

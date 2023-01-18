@@ -38,6 +38,9 @@ class Brushbar {
 		};
 		undoRow.appendChild(undo);
 
+		const undoStatus = document.createElement("span");
+		undoRow.appendChild(undoStatus);
+
 		const redo = document.createElement("button");
 		redo.setAttribute("class", "mapper1024_zoom_button");
 		redo.innerText = "⟳";
@@ -47,6 +50,18 @@ class Brushbar {
 			this.context.focus();
 		};
 		undoRow.appendChild(redo);
+
+		const updateUndoStatus = () => {
+			undoStatus.innerText = `${this.context.undoStack.length} --- ${this.context.redoStack.length}`;
+			undo.disabled = this.context.undoStack.length === 0;
+			redo.disabled = this.context.redoStack.length === 0;
+		}
+
+		this.context.hooks.add("undid", updateUndoStatus);
+		this.context.hooks.add("redid", updateUndoStatus);
+		this.context.hooks.add("action", updateUndoStatus);
+		this.context.hooks.add("undo_pushed", updateUndoStatus);
+		updateUndoStatus();
 
 		this.element.appendChild(document.createElement("hr"));
 

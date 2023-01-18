@@ -328,6 +328,10 @@ class RenderContext {
 			this.brush.hooks.call("context_" + hookName, ...args);
 		});
 
+		this.mapper.hooks.add("", async (hookName, ...args) => {
+			this.brush.hooks.call("mapper_" + hookName, ...args);
+		});
+
 		this.recalculateSize();
 
 		window.requestAnimationFrame(this.redrawLoop.bind(this));
@@ -342,6 +346,7 @@ class RenderContext {
 		const undo = this.undoStack.pop();
 		if(undo !== undefined) {
 			this.redoStack.push(await this.performAction(undo, false));
+			this.hooks.call("undid");
 		}
 	}
 
@@ -349,6 +354,7 @@ class RenderContext {
 		const redo = this.redoStack.pop();
 		if(redo !== undefined) {
 			this.pushUndo(await this.performAction(redo, false), true);
+			this.hooks.call("redid");
 		}
 	}
 
@@ -707,6 +713,7 @@ class RenderContext {
 		if(addToUndoStack) {
 			this.pushUndo(undo);
 		}
+		await this.hooks.call("action", action, undo, addToUndoStack);
 		return undo;
 	}
 
@@ -721,6 +728,7 @@ class RenderContext {
 				this.redoStack = [];
 			}
 		}
+		this.hooks.call("undo_pushed", action, fromRedo);
 	}
 
 	requestRecheckSelection() {
