@@ -129,7 +129,7 @@ class SelectBrush extends Brush {
 
 				const submit = async () => {
 					await this.context.performAction(new ChangeNameAction(this.context, {nodeRef: nodeRef, name: nameInput.value}), true);
-				}
+				};
 
 				const nameInput = document.createElement("input");
 				nameInput.setAttribute("size", 1);
@@ -146,7 +146,7 @@ class SelectBrush extends Brush {
 				nameButton.innerText = "💾";
 				nameButton.onclick = () => {
 					submit();
-				}
+				};
 				nameRow.appendChild(nameButton);
 			}
 			else {

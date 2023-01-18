@@ -55,7 +55,7 @@ class Brushbar {
 			undoStatus.innerText = `${this.context.undoStack.length} --- ${this.context.redoStack.length}`;
 			undo.disabled = this.context.undoStack.length === 0;
 			redo.disabled = this.context.redoStack.length === 0;
-		}
+		};
 
 		this.context.hooks.add("undid", updateUndoStatus);
 		this.context.hooks.add("redid", updateUndoStatus);
