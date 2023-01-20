@@ -1448,7 +1448,7 @@ class RenderContext {
 			}
 
 			return false;
-		}
+		};
 
 		for await (const nodeRef of this.drawnNodes()) {
 			const labelText = await nodeRef.getPString("name");

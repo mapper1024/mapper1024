@@ -207,6 +207,9 @@ Over the next development period---Winter break---I intend to bring the new rend
 # Through 2023-01-12
 I implemented the new renderer. I used public domain graphics from Openclipart for explicit objects, temporarily.
 
+# Through 2023-01-22
+The keyboard-focused UI has been replaced with a palette system: buttons for every action.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

@@ -258,7 +258,7 @@ class Box3 {
 				return true;
 			}
 			return false;
-		}
+		};
 
 		for(const axis of ["x", "y", "z"]) {
 			if(beyond(axis)) {
