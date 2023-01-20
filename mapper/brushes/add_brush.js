@@ -11,8 +11,25 @@ class AddBrush extends Brush {
 		this.nodeTypeIndex = 0;
 		this.lastTypeChange = 0;
 
-		this.nodeTypes = this.originalNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
+		const staticNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
+
+		this.nodeTypes = this.originalNodeTypes = Array.from(staticNodeTypes);
 		this.setNodeTypeIndex(0);
+
+		// Sort node types by category (keep children with their parents).
+		const nodeTypeSortKey = (nodeType) => {
+			const parent = nodeType.getParent();
+			if(parent) {
+				return staticNodeTypes.indexOf(parent);
+			}
+			else {
+				return staticNodeTypes.indexOf(nodeType);
+			}
+		}
+
+		this.nodeTypes.sort((a, b) => {
+			return nodeTypeSortKey(a) - nodeTypeSortKey(b);
+		});
 
 		const reset = (layer) => {
 			this.nodeTypes = this.originalNodeTypes.filter((nodeType) => nodeType.getLayer() === layer.getType());
@@ -51,12 +68,28 @@ class AddBrush extends Brush {
 				return false;
 			};
 
+			const boxes = {};
+
 			for(const nodeType of this.nodeTypes) {
+				const parentNodeType = nodeType.getParent();
 				if(nodeType.getLayer() === layer.getType() && shouldDisplay(nodeType)) {
 					const index = this.nodeTypes.indexOf(nodeType);
 
 					const button = document.createElement("canvas");
-					list.appendChild(button);
+					button.setAttribute("class", "mapper1024_add_brush_button");
+
+					if(parentNodeType) {
+						boxes[parentNodeType.id].appendChild(button);
+					}
+					else if(nodeType.isParent() && this.getNodeType() === nodeType || this.getNodeType().getParent() === nodeType) {
+						const box = boxes[nodeType.id] = document.createElement("div");
+						box.setAttribute("class", "mapper1024_add_brush_box");
+						box.appendChild(button);
+						list.appendChild(box);
+					}
+					else {
+						list.appendChild(button);
+					}
 
 					const squareSize = Math.floor((brushbar.size.x / 2) - 8);
 					const squareRadius = Math.floor(squareSize / 2 + 0.5);

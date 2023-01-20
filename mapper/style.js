@@ -55,8 +55,19 @@ function style() {
 	justify-content: space-between;
 }
 
-.mapper1024_add_brush_strip > canvas {
+.mapper1024_add_brush_box {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	margin-top: 0.25em;
+	margin-bottom: 0.25em;
+	border: 2px dashed black;
+	padding: 2px 2px 2px 2px;
+}
+
+.mapper1024_add_brush_button {
 	object-fit: none;
+	margin-bottom: 0.25em;
 }
 
 .mapper1024_property_row {
