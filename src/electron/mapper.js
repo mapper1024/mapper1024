@@ -60,16 +60,11 @@ async function loadMap(backend, failToBlank) {
 	}
 	renderedMap = mapper.render(document.getElementById("mapper"));
 
-	renderedMap.hooks.add("draw_help", function(options) {
-		options.infoLine("Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S to save as, Ctrl+N to make a blank map.");
-	});
-
-	// Ctrl+N: New Map
-	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "n", async () => {
+	const newAction = async () => {
 		if(await confirmClear()) {
 			await loadMap(await blankMap());
 		}
-	});
+	};
 
 	async function saveAs() {
 		const save = await dialog.showSaveDialog({
@@ -91,11 +86,7 @@ async function loadMap(backend, failToBlank) {
 		}
 	}
 
-	// Ctrl+Shift+S: Save As
-	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "S", async () => saveAs());
-
-	// Ctrl+S: Save
-	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "s", async () => {
+	const saveAction = () => {
 		if(openPathIsTemporary() || openPathIsReadOnly()) {
 			saveAs();
 		}
@@ -103,10 +94,9 @@ async function loadMap(backend, failToBlank) {
 			backend.flush();
 			mapper.clearUnsavedChangeState();
 		}
-	});
+	};
 
-	// Ctrl+O: Open
-	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "o", async () => {
+	const openAction = async () => {
 		const open = await dialog.showOpenDialog({
 			title: "Open...",
 			properties: ["openFile"],
@@ -121,6 +111,68 @@ async function loadMap(backend, failToBlank) {
 			}
 			return;
 		}
+	};
+
+	const systemButtons = document.createElement("div");
+	systemButtons.setAttribute("class", "mapper1024_zoom_row");
+	renderedMap.brushbar.setSystemButtons(systemButtons);
+
+	const newButton = document.createElement("button");
+	newButton.setAttribute("class", "mapper1024_zoom_button");
+	newButton.innerText = "🗎";
+	newButton.setAttribute("title", "New map [shortcut: Control+n]");
+	newButton.onclick = async () => {
+		await newAction();
+		renderedMap.focus();
+	};
+	systemButtons.appendChild(newButton);
+
+	const openButton = document.createElement("button");
+	openButton.setAttribute("class", "mapper1024_zoom_button");
+	openButton.innerText = "📁";
+	openButton.setAttribute("title", "Open map [shortcut: Control+o]");
+	openButton.onclick = async () => {
+		await openAction();
+		renderedMap.focus();
+	};
+	systemButtons.appendChild(openButton);
+
+	const saveButton = document.createElement("button");
+	saveButton.setAttribute("class", "mapper1024_zoom_button");
+	saveButton.innerText = "💾";
+	saveButton.setAttribute("title", "Save map [shortcut: Control+s]");
+	saveButton.onclick = async () => {
+		await saveAction();
+		renderedMap.focus();
+	};
+	systemButtons.appendChild(saveButton);
+
+	const saveAsButton = document.createElement("button");
+	saveAsButton.setAttribute("class", "mapper1024_zoom_button");
+	saveAsButton.innerText = "💾...";
+	saveAsButton.setAttribute("title", "Save map as... [shortcut: Control+s]");
+	saveAsButton.onclick = async () => {
+		saveAs();
+		renderedMap.focus();
+	};
+	systemButtons.appendChild(saveAsButton);
+
+	// Ctrl+N: New Map
+	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "n", async () => {
+		newAction();
+	});
+
+	// Ctrl+Shift+S: Save As
+	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "S", async () => saveAs());
+
+	// Ctrl+S: Save
+	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "s", async () => {
+		saveAction();
+	});
+
+	// Ctrl+O: Open
+	renderedMap.registerKeyboardShortcut((context, event) => context.isKeyDown("Control") && event.key === "o", async () => {
+		openAction();
 	});
 
 	function updateTitle() {

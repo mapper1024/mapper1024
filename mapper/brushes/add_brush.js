@@ -2,7 +2,6 @@ import { Brush } from "./brush.js";
 import { DrawEvent } from "../drag_events/draw_event.js";
 import { DrawPathAction } from "../actions/draw_path_action.js";
 import { mod } from "../utils.js";
-import { HookContainer } from "../hook_container.js";
 import { NodeRender } from "../node_render.js";
 
 class AddBrush extends Brush {
@@ -12,29 +11,44 @@ class AddBrush extends Brush {
 		this.nodeTypeIndex = 0;
 		this.lastTypeChange = 0;
 
-		this.hooks = new HookContainer();
+		const staticNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
 
-		this.nodeTypes = this.originalNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
+		this.nodeTypes = this.originalNodeTypes = Array.from(staticNodeTypes);
 		this.setNodeTypeIndex(0);
+
+		// Sort node types by category (keep children with their parents).
+		const nodeTypeSortKey = (nodeType) => {
+			const parent = nodeType.getParent();
+			if(parent) {
+				return staticNodeTypes.indexOf(parent);
+			}
+			else {
+				return staticNodeTypes.indexOf(nodeType);
+			}
+		}
+
+		this.nodeTypes.sort((a, b) => {
+			return nodeTypeSortKey(a) - nodeTypeSortKey(b);
+		});
 
 		const reset = (layer) => {
 			this.nodeTypes = this.originalNodeTypes.filter((nodeType) => nodeType.getLayer() === layer.getType());
 			this.setNodeTypeIndex(0);
 		};
 
-		this.hooks.add("current_layer_change", (layer) => reset(layer));
+		this.hooks.add("context_current_layer_change", (layer) => reset(layer));
 	}
 
 	displayButton(button) {
-		button.innerText = "(A)dd";
-		button.title = "Add Objects";
+		button.innerText = "Add";
+		button.title = "Add Objects [shortcut: 'a']";
 	}
 
 	async displaySidebar(brushbar, container) {
 		const make = async (layer) => {
 			container.innerHTML = "";
 
-			const list = document.createElement("ul");
+			const list = document.createElement("div");
 			list.setAttribute("class", "mapper1024_add_brush_strip");
 			container.appendChild(list);
 
@@ -54,23 +68,38 @@ class AddBrush extends Brush {
 				return false;
 			};
 
+			const boxes = {};
+
 			for(const nodeType of this.nodeTypes) {
+				const parentNodeType = nodeType.getParent();
 				if(nodeType.getLayer() === layer.getType() && shouldDisplay(nodeType)) {
 					const index = this.nodeTypes.indexOf(nodeType);
 
-					const li = document.createElement("li");
-					list.appendChild(li);
-
 					const button = document.createElement("canvas");
-					li.appendChild(button);
+					button.setAttribute("class", "mapper1024_add_brush_button");
 
-					const squareSize = brushbar.size.x - 8;
+					if(parentNodeType) {
+						boxes[parentNodeType.id].appendChild(button);
+					}
+					else if(nodeType.isParent() && this.getNodeType() === nodeType || this.getNodeType().getParent() === nodeType) {
+						const box = boxes[nodeType.id] = document.createElement("div");
+						box.setAttribute("class", "mapper1024_add_brush_box");
+						box.appendChild(button);
+						list.appendChild(box);
+					}
+					else {
+						list.appendChild(button);
+					}
+
+					const squareSize = Math.floor((brushbar.size.x / 2) - 8);
 					const squareRadius = Math.floor(squareSize / 2 + 0.5);
 
 					button.width = squareSize;
 					button.height = squareSize;
 
-					button.title = nodeType.id;
+					button.setAttribute("style", `width: ${squareSize}px; height: ${squareSize}px`);
+
+					button.title = `${nodeType.id} [shortcut: hold 'q' and scroll]`;
 
 					const c = button.getContext("2d");
 
@@ -128,12 +157,8 @@ class AddBrush extends Brush {
 		};
 
 		await make(this.context.getCurrentLayer());
-		this.hooks.add("current_layer_change", async (layer) => await make(layer));
+		this.hooks.add("context_current_layer_change", async (layer) => await make(layer));
 		this.hooks.add("type_changed", async () => await make(this.context.getCurrentLayer()));
-	}
-
-	signalLayerChange(layer) {
-		this.hooks.call("current_layer_change", layer);
 	}
 
 	setNodeTypeIndex(index) {

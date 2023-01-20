@@ -10,9 +10,19 @@ function style() {
 	word-wrap: break-word;
 }
 
+.mapper1024_brush_strip > h2 {
+	padding: 0;
+	margin: 0;
+	margin-top: 0.1em;
+	margin-bottom: 0.1em;
+	font-weight: normal;
+	font-size: 1.1em;
+}
+
 .mapper1024_brush_button_container {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: space-around;
 }
 
 .mapper1024_brush_button {
@@ -33,16 +43,40 @@ function style() {
 	line-height: 0;
 }
 
+.mapper1024_zoom_row {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 0.1em;
+}
+
 .mapper1024_add_brush_strip {
-	margin: 0;
-	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
 }
 
-.mapper1024_add_brush_strip > li {
-	list-style-type: none;
+.mapper1024_add_brush_box {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	margin-top: 0.25em;
+	margin-bottom: 0.25em;
+	border: 2px dashed black;
+	padding: 2px 2px 2px 2px;
 }
 
-.mapper1024_add_brush_strip > li > button {
+.mapper1024_add_brush_button {
+	object-fit: none;
+	margin-bottom: 0.25em;
+}
+
+.mapper1024_property_row {
+	display: flex;
+	justify-content: space-around;
+}
+
+.mapper1024_property_row > input {
+	flex: 3 1 0;
 }
 	`;
 	return styleElement;

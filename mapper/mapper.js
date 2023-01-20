@@ -184,20 +184,13 @@ class RenderContext {
 			}
 			if(this.isKeyDown("Control")) {
 				if(event.key === "z") {
-					const undo = this.undoStack.pop();
-					if(undo !== undefined) {
-						this.redoStack.push(await this.performAction(undo, false));
-					}
+					await this.undo();
 				}
 				else if(event.key === "y") {
-					const redo = this.redoStack.pop();
-					if(redo !== undefined) {
-						this.pushUndo(await this.performAction(redo, false), true);
-					}
+					await this.redo();
 				}
 				else if(event.key === "c") {
-					await this.forceZoom(this.defaultZoom);
-					this.setScrollOffset(Vector3.ZERO);
+					await this.resetOrientation();
 				}
 				else if(event.key === "=" || event.key === "+") {
 					this.requestZoomChangeDelta(-1);
@@ -331,6 +324,14 @@ class RenderContext {
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
 		this.parentObserver.observe(this.parent);
 
+		this.hooks.add("", async (hookName, ...args) => {
+			this.brush.hooks.call("context_" + hookName, ...args);
+		});
+
+		this.mapper.hooks.add("", async (hookName, ...args) => {
+			this.brush.hooks.call("mapper_" + hookName, ...args);
+		});
+
 		this.recalculateSize();
 
 		window.requestAnimationFrame(this.redrawLoop.bind(this));
@@ -339,6 +340,22 @@ class RenderContext {
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	async undo() {
+		const undo = this.undoStack.pop();
+		if(undo !== undefined) {
+			this.redoStack.push(await this.performAction(undo, false));
+			this.hooks.call("undid");
+		}
+	}
+
+	async redo() {
+		const redo = this.redoStack.pop();
+		if(redo !== undefined) {
+			this.pushUndo(await this.performAction(redo, false), true);
+			this.hooks.call("redid");
+		}
 	}
 
 	msSinceLastZoomRequest() {
@@ -362,13 +379,17 @@ class RenderContext {
 		};
 	}
 
+	async resetOrientation() {
+		await this.forceZoom(this.defaultZoom);
+		this.setScrollOffset(Vector3.ZERO);
+	}
+
 	getCurrentLayer() {
 		return this.currentLayer;
 	}
 
 	setCurrentLayer(layer) {
 		this.currentLayer = layer;
-		this.brush.signalLayerChange(layer);
 		this.hooks.call("current_layer_change", layer);
 		this.requestRecheckSelection();
 	}
@@ -405,6 +426,7 @@ class RenderContext {
 			this.requestedZoom = Math.max(1, Math.min(zoom, this.maxZoom));
 			this.lastZoomRequest = performance.now();
 			this.requestRedraw();
+			this.hooks.call("requested_zoom", zoom);
 		}
 	}
 
@@ -504,6 +526,11 @@ class RenderContext {
 		}
 
 		this.selectionCanvasScroll = this.scrollOffset;
+	}
+
+	async updateSelection(newSelection) {
+		this.selection = newSelection;
+		this.hooks.call("selection_change", newSelection);
 	}
 
 	async recalculateSelection() {
@@ -686,6 +713,7 @@ class RenderContext {
 		if(addToUndoStack) {
 			this.pushUndo(undo);
 		}
+		await this.hooks.call("action", action, undo, addToUndoStack);
 		return undo;
 	}
 
@@ -700,6 +728,7 @@ class RenderContext {
 				this.redoStack = [];
 			}
 		}
+		this.hooks.call("undo_pushed", action, fromRedo);
 	}
 
 	requestRecheckSelection() {
@@ -1170,27 +1199,18 @@ class RenderContext {
 			infoLineY += 24;
 		}
 
-		infoLine("Change brush mode with (A)dd, (S)elect or (D)elete. Press 1 or 2 to measure distances.");
-
 		// Debug help
-		infoLine("Press N to set or edit an object's name. Scroll or Ctrl+Plus/Minus to zoom. L to change layer.");
+		infoLine("Press 'n' to set or edit an object's name.");
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
-			infoLine("Hold Q while scrolling to change brush terrain/type; hold W while scrolling to change brush size.");
 		}
 		else if(this.brush instanceof SelectBrush) {
 			infoLine("Click to select, drag to move.");
-			infoLine("Hold Control to add to an existing selection.");
 		}
 		else if(this.brush instanceof DeleteBrush) {
-			infoLine("Click to delete an area. Hold Shift to delete an entire object.");
-			infoLine("Hold W while scrolling to change brush size.");
+			infoLine("Click to delete an area. Hold Shift and click to delete an entire object.");
 		}
-		infoLine("Right click or arrow keys to move map. Ctrl+C to return to center. Ctrl+Z is undo, Ctrl+Y is redo. ` to toggle debug mode.");
-
-		await this.hooks.call("draw_help", {
-			infoLine: infoLine,
-		});
+		infoLine("Right click or arrow keys to move map. ` to toggle debug mode.");
 
 		if(this.isCalculatingDistance()) {
 			const a = this.distanceMarkers[1];

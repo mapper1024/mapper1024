@@ -10,24 +10,12 @@ function loadMap(map, failToBlank) {
 
 		const mapper = new Mapper(map);
 		renderedMap = mapper.render(document.getElementById("mapper"));
-		renderedMap.hooks.add("draw_help", function(options) {
-			options.infoLine("Shift+O to open, Shift+S to save, Shift+N to make a blank map.");
-		});
 
-		renderedMap.registerKeyboardShortcut((context, event) => event.key === "N", async () => {
-			loadMap(new SqlJsMapBackend());
-		});
+		const systemButtons = document.createElement("div");
+		systemButtons.setAttribute("class", "mapper1024_zoom_row");
+		renderedMap.brushbar.setSystemButtons(systemButtons);
 
-		renderedMap.registerKeyboardShortcut((context, event) => event.key === "S", async () => {
-			const a = document.createElement("a");
-			const url = window.URL.createObjectURL(new Blob([await map.getData()], {type: "octet/stream"}));
-			a.href = url;
-			a.download = `Map at ${new Date(Date.now()).toISOString()}.map`;
-			a.click();
-			window.URL.revokeObjectURL(url);
-		});
-
-		renderedMap.registerKeyboardShortcut((context, event) => event.key === "O", async () => {
+		const openAction = async () => {
 			const input = document.createElement("input");
 			input.type = "file";
 
@@ -41,6 +29,61 @@ function loadMap(map, failToBlank) {
 			};
 
 			input.click();
+		};
+
+		const newAction = async () => {
+			loadMap(new SqlJsMapBackend());
+		};
+
+		const saveAction = async () => {
+			const a = document.createElement("a");
+			const url = window.URL.createObjectURL(new Blob([await map.getData()], {type: "octet/stream"}));
+			a.href = url;
+			a.download = `Map at ${new Date(Date.now()).toISOString()}.map`;
+			a.click();
+			window.URL.revokeObjectURL(url);
+		};
+
+		const newButton = document.createElement("button");
+		newButton.setAttribute("class", "mapper1024_zoom_button");
+		newButton.innerText = "🗎";
+		newButton.setAttribute("title", "New map [shortcut: Shift+n]");
+		newButton.onclick = async () => {
+			await newAction();
+			renderedMap.focus();
+		};
+		systemButtons.appendChild(newButton);
+
+		const openButton = document.createElement("button");
+		openButton.setAttribute("class", "mapper1024_zoom_button");
+		openButton.innerText = "📁";
+		openButton.setAttribute("title", "Open map [shortcut: Shift+o]");
+		openButton.onclick = async () => {
+			await openAction();
+			renderedMap.focus();
+		};
+		systemButtons.appendChild(openButton);
+
+		const saveButton = document.createElement("button");
+		saveButton.setAttribute("class", "mapper1024_zoom_button");
+		saveButton.innerText = "💾";
+		saveButton.setAttribute("title", "Save map [shortcut: Shift+s]");
+		saveButton.onclick = async () => {
+			await saveAction();
+			renderedMap.focus();
+		};
+		systemButtons.appendChild(saveButton);
+
+		renderedMap.registerKeyboardShortcut((context, event) => event.key === "N", async () => {
+			newAction();
+		});
+
+		renderedMap.registerKeyboardShortcut((context, event) => event.key === "S", async () => {
+			saveAction();
+		});
+
+		renderedMap.registerKeyboardShortcut((context, event) => event.key === "O", async () => {
+			openAction();
 		});
 	}).catch(error => {
 		alert(`Could not load the map: ${error}`);

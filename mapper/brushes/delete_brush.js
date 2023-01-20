@@ -10,8 +10,8 @@ class DeleteBrush extends Brush {
 	}
 
 	displayButton(button) {
-		button.innerText = "(D)elete";
-		button.title = "Delete Objects";
+		button.innerText = "Delete";
+		button.title = "Delete Objects [shortcut: 'd']";
 	}
 
 	async activate(where) {

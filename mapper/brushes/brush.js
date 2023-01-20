@@ -1,3 +1,5 @@
+import { HookContainer } from "../hook_container.js";
+
 /** A Brush represents a tool used to manipulate the map,
  * such as a brush to draw terrain or a brush to select terrain.
  *
@@ -15,6 +17,8 @@ class Brush {
 
 		// A change in the brush's size will be considered recent if it happened less than this many ms ago.
 		this.sizeChangeRecentTimeout = 1000;
+
+		this.hooks = new HookContainer();
 	}
 
 	/** Modify the given button's text, title, etc. to represent the brush.

@@ -7,8 +7,8 @@ class DistancePegBrush extends Brush {
 	}
 
 	displayButton(button) {
-		button.innerText = `Peg (${this.n})`;
-		button.title = this.getDescription();
+		button.innerText = `Distance Peg (${this.n})`;
+		button.title = `Measure distance [shortcut: '${this.n}']`;
 	}
 
 	getDescription() {
