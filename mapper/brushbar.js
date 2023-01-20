@@ -5,7 +5,7 @@ class Brushbar {
 	constructor(context) {
 		this.context = context;
 
-		this.targetWidth = 128;
+		this.targetWidth = 160;
 		this.hooks = new HookContainer();
 
 		this.element = document.createElement("div");
@@ -109,7 +109,7 @@ class Brushbar {
 
 		const updateSize = (brush) => {
 			if(brush === this.context.brush) {
-				size.innerText = `Radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
+				size.innerText = `Brush radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
 				zoomLabel.innerText = `Zoom ${this.context.requestedZoom}/${this.context.maxZoom}\n1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}m`;
 			}
 		};
