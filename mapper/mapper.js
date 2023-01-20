@@ -1438,6 +1438,18 @@ class RenderContext {
 
 		const currentLayer = this.getCurrentLayer();
 
+		const seenBoxes = [];
+
+		const collides = (box) => {
+			for(const seenBox of seenBoxes) {
+				if(box.collides(seenBox)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		for await (const nodeRef of this.drawnNodes()) {
 			const labelText = await nodeRef.getPString("name");
 			if(labelText !== undefined && labelText.length > 0) {
@@ -1451,7 +1463,23 @@ class RenderContext {
 
 				const measure = c.measureText(labelText);
 				const height = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
-				const where = labelPositionOnCanvas.center.subtract(this.scrollOffset).subtract(new Vector3(measure.width / 2, height / 2, 0, 0));
+				const originalBox = Box3.fromOffset(labelPositionOnCanvas.center.subtract(this.scrollOffset).subtract(new Vector3(measure.width / 2, height / 2, 0, 0)), new Vector3(measure, height, 0)).map(v => v.noZ());
+				let box = originalBox;
+				let amount = 12;
+				let arc = 0;
+				while(collides(box)) {
+					if(arc > Math.PI * 2) {
+						arc = 0;
+						amount = amount + 12;
+						continue;
+					}
+
+					box = originalBox.map(v => v.add((new Vector3(Math.cos(arc), Math.sin(arc), 0)).multiplyScalar(amount)));
+
+					arc = arc + 8 / Math.PI;
+				}
+				seenBoxes.push(box);
+				const where = box.a;
 				c.globalAlpha = 0.25;
 				c.fillStyle = "black";
 				c.fillRect(where.x, where.y, measure.width, height);

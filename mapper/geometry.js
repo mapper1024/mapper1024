@@ -238,6 +238,36 @@ class Box3 {
 	map(f) {
 		return new Box3(f(this.a), f(this.b));
 	}
+
+	/** Test if box collides with another box.
+	 * @param other {Box3}
+	 * @returns {boolean}
+	 */
+	collides(other) {
+		const beyond = (axis) => {
+			if(this.a[axis] < other.a[axis] && this.b[axis] < other.a[axis]) {
+				return true;
+			}
+			else if(this.a[axis] > other.b[axis] && this.b[axis] > other.b[axis]) {
+				return true;
+			}
+			else if(other.a[axis] < this.a[axis] && other.b[axis] < this.a[axis]) {
+				return true;
+			}
+			else if(other.a[axis] > this.b[axis] && other.b[axis] > this.b[axis]) {
+				return true;
+			}
+			return false;
+		}
+
+		for(const axis of ["x", "y", "z"]) {
+			if(beyond(axis)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
 
 /** A set of connected vertices */
