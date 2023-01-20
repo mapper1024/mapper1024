@@ -25,7 +25,7 @@ class AddBrush extends Brush {
 			else {
 				return staticNodeTypes.indexOf(nodeType);
 			}
-		}
+		};
 
 		this.nodeTypes.sort((a, b) => {
 			return nodeTypeSortKey(a) - nodeTypeSortKey(b);
