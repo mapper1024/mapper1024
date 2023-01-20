@@ -42,3 +42,6 @@
 
 # v0.4.2
 * Fix zooming issue where browser zoom shortcuts were not overridden (#76)
+
+# v0.5
+* Full palette UI
