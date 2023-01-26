@@ -208,7 +208,9 @@ Over the next development period---Winter break---I intend to bring the new rend
 I implemented the new renderer. I used public domain graphics from Openclipart for explicit objects, temporarily.
 
 # Through 2023-01-22
-The keyboard-focused UI has been replaced with a palette system: buttons for every action.
+After the new renderer completed the major mapping functionality, the interface was next on the list to be revamped. Version 0.5, released to the testing group on January 21 2023, included a redesigned user interface with a full palette sidebar with every control clickable. The (now huge) blob of help text omnipresent in the top left corner was gone in this version, replaced with tooltips on the controls in the sidebar palette indicating what each control did and what its keyboard shortcut was. Now every part of the tool could be operated with the mouse too rather than only the keyboard—satisfying a major piece of feedback given by the testing group throughout development. Version 0.5 was released quickly in order to gather feedback through the survey and interaction with the testing group so that the user interface could be rapidly tweaked further to fit user expectations.
+
+The development of the user interface was fairly smooth; there was quite a bit of trial and error in the UI appearance but mostly it was just porting the keyboard controls over to the palette sidebar and adding help text. I am satisfied with how well the process went, and users are enjoying the improved UI.
 
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
