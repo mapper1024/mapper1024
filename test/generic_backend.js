@@ -68,6 +68,9 @@ export function testGenericBackend() {
 			expect((await grandchildB.getParent()).id, "grandchildB parent").to.equal(childB.id);
 
 			expect(await asyncFrom(root.getChildren(), (child) => child.id)).has.members([childA.id, childB.id, childC.id]);
+
+			await childA.setParent(childB);
+			expect((await childA.getParent()).id, "childA parent").to.equal(childB.id);
 		});
 
 		it("should have node types", async function() {

@@ -1,7 +1,7 @@
 import { Brush } from "./brush.js";
 import { Selection } from "../selection.js";
 import { TranslateEvent } from "../drag_events/translate_event.js";
-import { ChangeNameAction } from "../actions/index.js";
+import { ChangeNameAction, MergeAction } from "../actions/index.js";
 import { NodeRender } from "../node_render.js";
 
 class SelectBrush extends Brush {
@@ -54,29 +54,20 @@ class SelectBrush extends Brush {
 		return ret;
 	}
 
-	async getSelectedNodeRef() {
-		const originNodeRefs = Array.from(this.context.selection.getOrigins());
-		if(originNodeRefs.length === 1) {
-			// Exactly one node selected.
-			const nodeRef = originNodeRefs[0];
-			if(await nodeRef.valid()) {
-				return nodeRef;
-			}
-			else {
-				return null;
-			}
-		}
-		else {
-			// 0 or 2+ nodes selected, so we can't return just one.
-			return null;
-		}
-	}
-
 	async displaySidebar(brushbar, container) {
-		const make = async (nodeRef) => {
-			if(nodeRef) {
-				container.innerText = "";
+		const make = async () => {
+			const originNodeRefsAll = Array.from(this.context.selection.getOrigins());
+			const originNodeRefs = [];
 
+			for(const nodeRef of originNodeRefsAll) {
+				if(await nodeRef.valid()) {
+					originNodeRefs.push(nodeRef);
+				}
+			}
+
+			container.innerText = "";
+
+			const drawNodeRef = async (nodeRef, container) => {
 				const nodeType = await nodeRef.getType();
 
 				const idRow = document.createElement("div");
@@ -118,6 +109,12 @@ class SelectBrush extends Brush {
 				c.globalAlpha = 1;
 				c.fillStyle = "white";
 				c.fillText(text, 0, 0);
+			};
+
+			if(originNodeRefs.length === 1) {
+				const nodeRef = originNodeRefs[0];
+
+				await drawNodeRef(nodeRef, container);
 
 				const nameLabel = document.createElement("h2");
 				nameLabel.innerText = "Label";
@@ -149,17 +146,33 @@ class SelectBrush extends Brush {
 				};
 				nameRow.appendChild(nameButton);
 			}
+			else if(originNodeRefs.length > 1) {
+				const mergeAction = new MergeAction(this.context, {nodeRefs: originNodeRefs});
+				if(await mergeAction.possible()) {
+					const mergeButton = document.createElement("button");
+					mergeButton.innerText = "Merge";
+					mergeButton.title = "Merge selected nodes together [shortcut: m]";
+					mergeButton.onclick = async () => {
+						await this.context.performAction(mergeAction, true);
+					};
+					container.appendChild(mergeButton);
+				}
+
+				for(const nodeRef of originNodeRefs) {
+					await drawNodeRef(nodeRef, container);
+				}
+			}
 			else {
 				container.innerText = "";
 			}
 		};
 
-		await make(await this.getSelectedNodeRef());
+		await make();
 		this.hooks.add("context_selection_change", async () => {
-			await make(await this.getSelectedNodeRef());
+			await make();
 		});
 		this.hooks.add("mapper_update", async () => {
-			await make(await this.getSelectedNodeRef());
+			await make();
 		});
 	}
 }

@@ -109,6 +109,8 @@ class SQLiteMapBackend extends MapBackend {
 
 		this.s_getNodeType = this.db.prepare("SELECT nodetype FROM node WHERE node.entityid = $nodeId");
 
+		this.s_setNodeParent = this.db.prepare("UPDATE node SET parentid = $parentId WHERE entityid = $entityId");
+
 		this.s_getNodeParent = this.db.prepare("SELECT nodep.entityid AS parentid FROM node AS nodep INNER JOIN node AS nodec ON nodep.entityid = nodec.parentid INNER JOIN entity ON entity.entityid = nodep.entityid WHERE nodec.entityid = $nodeId");
 		this.s_getNodeChildren = this.db.prepare("SELECT node.entityid FROM node INNER JOIN entity ON node.entityid = entity.entityid WHERE parentID = $nodeId AND entity.valid = true");
 		this.s_getNodeEdges = this.db.prepare("SELECT edge1.edgeid FROM node_edge edge1 INNER JOIN node_edge edge2 ON (edge1.edgeid = edge2.edgeid AND edge1.nodeid != edge2.nodeid) INNER JOIN entity entity1 ON entity1.entityid = edge1.edgeid INNER JOIN entity entity2 ON entity2.entityid = edge2.nodeid INNER JOIN entity nodeentity1 ON nodeentity1.entityid = edge1.nodeid INNER JOIN entity nodeentity2 ON nodeentity2.entityid = edge2.nodeid WHERE edge1.nodeid = $nodeId AND entity1.valid = true AND entity2.valid = true AND nodeentity1.valid = TRUE AND nodeentity2.valid = TRUE");
@@ -246,6 +248,10 @@ class SQLiteMapBackend extends MapBackend {
 	async getNodeParent(nodeId) {
 		const row = this.s_getNodeParent.get({nodeId: nodeId});
 		return (row && row.parentid) ? this.getNodeRef(row.parentid) : null;
+	}
+
+	async setNodeParent(nodeId, parentId) {
+		this.s_setNodeParent.run({entityId: nodeId, parentId: parentId});
 	}
 
 	async getNodeType(nodeId) {

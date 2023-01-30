@@ -126,9 +126,18 @@ class NodeRef extends EntityRef {
 	async getParent() {
 		let parent = this.cache.parent;
 		if(parent === undefined) {
-			parent = this.cache.parent = this.backend.getNodeParent(this.id);
+			parent = this.cache.parent = await this.backend.getNodeParent(this.id);
 		}
 		return parent;
+	}
+
+	async setParent(parent) {
+		await this.clearParentCache();
+
+		this.cache.parent = parent;
+		await this.backend.setNodeParent(this.id, parent.id);
+
+		await this.clearParentCache();
 	}
 
 	/** Get all children of this node.

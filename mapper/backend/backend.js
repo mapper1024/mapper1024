@@ -126,6 +126,12 @@ class MapBackend {
 		throw "getNodeParent not implemented";
 	}
 
+	async setNodeParent(nodeId, parentId) {
+		nodeId;
+		parentId;
+		throw "setNodeParent not implemented";
+	}
+
 	/** Get all direct children of a node.
 	 * @returns {AsyncIterable.<NodeRef>}
 	 */

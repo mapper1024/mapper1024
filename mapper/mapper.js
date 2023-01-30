@@ -4,7 +4,7 @@ import { asyncFrom, mod } from "./utils.js";
 import { DeleteBrush, AddBrush, SelectBrush, DistancePegBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
-import { ChangeNameAction } from "./actions/index.js";
+import { ChangeNameAction, MergeAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
 import { MegaTile, megaTileSize } from "./mega_tile.js";
 import { NodeRender, tileSize } from "./node_render.js";
@@ -231,6 +231,9 @@ class RenderContext {
 			}
 			else if(event.key === "s") {
 				this.changeBrush(this.brushes.select);
+			}
+			else if(event.key === "m") {
+				await this.performAction(new MergeAction(this, {nodeRefs: Array.from(this.selection.getOrigins())}), true);
 			}
 			else if(event.key === "l") {
 				const layerArray = Array.from(this.mapper.backend.layerRegistry.getLayers());
@@ -1209,7 +1212,7 @@ class RenderContext {
 			infoLine("Click to add terrain");
 		}
 		else if(this.brush instanceof SelectBrush) {
-			infoLine("Click to select, drag to move.");
+			infoLine("Click to select, drag to move. Hold Control and click to select multiply objects.");
 		}
 		else if(this.brush instanceof DeleteBrush) {
 			infoLine("Click to delete an area. Hold Shift and click to delete an entire object.");
@@ -1750,8 +1753,6 @@ class Mapper {
 		const nodeRefsWithChildren = Array.from(nodeIds, (nodeId) => this.backend.getNodeRef(nodeId));
 		const parentNodeIds = new Set();
 
-		await this.hooks.call("removeNodes", nodeRefsWithChildren);
-
 		for(const nodeRef of nodeRefsWithChildren) {
 			const parent = await nodeRef.getParent();
 			if(parent && !nodeIds.has(parent.id)) {
@@ -1767,6 +1768,8 @@ class Mapper {
 				nodeRefsWithChildren.push(nodeRef);
 			}
 		}
+
+		await this.hooks.call("removeNodes", nodeRefsWithChildren);
 
 		return nodeRefsWithChildren;
 	}
