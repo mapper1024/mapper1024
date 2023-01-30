@@ -5,8 +5,10 @@ import { mod } from "../utils.js";
 import { NodeRender } from "../node_render.js";
 
 class AddBrush extends Brush {
-	constructor(context) {
+	constructor(context, extend) {
 		super(context);
+
+		this.extend = extend;
 
 		this.nodeTypeIndex = 0;
 		this.lastTypeChange = 0;
@@ -40,8 +42,14 @@ class AddBrush extends Brush {
 	}
 
 	displayButton(button) {
-		button.innerText = "Add";
-		button.title = "Add Objects [shortcut: 'a']";
+		if(this.extend) {
+			button.innerText = "Extend";
+			button.title = "Extend or Add Objects [shortcut: 'e']";
+		}
+		else {
+			button.innerText = "Add";
+			button.title = "Add Objects [shortcut: 'a']";
+		}
 	}
 
 	async displaySidebar(brushbar, container) {
@@ -226,7 +234,7 @@ class AddBrush extends Brush {
 		const mouseDragEvent = new DrawEvent(this.context, where);
 
 		const selectionParent = await mouseDragEvent.getSelectionParent();
-		if(selectionParent && (await selectionParent.getType()).id === this.getNodeType().id) {
+		if(this.extend && selectionParent && (await selectionParent.getType()).id === this.getNodeType().id) {
 			this.parentNode = selectionParent;
 			this.undoParent = false;
 		}

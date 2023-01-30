@@ -72,7 +72,8 @@ class RenderContext {
 		this.distanceMarkers = {};
 
 		this.brushes = {
-			add: new AddBrush(this),
+			add: new AddBrush(this, false),
+			extend: new AddBrush(this, true),
 			select: new SelectBrush(this),
 			"delete": new DeleteBrush(this),
 			"peg1": new DistancePegBrush(this, 1),
@@ -224,6 +225,9 @@ class RenderContext {
 			}
 			else if(event.key === "a") {
 				this.changeBrush(this.brushes.add);
+			}
+			else if(event.key === "e") {
+				this.changeBrush(this.brushes.extend);
 			}
 			else if(event.key === "s") {
 				this.changeBrush(this.brushes.select);
