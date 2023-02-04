@@ -212,6 +212,8 @@ After the new renderer completed the major mapping functionality, the interface 
 
 The development of the user interface was fairly smooth; there was quite a bit of trial and error in the UI appearance but mostly it was just porting the keyboard controls over to the palette sidebar and adding help text. I am satisfied with how well the process went, and users are enjoying the improved UI.
 
+# Through 2023-02-05
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
