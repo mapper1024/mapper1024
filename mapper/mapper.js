@@ -36,6 +36,9 @@ class RenderContext {
 		this.recalculateRemoved = [];
 		this.recalculateTranslated = [];
 
+		this.infoMessages = [];
+		this.infoMessageTimeout = 5000;
+
 		this.wantRecheckSelection = true;
 		this.wantUpdateSelection = true;
 
@@ -356,6 +359,15 @@ class RenderContext {
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	pushInfoMessage(message) {
+		this.infoMessages.push({
+			message: message,
+			when: performance.now(),
+		});
+
+		this.requestRedraw();
 	}
 
 	async undo() {
@@ -710,6 +722,14 @@ class RenderContext {
 			this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
 			await this.hooks.call("changed_zoom", this.zoom);
 			this.recalculateEntireViewport();
+		}
+
+		const oldLength = this.infoMessages.length;
+
+		this.infoMessages = this.infoMessages.filter(m => performance.now() - m.when < this.infoMessageTimeout);
+
+		if(this.infoMessages.length > 0 || this.infoMessages.length !== oldLength) {
+			this.requestRedraw();
 		}
 
 		// If anything's changed on the map, try to recalculate the renderings.
@@ -1529,6 +1549,9 @@ class RenderContext {
 
 		const c = this.canvas.getContext("2d");
 
+		c.textBaseline = "top";
+		c.font = "16px mono";
+
 		let width = 0;
 		let height = 0;
 
@@ -1562,9 +1585,51 @@ class RenderContext {
 		for(let i = 0; i < lines.length; i++) {
 			const text = lines[i];
 			c.fillStyle = "white";
-			c.textBaseline = "top";
-			c.font = "16px mono";
 			c.fillText(text, where.x, where.y + height * i);
+		}
+	}
+
+	async drawInfoMessages() {
+		const c = this.canvas.getContext("2d");
+
+		c.textBaseline = "top";
+		c.font = "24px mono";
+
+		const f = (message) => {
+			return Math.ceil(Math.max(0, 1 - (performance.now() - message.when) / this.infoMessageTimeout) * 0.5 * 24 + 24 * 0.5);
+		};
+
+		let width = 0;
+		let height = 0;
+
+		for(const message of this.infoMessages) {
+			const text = message.message;
+			const measure = c.measureText(text);
+			height = Math.max(height, Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent));
+			width = Math.max(width, measure.width);
+		}
+
+		const totalHeight = height * this.infoMessages.length;
+
+		const screenCenter = this.screenSize().divideScalar(2).round();
+
+		const where = new Vector3(screenCenter.x - width / 2, screenCenter.y - totalHeight / 2, 0);
+
+		c.fillStyle = "black";
+		c.globalAlpha = 0.5;
+		c.beginPath();
+		c.fillRect(where.x, where.y, width, totalHeight);
+		c.fill();
+		c.globalAlpha = 1;
+
+		for(let i = 0; i < this.infoMessages.length; i++) {
+			const message = this.infoMessages[i];
+			c.fillStyle = "white";
+			c.font = `${f(message)}px mono`;
+			const text = message.message;
+			const measure = c.measureText(text);
+			const actualHeight = Math.abs(measure.actualBoundingBoxAscent) + Math.abs(measure.actualBoundingBoxDescent);
+			c.fillText(text, where.x + Math.floor((width - measure.width) / 2), where.y + height * i + Math.floor((height - actualHeight) / 2));
 		}
 	}
 
@@ -1587,6 +1652,7 @@ class RenderContext {
 
 		await this.drawHelp();
 		await this.drawScale();
+		await this.drawInfoMessages();
 
 		if(this.debugMode) {
 			await this.drawDebug();

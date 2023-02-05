@@ -234,9 +234,21 @@ class AddBrush extends Brush {
 		const mouseDragEvent = new DrawEvent(this.context, where);
 
 		const selectionParent = await mouseDragEvent.getSelectionParent();
-		if(this.extend && selectionParent && (await selectionParent.getType()).id === this.getNodeType().id) {
-			this.parentNode = selectionParent;
-			this.undoParent = false;
+		if(this.extend) {
+			if(selectionParent) {
+				if((await selectionParent.getType()).id === this.getNodeType().id) {
+					this.parentNode = selectionParent;
+					this.undoParent = false;
+				}
+				else {
+					this.context.pushInfoMessage("Cannot extend: you are pointing at an object of a different type");
+					return;
+				}
+			}
+			else {
+				this.context.pushInfoMessage("Cannot extend: you are not pointing at a map object");
+				return;
+			}
 		}
 		else {
 			this.parentNode = await this.context.mapper.insertNode(this.context.canvasPointToMap(where), "object", {
