@@ -214,6 +214,14 @@ The development of the user interface was fairly smooth; there was quite a bit o
 
 # Through 2023-02-05
 
+Much of this development period was used writing the draft of the Honors Project report, detailing the research, development, and results of this project. Writing the project report summarized the development journal, development history, changelog, and project documentation.
+
+Releases 0.5.1-0.5.3 were written during this time, adding explicit extend/merge functionality and area calculation. These additional fixes and features are incremental improvements looking toward the 0.6 stable release.
+
+Extend/merge functionality is conceptionally simple, a new brush was added for extend with exactly the same behavior as the old add brush, except it only works to add on to existing objects. The old add brush now does not have that behavior. The merge functionality, to allow two objects of the same type to be merged together, works by changing the parent of all selected objects' children to be only one of the selected objects (the first one selected) and then deleting the remaining, now childless, parents.
+
+Calculating the area is also simple; it is implemented within an "Area Brush" that stores the brush strokes as a set of 16x16 pixel tiles that have been brushed over. These tiles can then be counted, and a rough area in square kilometers calculated and displayed to the user. This will be useful for determining, e.g., how big a kingdom is. The area brush is tied into the undo/redo system, but its actions are purged from the undo/redo stack whenever it is reset to avoid unexpected area calculation actions.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

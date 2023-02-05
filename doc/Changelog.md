@@ -45,3 +45,12 @@
 
 # v0.5
 * Full palette UI
+
+# v0.5.1
+* Merging and extending nodes
+
+# v0.5.2
+* Area calculation
+
+# v0.5.3
+* Extend brush only extends, info/error message system
