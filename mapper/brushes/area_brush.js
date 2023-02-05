@@ -121,7 +121,7 @@ class AreaBrush extends Brush {
 			}
 		}
 
-		super.draw(c, where);
+		await super.draw(c, where);
 	}
 
 	async triggerAtPosition(brushPosition) {

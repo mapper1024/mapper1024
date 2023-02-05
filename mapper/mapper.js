@@ -1102,8 +1102,8 @@ class RenderContext {
 
 				for(const nodeId of nodeIds) {
 					const nodeRef = this.mapper.backend.getNodeRef(nodeId);
-					// Only render nodes in the current filter.
-					if(!await filter(nodeRef))
+					// Only render valid nodes in the current filter.
+					if(!await filter(nodeRef) || !(await nodeRef.valid()))
 						continue;
 
 					drawnNodeIds.add(nodeRef.id);
