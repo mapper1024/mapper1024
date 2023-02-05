@@ -79,7 +79,7 @@ class AreaBrush extends Brush {
 				this.reset();
 			};
 			container.appendChild(resetButton);
-		}
+		};
 
 		await make();
 		this.hooks.add("update", make);
@@ -102,6 +102,7 @@ class AreaBrush extends Brush {
 		for(const x in this.tiles) {
 			const tilesX = this.tiles[x];
 			for(const y in tilesX) {
+				y;
 				n++;
 			}
 		}
