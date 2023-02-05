@@ -22,7 +22,9 @@ class Action {
 	/** Perform the action.
 	 * @return {Action} An action that completely undoes the performed action.
 	 */
-	async perform() {}
+	async perform() {
+		throw "perform not implemented";
+	}
 }
 
 export { Action };

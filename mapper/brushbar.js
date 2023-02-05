@@ -61,6 +61,7 @@ class Brushbar {
 		this.context.hooks.add("redid", updateUndoStatus);
 		this.context.hooks.add("action", updateUndoStatus);
 		this.context.hooks.add("undo_pushed", updateUndoStatus);
+		this.context.hooks.add("do_stripped", updateUndoStatus);
 		updateUndoStatus();
 
 		this.element.appendChild(document.createElement("hr"));

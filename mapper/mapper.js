@@ -1,7 +1,7 @@
 import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3, dirs, dirKeys, dirAngles, normalizedDirs } from "./geometry.js";
 import { asyncFrom, mod } from "./utils.js";
-import { DeleteBrush, AddBrush, SelectBrush, DistancePegBrush } from "./brushes/index.js";
+import { DeleteBrush, AddBrush, SelectBrush, DistancePegBrush, AreaBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { ChangeNameAction, MergeAction } from "./actions/index.js";
@@ -76,6 +76,7 @@ class RenderContext {
 			extend: new AddBrush(this, true),
 			select: new SelectBrush(this),
 			"delete": new DeleteBrush(this),
+			"area": new AreaBrush(this),
 			"peg1": new DistancePegBrush(this, 1),
 			"peg2": new DistancePegBrush(this, 2),
 
@@ -232,6 +233,14 @@ class RenderContext {
 			else if(event.key === "s") {
 				this.changeBrush(this.brushes.select);
 			}
+			else if(event.key === "c") {
+				this.changeBrush(this.brushes.area);
+			}
+			else if(event.key === "C") {
+				if(this.brush === this.brushes.area) {
+					this.brushes.area.reset();
+				}
+			}
 			else if(event.key === "m") {
 				await this.performAction(new MergeAction(this, {nodeRefs: Array.from(this.selection.getOrigins())}), true);
 			}
@@ -332,11 +341,11 @@ class RenderContext {
 		this.parentObserver.observe(this.parent);
 
 		this.hooks.add("", async (hookName, ...args) => {
-			this.brush.hooks.call("context_" + hookName, ...args);
+			await this.brush.hooks.call("context_" + hookName, ...args);
 		});
 
 		this.mapper.hooks.add("", async (hookName, ...args) => {
-			this.brush.hooks.call("mapper_" + hookName, ...args);
+			await this.brush.hooks.call("mapper_" + hookName, ...args);
 		});
 
 		this.recalculateSize();
@@ -722,6 +731,12 @@ class RenderContext {
 		}
 		await this.hooks.call("action", action, undo, addToUndoStack);
 		return undo;
+	}
+
+	async stripDoStack(filter) {
+		this.undoStack = this.undoStack.filter(action => !filter(action));
+		this.redoStack = this.redoStack.filter(action => !filter(action));
+		await this.hooks.call("do_stripped");
 	}
 
 	hoveringOverSelection() {
@@ -1216,6 +1231,9 @@ class RenderContext {
 		}
 		else if(this.brush instanceof DeleteBrush) {
 			infoLine("Click to delete an area. Hold Shift and click to delete an entire object.");
+		}
+		else if(this.brush instanceof AreaBrush) {
+			infoLine("Click to select an area. Hold Shift and click to delete part of that area.");
 		}
 		infoLine("Right click or arrow keys to move map. ` to toggle debug mode.");
 

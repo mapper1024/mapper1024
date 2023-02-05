@@ -28,6 +28,21 @@ class BulkAction extends Action {
 		}
 		return true;
 	}
+
+	allMatchesFilter(f) {
+		for(const action of this.options.actions) {
+			if(action instanceof BulkAction) {
+				if(!action.allMatchesFilter(f)) {
+					return false;
+				}
+			}
+			else if(!f(action)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
 
 export { BulkAction };
