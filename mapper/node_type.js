@@ -13,7 +13,17 @@ class NodeType {
 	}
 
 	receivesBackground() {
-		return ((this.def.receivesBackground === false) ? false : true) && !this.givesBackground() && this.getImageName();
+		return !(this.def.receivesBackground === false) && !this.givesBackground() && this.getImageName();
+	}
+
+	/* Get whether the node has a background or not.
+	 * Even if the node doesn't explicitly give a background, ot may have a background color defined but will try to inheirit another color if possible.
+	 * However, if there is no other node in the area, a node that has a default background color can provide the background to other nodes on top of it.
+	 * This behavior must be explicitly disabled for terrain nodes, and is disabled by default for explicit nodes.
+	 * @returns {boolean}
+	 */
+	hasBackground() {
+		return !(this.def.hasBackground === false) && !(this.def.hasBackground === undefined && this.getScale() === "explicit");
 	}
 
 	givesBackground() {
@@ -77,6 +87,7 @@ class NodeTypeRegistry {
 			color: "darkblue",
 			image: "water",
 			receivesBackground: false,
+			hasBackground: false,
 		}));
 
 		this.registerType(new NodeType("grass", {

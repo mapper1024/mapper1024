@@ -662,7 +662,11 @@ class RenderContext {
 	}
 
 	async buildBackgroundNodeCache(nodeRef) {
-		const box = Box3.fromRadius(await nodeRef.getCenter(), await nodeRef.getRadius());
+		const nodeType = await nodeRef.getType();
+		const nodePosition = await nodeRef.getCenter();
+
+		// We'll search for potential background nodes in a box around the node.
+		const box = Box3.fromRadius(nodePosition, await nodeRef.getRadius());
 		box.a.z = -Infinity;
 		box.b.z = Infinity;
 
@@ -677,37 +681,46 @@ class RenderContext {
 
 			const candidateType = await candidateNodeRef.getType();
 
-			if(candidateType.givesBackground()) {
+			// Only nodes of a different type than the original node can provide a background, and they must have a background to provide.
+			if(candidateType.id !== nodeType.id && candidateType.hasBackground()) {
 				const candidateLayer = await candidateNodeRef.getLayer();
 				if(candidateLayer.id === layer.id) {
 					const center = (await candidateNodeRef.getEffectiveCenter());
-
 					candidates.push({
 						nodeRef: candidateNodeRef,
 						point: center.noZ(),
 						z: center.z,
 						radius: await candidateNodeRef.getRadius(),
+						givesBackground: candidateType.givesBackground(),
 					});
 				}
 			}
 		}
 
+		// Loop through the original NodeRef as well as all it's children.
 		for(const iterable of [[nodeRef], await asyncFrom(nodeRef.getChildren())]) {
 			for(const tryNodeRef of iterable) {
 				const tryCenter = (await tryNodeRef.getEffectiveCenter()).noZ();
 				let best = null;
-				let bestZ = null;
 
+				/* For this node, go through every candidate and select the "best".
+				 *
+				 * The best candidate to provide a background is, in order of importance:
+				 * 1. Of a node type that explicitly gives a background.
+				 * 2. Of a high z-level (i.e. on top).
+				 *
+				 * This allows for situations where no node explicitly gives a background for nodes on top to still inheirit background color,
+				 * and for stacks of nodes to always inheirit from the top-most node that does explicitly give a background.
+				 */
 				for(const candidate of candidates) {
 					if(candidate.point.subtract(tryCenter).length() <= candidate.radius) {
-						if(!best || bestZ < candidate.z) {
-							best = candidate.nodeRef;
-							bestZ = candidate.z;
+						if(!best || (candidate.z >= best.z && (candidate.givesBackground || !best.givesBackground)) || (!best.givesBackground && candidate.givesBackground)) {
+							best = candidate;
 						}
 					}
 				}
 
-				this.backgroundNodeCache[tryNodeRef.id] = best;
+				this.backgroundNodeCache[tryNodeRef.id] = best ? best.nodeRef : null;
 			}
 		}
 	}
