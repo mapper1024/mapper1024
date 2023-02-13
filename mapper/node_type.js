@@ -143,6 +143,7 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("rocks", {
 			color: "gray",
 			image: "rocks",
+			extraTiles: ["rocks2", "rocks3"],
 		}));
 
 		this.registerType(new NodeType("stone", {
