@@ -34,6 +34,19 @@ class NodeType {
 		return this.def.image;
 	}
 
+	getExtraTileNames() {
+		return this.def.extraTiles || [];
+	}
+
+	getAllTiles() {
+		const tiles = [];
+		if(this.getImageName()) {
+			tiles.push(this.getImageName());
+		}
+		tiles.push(...this.getExtraTileNames());
+		return tiles;
+	}
+
 	getLayer() {
 		return this.def.layer || "geographical";
 	}
@@ -111,6 +124,7 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("forest", {
 			color: "green",
 			image: "forest",
+			extraTiles: ["forest2", "forest3"],
 		}));
 
 		this.registerType(new NodeType("cold forest", {

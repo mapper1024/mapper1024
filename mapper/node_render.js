@@ -17,8 +17,11 @@ class NodeRender {
 		let fillStyle = fillStyles[id];
 
 		if(fillStyle === undefined) {
+			const tiles = await nodeType.getAllTiles();
+			const conglomerateTileSize = Math.max(tileSize, tileSize * tiles.length);
+
 			const image = document.createElement("canvas");
-			image.width = image.height = tileSize;
+			image.width = image.height = conglomerateTileSize;
 
 			const c = image.getContext("2d");
 
@@ -29,11 +32,14 @@ class NodeRender {
 				c.fillStyle = nodeType.getColor();
 			}
 
-			c.fillRect(0, 0, tileSize, tileSize);
+			c.fillRect(0, 0, conglomerateTileSize, conglomerateTileSize);
 
-			const imageName = await nodeType.getImageName();
-			if(imageName) {
-				c.drawImage(await images[imageName].image, 0, 0, image.width, image.height);
+			if(tiles.length > 0) {
+				for(let x = 0; x < conglomerateTileSize; x += tileSize) {
+					for(let y = 0; y < conglomerateTileSize; y += tileSize) {
+						c.drawImage(await images[tiles[Math.floor(Math.random() * tiles.length)]].image, x, y, tileSize, tileSize);
+					}
+				}
 			}
 
 			fillStyles[id] = fillStyle = context.createPattern(image, "repeat");
