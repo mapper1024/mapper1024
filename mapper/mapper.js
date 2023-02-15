@@ -457,6 +457,7 @@ class RenderContext {
 		this.brush = brush;
 		this.brush.switchTo();
 		this.hooks.call("changed_brush", brush);
+		this.requestRecheckSelection();
 		this.redrawSelection();
 		this.requestRedraw();
 	}
@@ -577,7 +578,7 @@ class RenderContext {
 		const oldHoverSelection = this.hoverSelection;
 		const oldSelection = this.selection;
 
-		if(this.wantRecheckSelection && !this.isAnyMouseButtonDown()) {
+		if(this.wantRecheckSelection && !this.isAnyMouseButtonDown() && this.brush.usesHover()) {
 			this.wantRecheckSelection = false;
 
 			const closestNodePart = await this.getDrawnNodePartAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
