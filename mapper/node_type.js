@@ -100,7 +100,7 @@ const palette = {
 	sandy: "#fa6",
 	stony: "#888",
 	city: "#789",
-}
+};
 
 class NodeTypeRegistry {
 	constructor() {
