@@ -124,7 +124,7 @@ class NodeTypeRegistry {
 			color: palette.forest,
 			image: "thick vegetation",
 			parent: "grass",
-			extraTiles: ["thick vegetation2", "thick vegetation3", "thick vegetation4"],
+			extraTiles: ["thick vegetation2"],
 		}));
 
 		this.registerType(new NodeType("sand", {
