@@ -107,6 +107,7 @@ class NodeTypeRegistry {
 			color: "green",
 			image: "grass",
 			givesBackground: true,
+			extraTiles: ["grass2"],
 		}));
 
 		this.registerType(new NodeType("thick vegetation", {
@@ -119,6 +120,7 @@ class NodeTypeRegistry {
 			color: "sandybrown",
 			image: "sand",
 			givesBackground: true,
+			extraTiles: ["sand2"],
 		}));
 
 		this.registerType(new NodeType("forest", {
@@ -131,6 +133,7 @@ class NodeTypeRegistry {
 			color: "green",
 			image: "cold forest",
 			parent: "forest",
+			extraTiles: ["cold forest2", "cold forest3"],
 		}));
 
 		this.registerType(new NodeType("tree", {
@@ -143,7 +146,7 @@ class NodeTypeRegistry {
 		this.registerType(new NodeType("rocks", {
 			color: "gray",
 			image: "rocks",
-			extraTiles: ["rocks2", "rocks3"],
+			extraTiles: ["rocks2", "rocks3", "rocks4"],
 		}));
 
 		this.registerType(new NodeType("stone", {
@@ -157,6 +160,12 @@ class NodeTypeRegistry {
 			color: "sandybrown",
 			image: "road",
 			path: true,
+		}));
+
+		this.registerType(new NodeType("cobble", {
+			color: "gray",
+			image: "cobble",
+			givesBackground: true,
 		}));
 
 		this.registerType(new NodeType("buildings", {
