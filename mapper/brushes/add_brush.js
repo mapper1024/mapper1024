@@ -13,7 +13,9 @@ class AddBrush extends Brush {
 		this.nodeTypeIndex = 0;
 		this.lastTypeChange = 0;
 
-		const staticNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes());
+		this.nodeFilter = type => this.extend ? type.getScale() !== "explicit" : true;
+
+		const staticNodeTypes = Array.from(this.context.mapper.backend.nodeTypeRegistry.getTypes()).filter(this.nodeFilter);
 
 		this.nodeTypes = this.originalNodeTypes = Array.from(staticNodeTypes);
 		this.setNodeTypeIndex(0);
@@ -129,7 +131,7 @@ class AddBrush extends Brush {
 					c.fillStyle = "white";
 					c.fillText(text, 0, 0);
 
-					const children = Array.from(nodeType.getChildren());
+					const children = Array.from(nodeType.getChildren()).filter(this.nodeFilter);
 					const childWidth = Math.ceil(button.width / children.length);
 					const childHeight = Math.ceil(button.height / 3);
 					const childRadius = Math.ceil(Math.min(childWidth, childHeight) / 2);
