@@ -367,7 +367,9 @@ class RenderContext {
 	toggleSelectionCanvas() {
 		this.drawSelectionCanvas = !this.drawSelectionCanvas;
 		this.requestRedraw();
-		setTimeout(this.toggleSelectionCanvas.bind(this), this.selectionCanvasToggleTime);
+		if(this.alive) {
+			setTimeout(this.toggleSelectionCanvas.bind(this), this.selectionCanvasToggleTime);
+		}
 	}
 
 	pushInfoMessage(message) {
