@@ -70,7 +70,7 @@ class RenderContext {
 		this.lastZoomRequest = 0;
 		this.zoomRequestTimeout = 1000;
 		this.drawSelectionCanvas = true;
-		this.selectionCanvasToggleTime = 500;
+		this.selectionCanvasToggleTime = 300;
 
 		this.altitudeIncrement = this.mapper.metersToUnits(5);
 
@@ -543,14 +543,14 @@ class RenderContext {
 								const nodeRef = part.nodeRef;
 								const point = part.absolutePoint.subtract(this.scrollOffset);
 
-								if(this.selection.hasNodeRef(nodeRef) && this.brush === this.brushes.select) {
+								if(this.selection.hasNodeRef(nodeRef) && this.brush.usesSelection()) {
 									sc.fillStyle = selectPattern;
 									sc.beginPath();
 									sc.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
 									sc.fill();
 								}
 
-								if(this.hoverSelection.hasNodeRef(nodeRef)) {
+								if(this.hoverSelection.hasNodeRef(nodeRef) && this.brush.usesHover()) {
 									sc.fillStyle = hoverPattern;
 									sc.beginPath();
 									sc.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);

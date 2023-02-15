@@ -14,6 +14,10 @@ class DeleteBrush extends Brush {
 		button.title = "Delete Objects [shortcut: 'd']";
 	}
 
+	usesHover() {
+		return true;
+	}
+
 	async activate(where) {
 		return new DrawEvent(this.context, where);
 	}

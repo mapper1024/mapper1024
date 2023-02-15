@@ -18,6 +18,14 @@ class SelectBrush extends Brush {
 		return "Select/Move";
 	}
 
+	usesSelection() {
+		return true;
+	}
+
+	usesHover() {
+		return true;
+	}
+
 	async draw(context, position) {
 		context;
 		position;

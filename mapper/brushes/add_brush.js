@@ -43,6 +43,10 @@ class AddBrush extends Brush {
 		this.hooks.add("context_current_layer_change", (layer) => reset(layer));
 	}
 
+	usesHover() {
+		return this.extend;
+	}
+
 	displayButton(button) {
 		if(this.extend) {
 			button.innerText = "Extend";

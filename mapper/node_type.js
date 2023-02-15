@@ -92,103 +92,114 @@ class NodeType {
 	}
 }
 
+const palette = {
+	watery: "#66c",
+	grassy: "#8a3",
+	forest: "#8a3",
+	coldforest: "#8a3",
+	sandy: "#fa6",
+	stony: "#888",
+	city: "#789",
+}
+
 class NodeTypeRegistry {
 	constructor() {
 		this.types = {};
 
 		this.registerType(new NodeType("water", {
-			color: "darkblue",
+			color: palette.watery,
 			image: "water",
 			receivesBackground: false,
 			hasBackground: false,
 		}));
 
 		this.registerType(new NodeType("grass", {
-			color: "green",
+			color: palette.grassy,
 			image: "grass",
 			givesBackground: true,
 			extraTiles: ["grass2"],
 		}));
 
 		this.registerType(new NodeType("thick vegetation", {
-			color: "green",
+			color: palette.forest,
 			image: "thick vegetation",
 			parent: "grass",
+			extraTiles: ["thick vegetation2", "thick vegetation3", "thick vegetation4"],
 		}));
 
 		this.registerType(new NodeType("sand", {
-			color: "sandybrown",
+			color: palette.sandy,
 			image: "sand",
 			givesBackground: true,
 			extraTiles: ["sand2"],
 		}));
 
 		this.registerType(new NodeType("forest", {
-			color: "green",
+			color: palette.forest,
 			image: "forest",
 			extraTiles: ["forest2", "forest3"],
 		}));
 
 		this.registerType(new NodeType("cold forest", {
-			color: "green",
+			color: palette.coldforest,
 			image: "cold forest",
 			parent: "forest",
 			extraTiles: ["cold forest2", "cold forest3"],
 		}));
 
 		this.registerType(new NodeType("tree", {
-			color: "darkgreen",
+			color: palette.forest,
 			scale: "explicit",
 			image: "tree",
 			parent: "forest",
 		}));
 
 		this.registerType(new NodeType("rocks", {
-			color: "gray",
+			color: palette.stony,
 			image: "rocks",
 			extraTiles: ["rocks2", "rocks3", "rocks4"],
 		}));
 
 		this.registerType(new NodeType("stone", {
-			color: "gray",
+			color: palette.stony,
 			scale: "explicit",
 			image: "stone",
 			parent: "rocks",
 		}));
 
 		this.registerType(new NodeType("road", {
-			color: "sandybrown",
+			color: palette.sandy,
 			image: "road",
 			path: true,
 		}));
 
 		this.registerType(new NodeType("cobble", {
-			color: "gray",
+			color: palette.stony,
 			image: "cobble",
 			givesBackground: true,
 		}));
 
 		this.registerType(new NodeType("buildings", {
-			color: "slategray",
+			color: palette.city,
 			image: "buildings",
 		}));
 
 		this.registerType(new NodeType("tower", {
-			color: "yellow",
+			color: palette.city,
 			scale: "explicit",
 			image: "tower",
 			parent: "buildings",
 		}));
 
 		this.registerType(new NodeType("house", {
-			color: "yellow",
+			color: palette.city,
 			scale: "explicit",
 			image: "house",
 			parent: "buildings",
 		}));
 
 		this.registerType(new NodeType("castle", {
-			color: "yellow",
+			color: palette.city,
 			scale: "explicit",
 			image: "castle",
 			parent: "buildings",

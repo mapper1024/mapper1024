@@ -21,6 +21,14 @@ class Brush {
 		this.hooks = new HookContainer();
 	}
 
+	usesSelection() {
+		return false;
+	}
+
+	usesHover() {
+		return false;
+	}
+
 	/** Modify the given button's text, title, etc. to represent the brush.
 	 * @param button {Element} the HTML button to modify
 	 */
