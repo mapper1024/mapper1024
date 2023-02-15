@@ -69,6 +69,8 @@ class RenderContext {
 		this.requestedZoom = this.zoom;
 		this.lastZoomRequest = 0;
 		this.zoomRequestTimeout = 1000;
+		this.drawSelectionCanvas = true;
+		this.selectionCanvasToggleTime = 500;
 
 		this.altitudeIncrement = this.mapper.metersToUnits(5);
 
@@ -356,9 +358,16 @@ class RenderContext {
 		window.requestAnimationFrame(this.redrawLoop.bind(this));
 		setTimeout(this.recalculateLoop.bind(this), 10);
 		setTimeout(this.recalculateSelection.bind(this), 10);
+		setTimeout(this.toggleSelectionCanvas.bind(this), this.selectionCanvasToggleTime);
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	toggleSelectionCanvas() {
+		this.drawSelectionCanvas = !this.drawSelectionCanvas;
+		this.requestRedraw();
+		setTimeout(this.toggleSelectionCanvas.bind(this), this.selectionCanvasToggleTime);
 	}
 
 	pushInfoMessage(message) {
@@ -446,6 +455,7 @@ class RenderContext {
 		this.brush = brush;
 		this.brush.switchTo();
 		this.hooks.call("changed_brush", brush);
+		this.redrawSelection();
 		this.requestRedraw();
 	}
 
@@ -533,7 +543,7 @@ class RenderContext {
 								const nodeRef = part.nodeRef;
 								const point = part.absolutePoint.subtract(this.scrollOffset);
 
-								if(this.selection.hasNodeRef(nodeRef)) {
+								if(this.selection.hasNodeRef(nodeRef) && this.brush === this.brushes.select) {
 									sc.fillStyle = selectPattern;
 									sc.beginPath();
 									sc.arc(point.x, point.y, part.radius, 0, 2 * Math.PI, false);
@@ -1484,10 +1494,12 @@ class RenderContext {
 			}
 		}
 
-		c.globalAlpha = 0.25;
-		const offset = this.selectionCanvasScroll.subtract(this.scrollOffset);
-		c.drawImage(this.selectionCanvas, offset.x, offset.y);
-		c.globalAlpha = 1;
+		if(this.drawSelectionCanvas) {
+			c.globalAlpha = 0.25;
+			const offset = this.selectionCanvasScroll.subtract(this.scrollOffset);
+			c.drawImage(this.selectionCanvas, offset.x, offset.y);
+			c.globalAlpha = 1;
+		}
 	}
 
 	async drawLabels() {
