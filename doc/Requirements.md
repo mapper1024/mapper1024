@@ -50,14 +50,6 @@ This may be judged by achieving an average middle-or-above (i.e. *Fair* or bette
 * Dependencies: Algorithmic rendering, multiple layers, explicit nodes, paths
 * Criticality: HIGH, users need things to look OK
 
-### The software should provide help to users
-Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
-
-* Issues: [#37](https://github.com/mapper1024/mapper1024/issues/37), [#36](https://github.com/mapper1024/mapper1024/issues/36)
-* Outputs: An informative UI that response to user action.
-* Risks: Help needs to be comprehensive and kept up to date with developments.
-* Criticality: LOW
-
 ### Maps should be renderable in arbitrary styles
 Maps should be able to be rendered in different styles (e.g. like a Tolkien map, or like a geographical survey). Renderers should be easily swappable.
 
@@ -83,7 +75,15 @@ Users should have a way to easily transfer pieces or objects of their maps to ot
 * Risks: Copying objects between maps may require additional subsystems for inter-process communication or OS clipboard methods.
 * Criticality: LOW
 
-### Done: The mapping tool should support a variety of map object types
+### DONE: The software should provide help to users
+Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
+
+* Issues: [#37](https://github.com/mapper1024/mapper1024/issues/37), [#36](https://github.com/mapper1024/mapper1024/issues/36)
+* Outputs: An informative UI that response to user action.
+* Risks: Help needs to be comprehensive and kept up to date with developments.
+* Criticality: LOW
+
+### DONE: The mapping tool should support a variety of map object types
 In order for a wide variety of maps to be supported, a broad number of generic terrain/map object types should be supported.
 
 See [issue #51](https://github.com/mapper1024/mapper1024/issues/51) for a current list of required terrain and objects.
