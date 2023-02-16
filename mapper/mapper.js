@@ -120,7 +120,7 @@ class RenderContext {
 
 		this.wasActivity = false;
 		this.lastActivity = performance.now();
-		this.lastActivityTimeout = 500;
+		this.lastActivityTimeout = 300;
 
 		this.brushbar = new Brushbar(this);
 
@@ -347,10 +347,6 @@ class RenderContext {
 		// Watch the parent resize so we can keep our canvas filling the whole thing.
 		this.parentObserver = new ResizeObserver(() => this.recalculateSize());
 		this.parentObserver.observe(this.parent);
-
-		this.mapper.hooks.add("update", () => {
-			this.lastActivity = performance.now();
-		});
 
 		this.hooks.add("", async (hookName, ...args) => {
 			await this.brush.hooks.call("context_" + hookName, ...args);
