@@ -378,6 +378,10 @@ class RenderContext {
 			when: performance.now(),
 		});
 
+		while(this.infoMessages.length > 10) {
+			this.infoMessages.pop(0);
+		}
+
 		this.requestRedraw();
 	}
 
