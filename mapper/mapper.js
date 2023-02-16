@@ -578,11 +578,15 @@ class RenderContext {
 		this.hooks.call("selection_change", newSelection);
 	}
 
+	activity() {
+		return this.isAnyMouseButtonDown();
+	}
+
 	async recalculateSelection() {
 		const oldHoverSelection = this.hoverSelection;
 		const oldSelection = this.selection;
 
-		if(this.wantRecheckSelection && !this.isAnyMouseButtonDown()) {
+		if(this.wantRecheckSelection && !this.activity()) {
 			this.wantRecheckSelection = false;
 
 			const closestNodePart = await this.getDrawnNodePartAtCanvasPoint(this.mousePosition, this.getCurrentLayer());
@@ -1146,7 +1150,9 @@ class RenderContext {
 					const nodeRender = this.getNodeRender(nodeRef);
 					for(const layer of await nodeRender.getLayers(this.zoom)) {
 						layers.push(layer);
-						focusTileLists.add(layer.focusTiles);
+						if(!this.activity()) {
+							focusTileLists.add(layer.focusTiles);
+						}
 					}
 
 					if(this.nodeIdsToMegatiles[nodeId] === undefined)
