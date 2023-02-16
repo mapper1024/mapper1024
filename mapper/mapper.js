@@ -1065,7 +1065,7 @@ class RenderContext {
 		for(const filter of filters) {
 			const focusTiles = {};
 
-			const drawLayer = async (layer, drawAgainIds) => {
+			const drawLayer = async (layer, drawAgainIds, callbacks) => {
 				const nodeId = layer.nodeRender.nodeRef.id;
 
 				const absoluteLayerBox = Box3.fromOffset(layer.corner, new Vector3(layer.width, layer.height, 0));
@@ -1093,25 +1093,30 @@ class RenderContext {
 							const realPointOnLayer = pointOnLayer.map(c => Math.max(c, 0));
 							const pointOnMegaTile = realPointOnLayer.subtract(pointOnLayer);
 
-							megaTile.context.drawImage(await layer.canvas(), realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
+							callbacks.push({
+								callback: async () => {
+									megaTile.context.drawImage(await layer.canvas(), realPointOnLayer.x, realPointOnLayer.y, megaTileSize, megaTileSize, pointOnMegaTile.x, pointOnMegaTile.y, megaTileSize, megaTileSize);
 
-							this.nodeIdsToMegatiles[nodeId].add(megaTile);
-							megaTile.nodeIds.add(nodeId);
-							megaTile.addParts(layer.parts);
+									this.nodeIdsToMegatiles[nodeId].add(megaTile);
+									megaTile.nodeIds.add(nodeId);
+									megaTile.addParts(layer.parts);
 
-							drewToMegaTiles.add(megaTile);
+									drewToMegaTiles.add(megaTile);
 
-							if(!layer.zWait) {
-								let averagePartPoint = Vector3.ZERO;
-								for(const part of layer.parts) {
-									averagePartPoint = averagePartPoint.add(part.absolutePoint);
-								}
+									if(!layer.zWait) {
+										let averagePartPoint = Vector3.ZERO;
+										for(const part of layer.parts) {
+											averagePartPoint = averagePartPoint.add(part.absolutePoint);
+										}
 
-								labelPositions[nodeId] = {
-									center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
-									size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
-								};
-							}
+										labelPositions[nodeId] = {
+											center: Vector3.max(Vector3.min(averagePartPoint.divideScalar(layer.parts.length), screenBox.b), screenBox.a),
+											size: Math.min(24, Math.ceil(this.unitsToPixels(await this.mapper.backend.getNodeRef(nodeId).getRadius()) / 4)),
+										};
+									}
+								},
+								z: layer.z,
+							});
 						}
 
 						if(firstAppearanceInMegaTile && drawAgainIds) {
@@ -1148,15 +1153,21 @@ class RenderContext {
 						this.nodeIdsToMegatiles[nodeId] = new Set();
 				}
 
-				layers.sort((a, b) => a.z - b.z);
+				const callbacks = [];
 
 				for(const layer of layers) {
 					if(layer.zWait) {
 						waitLayers.add(layer);
 					}
 					else {
-						await drawLayer(layer, drawAgainIds);
+						await drawLayer(layer, drawAgainIds, callbacks);
 					}
+				}
+
+				callbacks.sort((a, b) => a.z - b.z);
+
+				for(const callback of callbacks) {
+					await callback.callback();
 				}
 
 				for(const subFocusTiles of focusTileLists) {
@@ -1234,8 +1245,16 @@ class RenderContext {
 				}
 			}
 
+			const callbacks = [];
+
 			for(const layer of waitLayers) {
-				drawLayer(layer);
+				drawLayer(layer, undefined, callbacks);
+			}
+
+			callbacks.sort((a, b) => a.z - b.z);
+
+			for(const callback of callbacks) {
+				await callback.callback();
 			}
 		}
 
