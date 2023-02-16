@@ -119,6 +119,8 @@ class RenderContext {
 		this.mapper.hooks.add("update", this.requestUpdateSelection.bind(this));
 
 		this.wasActivity = false;
+		this.lastActivity = performance.now();
+		this.lastActivityTimeout = 300;
 
 		this.brushbar = new Brushbar(this);
 
@@ -127,6 +129,8 @@ class RenderContext {
 		});
 
 		this.canvas.addEventListener("mousedown", async (event) => {
+			this.lastActivity = performance.now();
+
 			if(this.requestedZoom !== this.zoom) {
 				// Forcibly apply the last zoom request.
 				this.lastZoomRequest = 0;
@@ -154,6 +158,8 @@ class RenderContext {
 		});
 
 		this.canvas.addEventListener("mouseup", async (event) => {
+			this.lastActivity = performance.now();
+
 			const where = new Vector3(event.x, event.y, 0);
 
 			this.endMouseButtonPress(event.button, where);
@@ -179,6 +185,7 @@ class RenderContext {
 		});
 
 		this.canvas.addEventListener("keydown", async (event) => {
+			this.lastActivity = performance.now();
 			this.pressedKeys[event.key] = true;
 			for(const shortcut of this.keyboardShortcuts) {
 				if(shortcut.filter(this, event)) {
@@ -303,11 +310,13 @@ class RenderContext {
 		});
 
 		this.canvas.addEventListener("keyup", (event) => {
+			this.lastActivity = performance.now();
 			this.pressedKeys[event.key] = false;
 			this.requestRedraw();
 		});
 
 		this.canvas.addEventListener("wheel", (event) => {
+			this.lastActivity = performance.now();
 			event.preventDefault();
 
 			this.scrollDelta = this.scrollDelta + event.deltaY;
@@ -580,7 +589,7 @@ class RenderContext {
 	}
 
 	activity() {
-		return this.isAnyMouseButtonDown();
+		return this.isAnyMouseButtonDown() || (performance.now() - this.lastActivity < this.lastActivityTimeout);
 	}
 
 	async recalculateSelection() {
@@ -784,7 +793,7 @@ class RenderContext {
 		}
 
 		if(this.alive) {
-			setTimeout(this.recalculateLoop.bind(this), 100);
+			setTimeout(this.recalculateLoop.bind(this), 50);
 		}
 	}
 
