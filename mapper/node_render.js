@@ -410,6 +410,11 @@ class NodeRender {
 
 			for(const childNodeRef of children) {
 				const radiusInPixels = this.context.unitsToPixels(await childNodeRef.getRadius());
+
+				if(radiusInPixels < 1) {
+					continue;
+				}
+
 				const radiusVector = Vector3.UNIT.multiplyScalar(radiusInPixels).noZ();
 				const point = (await childNodeRef.getEffectiveCenter()).map((c) => this.context.unitsToPixels(c)).noZ();
 
@@ -488,8 +493,9 @@ class NodeRender {
 								foundEdges.add(k);
 
 								const otherPart = nodeIdsToPart[otherNodeRef.id];
-
-								lines.push(new Line3(part.point, otherPart.point));
+								if(otherPart) {
+									lines.push(new Line3(part.point, otherPart.point));
+								}
 							}
 						}
 					}
