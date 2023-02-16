@@ -54,3 +54,7 @@
 
 # v0.5.3
 * Extend brush only extends, info/error message system
+
+# v0.5.4
+* Large performance improvements
+* Many additional textures
