@@ -1210,7 +1210,7 @@ class RenderContext {
 
 									for(const dirKey of dirKeys) {
 										const tileDir = dirs[dirKey].multiplyScalar(tileSize);
-										const neighborPoint = center.add(tileDir.divideScalar(2));
+										const neighborPoint = center.add(tileDir.divideScalar(2)).map(c => Math.floor(c)).map(c => c - c % 16);
 										const neighborNodePart = await this.getDrawnNodePartAtAbsoluteCanvasPointTileAligned(neighborPoint, tile.layer);
 										if(neighborNodePart) {
 											neighbors.push({
