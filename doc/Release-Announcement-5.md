@@ -15,7 +15,6 @@ Version 0.6 brings great performance improvements--far less jerking the map arou
 New features and fixes include:
 
 - The ability to extend and merge existing map objects.
-- The ability to calculate the area (in square kilometers) of any region on the map.
 - Huge performance improvements by reducing calculations while you're drawing on or panning over the map.
 - Greatly improved graphics: terrain is varied and pops out for clarity.
 
