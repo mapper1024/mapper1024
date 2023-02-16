@@ -526,7 +526,7 @@ class NodeRender {
 				}
 			}
 
-			const miniCanvasSize = 2048;
+			const miniCanvasSize = 1024;
 			const totalCanvasSize = new Vector3(bottomRightCorner.x - topLeftCorner.x, bottomRightCorner.y - topLeftCorner.y, 0);
 			if(totalCanvasSize.x === 0 || totalCanvasSize.y === 0) {
 				continue;
@@ -536,11 +536,21 @@ class NodeRender {
 			for(let x = 0; x <= miniCanvasLimit.x; x++) {
 				for(let y = 0; y <= miniCanvasLimit.y; y++) {
 					const offset = new Vector3(x, y, 0).multiplyScalar(miniCanvasSize);
+					const miniCanvasCenter = offset.add(new Vector3(miniCanvasSize / 2, miniCanvasSize / 2, 0));
+					const miniCanvasRadius = miniCanvasSize * Math.sqrt(2);
 
 					const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
 					const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
 
-					if(toRender.length > 0) {
+					const toRenderInMiniCanvas = [];
+
+					for(const part of toRender) {
+						if(part.point.subtract(miniCanvasCenter).length() <= part.radius + miniCanvasRadius) {
+							toRenderInMiniCanvas.push(part);
+						}
+					}
+
+					if(toRenderInMiniCanvas.length > 0) {
 						let canvas;
 
 						const canvasFunction = async () => {
@@ -554,7 +564,7 @@ class NodeRender {
 
 							const c = canvas.getContext("2d");
 
-							for(const part of toRender) {
+							for(const part of toRenderInMiniCanvas) {
 								c.fillStyle = part.fillStyle;
 
 								const point = part.point.subtract(offset);
@@ -574,7 +584,7 @@ class NodeRender {
 							width: width,
 							height: height,
 							focusTiles: focusTiles,
-							parts: toRender,
+							parts: toRenderInMiniCanvas,
 						});
 					}
 

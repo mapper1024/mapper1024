@@ -1,9 +1,13 @@
+import { Vector3 } from "./geometry.js";
+
 const megaTileSize = 512;
 
 class MegaTile {
 	constructor(context, oneUnitInPixels, tileCorner) {
 		this.tileCorner = tileCorner;
 		this.corner = tileCorner.multiplyScalar(megaTileSize);
+		this.center = this.corner.add(new Vector3(megaTileSize, megaTileSize, 0));
+		this.radius = megaTileSize * Math.sqrt(2);
 		this.oneUnitInPixels = oneUnitInPixels;
 
 		this.context = context;
@@ -70,7 +74,11 @@ class MegaTile {
 	}
 
 	async addParts(parts) {
-		this.parts.push(...parts);
+		for(const part of parts) {
+			if(part.absolutePoint.subtract(this.center).length() <= part.radius + this.radius) {
+				this.parts.push(part);
+			}
+		}
 	}
 }
 
