@@ -534,7 +534,7 @@ class NodeRender {
 					const width = Math.min(miniCanvasSize, totalCanvasSize.x - offset.x);
 					const height = Math.min(miniCanvasSize, totalCanvasSize.y - offset.y);
 
-					{
+					if(toRender.length > 0) {
 						let canvas;
 
 						const canvasFunction = async () => {
@@ -572,7 +572,7 @@ class NodeRender {
 						});
 					}
 
-					{
+					if(lines.length > 0) {
 						let canvas;
 
 						const canvasFunction = async () => {

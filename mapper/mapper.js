@@ -1497,7 +1497,7 @@ class RenderContext {
 			}
 		}
 
-		if(this.drawSelectionCanvas) {
+		if(this.drawSelectionCanvas && (this.brush.usesHover() || this.brush.usesSelection())) {
 			c.globalAlpha = 0.25;
 			const offset = this.selectionCanvasScroll.subtract(this.scrollOffset);
 			c.drawImage(this.selectionCanvas, offset.x, offset.y);
