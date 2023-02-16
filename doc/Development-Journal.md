@@ -222,6 +222,12 @@ Extend/merge functionality is conceptually simple, a new brush was added for ext
 
 Calculating the area is also simple; it is implemented within an "Area Brush" that stores the brush strokes as a set of 16x16 pixel tiles that have been brushed over. These tiles can then be counted, and a rough area in square kilometers calculated and displayed to the user. This will be useful for determining, e.g., how big a kingdom is. The area brush is tied into the undo/redo system, but its actions are purged from the undo/redo stack whenever it is reset to avoid unexpected area calculation actions.
 
+# Through 2023-02-19
+
+In this development period, I implemented multi-tile terrain textures. This allowed for multiple 16x16 tiles for each terrain type, which then were randomly combined into a larger texture to provide for more variance when displaying terrain.
+
+I also implemented a significant performance boost: focus tiles no longer update during activity (i.e. panning the map or drawing on the map). This still displays all relevant information, but as the map is panned or drawn on the focus tiles do not display until the action is complete. This makes the user interface much snappier.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
