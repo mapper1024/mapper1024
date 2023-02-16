@@ -118,6 +118,7 @@ class RenderContext {
 		this.mapper.hooks.add("translateNodes", (nodeRefs) => this.recalculateNodesTranslate(nodeRefs));
 		this.mapper.hooks.add("update", this.requestUpdateSelection.bind(this));
 
+		this.wasActivity = false;
 
 		this.brushbar = new Brushbar(this);
 
@@ -756,6 +757,15 @@ class RenderContext {
 			this.scrollOffset = this.scrollOffset.add(this.mapPointToCanvas(oldLandmark).subtract(this.mapPointToCanvas(newLandmark)));
 			await this.hooks.call("changed_zoom", this.zoom);
 			this.recalculateEntireViewport();
+		}
+
+		const activity = this.activity();
+
+		if(this.wasActivity !== activity) {
+			if(!activity) {
+				this.recalculateEntireViewport();
+			}
+			this.wasActivity = activity;
 		}
 
 		const oldLength = this.infoMessages.length;
