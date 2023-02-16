@@ -10,6 +10,8 @@ Picture and Performance
 ---------
 Version 0.6 brings great performance improvements--far less jerking the map around--as well as a tuned-up graphics set with better looking forests, lakes, cities, grasslands, and more.
 
+[![A screenshot of the sample map in the mapping tool](https://mapper1024.github.io/screenshots/sample_map_0.6.0.thumb.png)](https://mapper1024.github.io/screenshots/sample_map_0.6.0.png)
+
 New features and fixes include:
 
 - The ability to extend and merge existing map objects.
