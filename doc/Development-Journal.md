@@ -224,9 +224,9 @@ Calculating the area is also simple; it is implemented within an "Area Brush" th
 
 # Through 2023-02-19
 
-In this development period, I implemented multi-tile terrain textures. This allowed for multiple 16x16 tiles for each terrain type, which then were randomly combined into a larger texture to provide for more variance when displaying terrain.
+In this development period, I implemented multi-tile terrain textures. This allowed for multiple 16x16 tiles for each terrain type, which then were randomly combined into a larger texture to provide for more variance when displaying terrain. I added additional textures for all the terrains to use this new feature.
 
-I also implemented a significant performance boost: focus tiles no longer update during activity (i.e. panning the map or drawing on the map). This still displays all relevant information, but as the map is panned or drawn on the focus tiles do not display until the action is complete. This makes the user interface much snappier.
+With the remaining time in the development period, I worked on performance optimization. I realized through performance analysis that much render time was being taken in rendering focus tiles that aren't really necessary to understand the map, so I also implemented a significant performance boost: focus tiles no longer update during activity (i.e. panning the map or drawing on the map). This still displays all relevant information, but as the map is panned or drawn on the focus tiles do not display until the action is complete. This makes the user interface much snappier.
 
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
