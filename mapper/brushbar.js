@@ -120,14 +120,18 @@ class Brushbar {
 
 		this.element.appendChild(document.createElement("hr"));
 
-		if(this.context.inNormalMode()) {
-
+		if(this.context.inControlledMode()) {
 			const size = document.createElement("span");
-			this.element.appendChild(size);
+
+			if(this.context.inNormalMode()) {
+				this.element.appendChild(size);
+			}
 
 			const updateSize = (brush) => {
 				if(brush === this.context.brush) {
-					size.innerText = `Brush radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
+					if(this.context.inNormalMode()) {
+						size.innerText = `Brush radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
+					}
 					zoomLabel.innerText = `Zoom ${this.context.requestedZoom}/${this.context.maxZoom}\n1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}m`;
 				}
 			};
@@ -141,85 +145,88 @@ class Brushbar {
 			this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
 			this.context.hooks.add("requested_zoom", () => updateSize(this.context.brush));
 
-			const brushSizeRow = document.createElement("div");
-			brushSizeRow.setAttribute("class", "mapper1024_zoom_row");
-			this.element.appendChild(brushSizeRow);
+			if(this.context.inNormalMode()) {
 
-			const sizeUp = document.createElement("button");
-			sizeUp.setAttribute("class", "mapper1024_brush_size_button");
-			sizeUp.innerText = "+";
-			sizeUp.setAttribute("title", "Increase brush size [shortcut: Hold 'w' and scroll up]");
-			sizeUp.onclick = () => {
-				this.context.brush.enlarge();
-				this.context.requestRedraw();
-				this.context.focus();
-			};
-			brushSizeRow.appendChild(sizeUp);
+				const brushSizeRow = document.createElement("div");
+				brushSizeRow.setAttribute("class", "mapper1024_zoom_row");
+				this.element.appendChild(brushSizeRow);
 
-			const sizeDown = document.createElement("button");
-			sizeDown.setAttribute("class", "mapper1024_brush_size_button");
-			sizeDown.innerText = "-";
-			sizeDown.setAttribute("title", "Decrease brush size [shortcut: Hold 'w' and scroll down]");
-			sizeDown.onclick = () => {
-				this.context.brush.shrink();
-				this.context.requestRedraw();
-				this.context.focus();
-			};
-			brushSizeRow.appendChild(sizeDown);
-
-			this.element.appendChild(document.createElement("hr"));
-
-			const brushButtonContainer = document.createElement("div");
-			brushButtonContainer.setAttribute("class", "mapper1024_brush_button_container");
-			this.element.appendChild(brushButtonContainer);
-
-			const brushButton = (brush) => {
-				const button = document.createElement("button");
-				button.setAttribute("class", "mapper1024_brush_button");
-				brush.displayButton(button);
-				button.onclick = () => {
-					this.context.changeBrush(brush);
+				const sizeUp = document.createElement("button");
+				sizeUp.setAttribute("class", "mapper1024_brush_size_button");
+				sizeUp.innerText = "+";
+				sizeUp.setAttribute("title", "Increase brush size [shortcut: Hold 'w' and scroll up]");
+				sizeUp.onclick = () => {
+					this.context.brush.enlarge();
+					this.context.requestRedraw();
 					this.context.focus();
 				};
+				brushSizeRow.appendChild(sizeUp);
 
-				this.context.hooks.add("changed_brush", (newBrush) => {
-					button.style["font-weight"] = brush === newBrush ? "bold" : "normal";
-				});
-
-				return button;
-			};
-
-			for(const brushName in this.context.brushes) {
-				const button = brushButton(this.context.brushes[brushName]);
-				brushButtonContainer.appendChild(button);
-			}
-
-			this.element.appendChild(document.createElement("hr"));
-
-			const layerButtonContainer = document.createElement("div");
-			layerButtonContainer.setAttribute("class", "mapper1024_brush_button_container");
-			this.element.appendChild(layerButtonContainer);
-
-			const layerButton = (layer) => {
-				const button = document.createElement("button");
-				button.setAttribute("class", "mapper1024_brush_button");
-				button.innerText = layer.getDescription();
-				button.title = `Switch to the ${layer.getDescription()} layer [shortcut: 'l']`;
-				button.onclick = () => {
-					this.context.setCurrentLayer(layer);
+				const sizeDown = document.createElement("button");
+				sizeDown.setAttribute("class", "mapper1024_brush_size_button");
+				sizeDown.innerText = "-";
+				sizeDown.setAttribute("title", "Decrease brush size [shortcut: Hold 'w' and scroll down]");
+				sizeDown.onclick = () => {
+					this.context.brush.shrink();
+					this.context.requestRedraw();
 					this.context.focus();
 				};
+				brushSizeRow.appendChild(sizeDown);
 
-				this.context.hooks.add("current_layer_change", (newLayer) => {
-					button.style["font-weight"] = layer.id === newLayer.id ? "bold" : "normal";
-				});
+				this.element.appendChild(document.createElement("hr"));
 
-				return button;
-			};
+				const brushButtonContainer = document.createElement("div");
+				brushButtonContainer.setAttribute("class", "mapper1024_brush_button_container");
+				this.element.appendChild(brushButtonContainer);
 
-			for(const layer of this.context.mapper.backend.layerRegistry.getLayers()) {
-				const button = layerButton(layer);
-				layerButtonContainer.appendChild(button);
+				const brushButton = (brush) => {
+					const button = document.createElement("button");
+					button.setAttribute("class", "mapper1024_brush_button");
+					brush.displayButton(button);
+					button.onclick = () => {
+						this.context.changeBrush(brush);
+						this.context.focus();
+					};
+
+					this.context.hooks.add("changed_brush", (newBrush) => {
+						button.style["font-weight"] = brush === newBrush ? "bold" : "normal";
+					});
+
+					return button;
+				};
+
+				for(const brushName in this.context.brushes) {
+					const button = brushButton(this.context.brushes[brushName]);
+					brushButtonContainer.appendChild(button);
+				}
+
+				this.element.appendChild(document.createElement("hr"));
+
+				const layerButtonContainer = document.createElement("div");
+				layerButtonContainer.setAttribute("class", "mapper1024_brush_button_container");
+				this.element.appendChild(layerButtonContainer);
+
+				const layerButton = (layer) => {
+					const button = document.createElement("button");
+					button.setAttribute("class", "mapper1024_brush_button");
+					button.innerText = layer.getDescription();
+					button.title = `Switch to the ${layer.getDescription()} layer [shortcut: 'l']`;
+					button.onclick = () => {
+						this.context.setCurrentLayer(layer);
+						this.context.focus();
+					};
+
+					this.context.hooks.add("current_layer_change", (newLayer) => {
+						button.style["font-weight"] = layer.id === newLayer.id ? "bold" : "normal";
+					});
+
+					return button;
+				};
+
+				for(const layer of this.context.mapper.backend.layerRegistry.getLayers()) {
+					const button = layerButton(layer);
+					layerButtonContainer.appendChild(button);
+				}
 			}
 
 			this.element.appendChild(document.createElement("hr"));
@@ -257,7 +264,7 @@ class Brushbar {
 
 		const actualXSize = size.x + (this.element.offsetWidth - this.element.clientWidth);
 
-		const where = new Vector3(screenSize.x - actualXSize - hPadding, padding, 0);
+		const where = new Vector3(screenSize.x - actualXSize - hPadding - this.context.canvasOffset().x, padding + this.context.canvasOffset().y, 0);
 		this.element.style.left = `${where.x}px`;
 		this.element.style.top = `${where.y}px`;
 

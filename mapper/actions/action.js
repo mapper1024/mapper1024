@@ -27,4 +27,16 @@ class Action {
 	}
 }
 
-export { Action };
+class NullAction extends Action {
+	constructor(context) {
+		super(context, {});
+	}
+
+	empty() {
+		return true;
+	}
+
+	async perform() {}
+}
+
+export { Action, NullAction };

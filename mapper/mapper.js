@@ -143,7 +143,7 @@ class RenderContext {
 			}
 
 			if(this.mouseDragEvents[event.button] === undefined) {
-				const where = new Vector3(event.x, event.y, 0);
+				const where = this.mouseEventToCanvasPoint(event);
 
 				if(event.button === 0) {
 					const dragEvent = await this.brush.activate(where);
@@ -163,7 +163,7 @@ class RenderContext {
 		});
 
 		this.canvas.addEventListener("mouseup", async (event) => {
-			const where = new Vector3(event.x, event.y, 0);
+			const where = this.mouseEventToCanvasPoint(event);
 
 			this.endMouseButtonPress(event.button, where);
 			this.requestRedraw();
@@ -171,7 +171,7 @@ class RenderContext {
 
 		this.canvas.addEventListener("mousemove", async (event) => {
 			this.oldMousePosition = this.mousePosition;
-			this.mousePosition = new Vector3(event.x, event.y, 0);
+			this.mousePosition = this.mouseEventToCanvasPoint(event);
 
 			for(const button in this.mouseDragEvents) {
 				const mouseDragEvent = this.mouseDragEvents[button];
@@ -400,6 +400,14 @@ class RenderContext {
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	mouseEventToCanvasPoint(event) {
+		return new Vector3(event.offsetX, event.offsetY, 0);
+	}
+
+	canvasOffset() {
+		return new Vector3(this.canvas.offsetLeft, this.canvas.offsetTop, 0);
 	}
 
 	inNormalMode() {
@@ -1372,7 +1380,9 @@ class RenderContext {
 		}
 
 		// Debug help
-		infoLine("Press 'n' to set or edit an object's name.");
+		if(this.inNormalMode()) {
+			infoLine("Press 'n' to set or edit an object's name. ` to toggle debug mode.");
+		}
 		if(this.brush instanceof AddBrush) {
 			infoLine("Click to add terrain");
 		}
@@ -1385,7 +1395,8 @@ class RenderContext {
 		else if(this.brush instanceof AreaBrush) {
 			infoLine("Click to select an area. Hold Shift and click to delete part of that area.");
 		}
-		infoLine("Right click or arrow keys to move map. ` to toggle debug mode.");
+
+		infoLine("Right click or arrow keys to move map.");
 
 		if(this.isCalculatingDistance()) {
 			const a = this.distanceMarkers[1];

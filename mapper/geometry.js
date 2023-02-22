@@ -268,6 +268,10 @@ class Box3 {
 
 		return true;
 	}
+
+	normalize() {
+		return new Box3(Vector3.min(this.a, this.b), Vector3.max(this.a, this.b));
+	}
 }
 
 /** A set of connected vertices */
