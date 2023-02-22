@@ -58,3 +58,6 @@
 # v0.5.4
 * Large performance improvements
 * Many additional textures
+
+# FUTURE
+* Image exporting
