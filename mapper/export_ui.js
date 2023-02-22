@@ -10,7 +10,7 @@ class ExportUI {
 			if(event.key === "Escape") {
 				this.close();
 			}
-		}
+		};
 
 		this.preview = document.createElement("div");
 		this.preview.style.height = "50vh";
@@ -31,7 +31,7 @@ class ExportUI {
 
 		this.previewMapper.focus();
 
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			this.hooks.add("closed", resolve);
 		});
 	}
