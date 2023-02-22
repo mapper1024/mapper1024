@@ -5,48 +5,45 @@ class ExportUI {
 	constructor(context) {
 		this.context = context;
 		this.hooks = new HookContainer();
-
-		this.element = document.createElement("div");
-		this.element.onkeydown = (event) => {
-			if(event.key === "Escape") {
-				this.close();
-			}
-		};
-
-		this.infoSpan = document.createElement("span");
-		this.infoSpan.innerText = "Select an area to be exported as an image";
-		this.element.appendChild(this.infoSpan);
-
-		this.element.appendChild(document.createElement("hr"));
-
-		this.preview = document.createElement("div");
-		this.preview.style.height = "75vh";
-		this.preview.style.width = "75vw";
-
-		this.element.appendChild(this.preview);
-		this.element.focus();
 	}
 
 	async show() {
-		this.context.parent.appendChild(this.element);
-		this.previewMapper = this.context.mapper.render(this.preview, {
+		this.previewMapper = this.context.mapper.render(this.context.parent, {
 			mode: "preview",
 		});
 
-		const brush = new RectangleSelectBrush(this.previewMapper);
+		this.exportBrush = new RectangleSelectBrush(this.previewMapper);
+		this.previewMapper.changeBrush(this.exportBrush);
 
-		const update = async () => {
-			if(brush.box) {
-				const absoluteCanvasBox = brush.box.map(v => this.previewMapper.mapPointToAbsoluteCanvas(v).map(c => Math.floor(c)));
-				const absoluteCanvasBoxSize = absoluteCanvasBox.b.subtract(absoluteCanvasBox.a);
-				this.infoSpan.innerText = `${absoluteCanvasBoxSize.x}x${absoluteCanvasBoxSize.y} pixels at zoom level ${this.previewMapper.zoom}`;
-			}
-		}
+		const systemButtons = document.createElement("div");
+		systemButtons.setAttribute("class", "mapper1024_zoom_row");
+		this.previewMapper.brushbar.setSystemButtons(systemButtons);
 
-		brush.hooks.add("change_box", update);
-		this.previewMapper.hooks.add("changed_zoom", update);
+		const exportButton = document.createElement("button");
+		exportButton.setAttribute("class", "mapper1024_zoom_button");
+		exportButton.setAttribute("title", "Export [Shortcut: Enter]");
+		exportButton.innerText = "📷";
+		exportButton.disabled = true;
+		exportButton.onclick = async () => {
+			await this.exportImage();
+		};
+		systemButtons.appendChild(exportButton);
 
-		this.previewMapper.changeBrush(brush);
+		this.exportBrush.hooks.add("change_box", async (box) => {
+			exportButton.disabled = !box;
+		});
+
+		const cancelButton = document.createElement("button");
+		cancelButton.setAttribute("class", "mapper1024_zoom_button");
+		cancelButton.setAttribute("title", "Cancel [shortcut: Escape]");
+		cancelButton.innerText = "🗙";
+		cancelButton.onclick = () => {
+			this.close();
+		};
+		systemButtons.appendChild(cancelButton);
+
+		this.previewMapper.registerKeyboardShortcut((context, event) => event.key === "Escape", async () => this.close());
+		this.previewMapper.registerKeyboardShortcut((context, event) => event.key === "Enter" && !exportButton.disabled, async () => await this.exportImage());
 
 		this.previewMapper.setScrollOffset(this.context.scrollOffset);
 		await this.previewMapper.forceZoom(this.context.zoom);
@@ -58,9 +55,45 @@ class ExportUI {
 		});
 	}
 
+	async exportImage() {
+		const box = this.exportBrush.absoluteCanvasBox();
+
+		const exportMapper = this.context.mapper.render(document.createElement("div"), {
+			mode: "export",
+			exportBox: box,
+		});
+
+		await exportMapper.forceZoom(this.previewMapper.zoom);
+		exportMapper.setScrollOffset(box.a);
+
+		let calculated = false;
+
+		await new Promise((resolve) => {
+			exportMapper.hooks.add("calculated", () => {
+				if(exportMapper.zoom === this.previewMapper.zoom) {
+					calculated = true;
+				}
+			});
+
+			exportMapper.hooks.add("drawn", () => {
+				if(calculated) {
+					resolve();
+				}
+			});
+		});
+
+		const a = document.createElement("a");
+		a.href = exportMapper.canvas.toDataURL();
+		a.download = `Map export at ${new Date(Date.now()).toISOString()}.png`;
+		a.click();
+
+		exportMapper.disconnect();
+
+		this.close();
+	}
+
 	close() {
 		this.previewMapper.disconnect();
-		this.element.remove();
 		this.hooks.call("closed");
 	}
 }

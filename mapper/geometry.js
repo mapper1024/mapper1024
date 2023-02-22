@@ -272,6 +272,10 @@ class Box3 {
 	normalize() {
 		return new Box3(Vector3.min(this.a, this.b), Vector3.max(this.a, this.b));
 	}
+
+	size() {
+		return this.b.subtract(this.a);
+	}
 }
 
 /** A set of connected vertices */

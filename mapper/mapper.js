@@ -64,8 +64,6 @@ class RenderContext {
 		this.mousePosition = Vector3.ZERO;
 
 		this.debugMode = false;
-		this.calculatedOnce = false;
-		this.drawnOnce = false;
 
 		this.scrollDelta = 0;
 
@@ -238,11 +236,11 @@ class RenderContext {
 				}
 			};
 
-			if(this.inExportMode()) {
+			if(this.inPreviewMode()) {
 				if(await handlePanKeys());
 				else if(await handleOrientationKeys());
 			}
-			else {
+			else if(this.inNormalMode()) {
 				if(await handlePanKeys());
 				else if(await handleOrientationKeys());
 				else if(this.isKeyDown("Control") && event.key === "z") {
@@ -416,6 +414,10 @@ class RenderContext {
 
 	inExportMode() {
 		return this.options.mode === "export";
+	}
+
+	inPreviewMode() {
+		return this.options.mode === "preview";
 	}
 
 	inControlledMode() {
@@ -996,9 +998,15 @@ class RenderContext {
 	 * This requires a full redraw.
 	 */
 	recalculateSize() {
-		// Keep the canvas matching the parent size.
-		this.canvas.width = this.parent.clientWidth;
-		this.canvas.height = this.parent.clientHeight;
+		if(this.inExportMode()) {
+			this.canvas.width = this.options.exportBox.size().x;
+			this.canvas.height = this.options.exportBox.size().y;
+		}
+		else {
+			// Keep the canvas matching the parent size.
+			this.canvas.width = this.parent.clientWidth;
+			this.canvas.height = this.parent.clientHeight;
+		}
 
 		this.selectionCanvas.width = this.canvas.width;
 		this.selectionCanvas.height = this.canvas.height;
@@ -1343,9 +1351,7 @@ class RenderContext {
 			}
 		}
 
-		if(!this.calculatedOnce) {
-			this.calculatedOnce = true;
-		}
+		this.hooks.call("calculated");
 
 		this.requestRedraw();
 	}
@@ -1805,12 +1811,7 @@ class RenderContext {
 			await this.drawVersion();
 		}
 
-		if(this.calculatedOnce) {
-			if(!this.drawnOnce) {
-				this.drawnOnce = true;
-				await this.hooks.call("drawn_once");
-			}
-		}
+		await this.hooks.call("drawn");
 	}
 
 	async * visibleObjectNodes() {

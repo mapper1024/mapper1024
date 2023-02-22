@@ -138,14 +138,13 @@ class Brushbar {
 
 			updateSize(this.context.brush);
 
-			this.element.appendChild(document.createElement("br"));
-
 			this.context.hooks.add("brush_size_change", updateSize);
 			this.context.hooks.add("changed_brush", updateSize);
 			this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
 			this.context.hooks.add("requested_zoom", () => updateSize(this.context.brush));
 
 			if(this.context.inNormalMode()) {
+				this.element.appendChild(document.createElement("br"));
 
 				const brushSizeRow = document.createElement("div");
 				brushSizeRow.setAttribute("class", "mapper1024_zoom_row");
@@ -227,9 +226,9 @@ class Brushbar {
 					const button = layerButton(layer);
 					layerButtonContainer.appendChild(button);
 				}
-			}
 
-			this.element.appendChild(document.createElement("hr"));
+				this.element.appendChild(document.createElement("hr"));
+			}
 		}
 
 		this.brushStrip = document.createElement("span");
