@@ -228,6 +228,10 @@ In this development period, I implemented multi-tile terrain textures. This allo
 
 With the remaining time in the development period, I worked on performance optimization. I realized through performance analysis that much render time was being taken in rendering focus tiles that aren't really necessary to understand the map, so I also implemented a significant performance boost: focus tiles no longer update during activity (i.e. panning the map or drawing on the map). This still displays all relevant information, but as the map is panned or drawn on the focus tiles do not display until the action is complete. This makes the user interface much snappier.
 
+# Through 2023-03-12
+
+I put some development toward refactoring the action system to support custom keybinds in the future, but managing keyboard input in a generic way is difficult using vanilla Javascript. I decided to postpone this until after the project development period.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
