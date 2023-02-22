@@ -1,4 +1,5 @@
 import { HookContainer } from "./hook_container.js";
+import { RectangleSelectBrush } from "./brushes/index.js";
 
 class ExportUI {
 	constructor(context) {
@@ -25,6 +26,8 @@ class ExportUI {
 		this.previewMapper = this.context.mapper.render(this.preview, {
 			mode: "preview",
 		});
+
+		this.previewMapper.changeBrush(new RectangleSelectBrush(this.previewMapper));
 
 		this.previewMapper.setScrollOffset(this.context.scrollOffset);
 		await this.previewMapper.forceZoom(this.context.zoom);

@@ -120,26 +120,26 @@ class Brushbar {
 
 		this.element.appendChild(document.createElement("hr"));
 
-		const size = document.createElement("span");
-		this.element.appendChild(size);
-
-		const updateSize = (brush) => {
-			if(brush === this.context.brush) {
-				size.innerText = `Brush radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
-				zoomLabel.innerText = `Zoom ${this.context.requestedZoom}/${this.context.maxZoom}\n1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}m`;
-			}
-		};
-
-		updateSize(this.context.brush);
-
-		this.element.appendChild(document.createElement("br"));
-
-		this.context.hooks.add("brush_size_change", updateSize);
-		this.context.hooks.add("changed_brush", updateSize);
-		this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
-		this.context.hooks.add("requested_zoom", () => updateSize(this.context.brush));
-
 		if(this.context.inNormalMode()) {
+
+			const size = document.createElement("span");
+			this.element.appendChild(size);
+
+			const updateSize = (brush) => {
+				if(brush === this.context.brush) {
+					size.innerText = `Brush radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
+					zoomLabel.innerText = `Zoom ${this.context.requestedZoom}/${this.context.maxZoom}\n1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}m`;
+				}
+			};
+
+			updateSize(this.context.brush);
+
+			this.element.appendChild(document.createElement("br"));
+
+			this.context.hooks.add("brush_size_change", updateSize);
+			this.context.hooks.add("changed_brush", updateSize);
+			this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
+			this.context.hooks.add("requested_zoom", () => updateSize(this.context.brush));
 
 			const brushSizeRow = document.createElement("div");
 			brushSizeRow.setAttribute("class", "mapper1024_zoom_row");
