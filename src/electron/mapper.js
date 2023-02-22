@@ -152,7 +152,7 @@ async function loadMap(backend, failToBlank) {
 	saveAsButton.innerText = "💾...";
 	saveAsButton.setAttribute("title", "Save map as... [shortcut: Control+s]");
 	saveAsButton.onclick = async () => {
-		saveAs();
+		await saveAs();
 		renderedMap.focus();
 	};
 	systemButtons.appendChild(saveAsButton);

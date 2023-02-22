@@ -1,11 +1,12 @@
 import { HookContainer } from "./hook_container.js";
 import { Vector3, Box3, dirs, dirKeys, dirAngles, normalizedDirs } from "./geometry.js";
-import { asyncFrom, mod } from "./utils.js";
+import { asyncFrom, mod, merge } from "./utils.js";
 import { DeleteBrush, AddBrush, SelectBrush, DistancePegBrush, AreaBrush } from "./brushes/index.js";
 import { PanEvent } from "./drag_events/index.js";
 import { Selection } from "./selection.js";
 import { ChangeNameAction, MergeAction } from "./actions/index.js";
 import { Brushbar } from "./brushbar.js";
+import { ExportUI } from "./export_ui.js";
 import { MegaTile, megaTileSize } from "./mega_tile.js";
 import { NodeRender, tileSize } from "./node_render.js";
 import { style } from "./style.js";
@@ -20,9 +21,13 @@ class RenderContext {
 	/** Construct the render context for the specified mapper in a specific parent element.
 	 * Will set up event listeners and build the initial UI.
 	 */
-	constructor(parent, mapper) {
+	constructor(parent, mapper, options) {
 		this.parent = parent;
 		this.mapper = mapper;
+
+		this.options = merge({
+			mode: "normal",
+		}, options);
 
 		this.alive = true;
 
@@ -59,6 +64,8 @@ class RenderContext {
 		this.mousePosition = Vector3.ZERO;
 
 		this.debugMode = false;
+		this.calculatedOnce = false;
+		this.drawnOnce = false;
 
 		this.scrollDelta = 0;
 
@@ -192,113 +199,138 @@ class RenderContext {
 					}
 				}
 			}
-			if(this.isKeyDown("Control")) {
-				if(event.key === "z") {
+
+			const handlePanKeys = async () => {
+				if(event.key === "ArrowUp") {
+					this.setScrollOffset(this.scrollOffset.subtract(new Vector3(0, this.screenSize().y / 3, 0)).round());
+					return true;
+				}
+				else if(event.key === "ArrowDown") {
+					this.setScrollOffset(this.scrollOffset.add(new Vector3(0, this.screenSize().y / 3, 0)).round());
+					return true;
+				}
+				else if(event.key === "ArrowLeft") {
+					this.setScrollOffset(this.scrollOffset.subtract(new Vector3(this.screenSize().x / 3, 0, 0)).round());
+					return true;
+				}
+				else if(event.key === "ArrowRight") {
+					this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)).round());
+					return true;
+				}
+			};
+
+			const handleOrientationKeys = async () => {
+				if(this.isKeyDown("Control")) {
+					if(event.key === "c") {
+						await this.resetOrientation();
+						return true;
+					}
+					else if(event.key === "=" || event.key === "+") {
+						this.requestZoomChangeDelta(-1);
+						event.preventDefault();
+						return true;
+					}
+					else if(event.key === "-") {
+						this.requestZoomChangeDelta(1);
+						event.preventDefault();
+						return true;
+					}
+				}
+			};
+
+			if(this.inExportMode()) {
+				if(await handlePanKeys());
+				else if(await handleOrientationKeys());
+			}
+			else {
+				if(await handlePanKeys());
+				else if(await handleOrientationKeys());
+				else if(this.isKeyDown("Control") && event.key === "z") {
 					await this.undo();
 				}
-				else if(event.key === "y") {
+				else if(this.isKeyDown("Control") && event.key === "y") {
 					await this.redo();
 				}
+				else if(this.isKeyDown("Control") && event.key === "e") {
+					this.openExportModal();
+				}
+				else if(event.key === "1") {
+					this.changeBrush(this.brushes.peg1);
+				}
+				else if(event.key === "2") {
+					this.changeBrush(this.brushes.peg2);
+				}
+				else if(event.key === "d") {
+					this.changeBrush(this.brushes["delete"]);
+				}
+				else if(event.key === "a") {
+					this.changeBrush(this.brushes.add);
+				}
+				else if(event.key === "e") {
+					this.changeBrush(this.brushes.extend);
+				}
+				else if(event.key === "s") {
+					this.changeBrush(this.brushes.select);
+				}
 				else if(event.key === "c") {
-					await this.resetOrientation();
+					this.changeBrush(this.brushes.area);
 				}
-				else if(event.key === "=" || event.key === "+") {
-					this.requestZoomChangeDelta(-1);
-					event.preventDefault();
+				else if(event.key === "C") {
+					if(this.brush === this.brushes.area) {
+						this.brushes.area.reset();
+					}
 				}
-				else if(event.key === "-") {
-					this.requestZoomChangeDelta(1);
-					event.preventDefault();
+				else if(event.key === "m") {
+					await this.performAction(new MergeAction(this, {nodeRefs: Array.from(this.selection.getOrigins())}), true);
 				}
-			}
-			else if(event.key === "ArrowUp") {
-				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(0, this.screenSize().y / 3, 0)).round());
-			}
-			else if(event.key === "ArrowDown") {
-				this.setScrollOffset(this.scrollOffset.add(new Vector3(0, this.screenSize().y / 3, 0)).round());
-			}
-			else if(event.key === "ArrowLeft") {
-				this.setScrollOffset(this.scrollOffset.subtract(new Vector3(this.screenSize().x / 3, 0, 0)).round());
-			}
-			else if(event.key === "ArrowRight") {
-				this.setScrollOffset(this.scrollOffset.add(new Vector3(this.screenSize().x / 3, 0, 0)).round());
-			}
-			else if(event.key === "1") {
-				this.changeBrush(this.brushes.peg1);
-			}
-			else if(event.key === "2") {
-				this.changeBrush(this.brushes.peg2);
-			}
-			else if(event.key === "d") {
-				this.changeBrush(this.brushes["delete"]);
-			}
-			else if(event.key === "a") {
-				this.changeBrush(this.brushes.add);
-			}
-			else if(event.key === "e") {
-				this.changeBrush(this.brushes.extend);
-			}
-			else if(event.key === "s") {
-				this.changeBrush(this.brushes.select);
-			}
-			else if(event.key === "c") {
-				this.changeBrush(this.brushes.area);
-			}
-			else if(event.key === "C") {
-				if(this.brush === this.brushes.area) {
-					this.brushes.area.reset();
+				else if(event.key === "l") {
+					const layerArray = Array.from(this.mapper.backend.layerRegistry.getLayers());
+					const layerIdArray = layerArray.map(layer => layer.id);
+					this.setCurrentLayer(layerArray[(layerIdArray.indexOf(this.getCurrentLayer().id) + 1) % layerArray.length]);
 				}
-			}
-			else if(event.key === "m") {
-				await this.performAction(new MergeAction(this, {nodeRefs: Array.from(this.selection.getOrigins())}), true);
-			}
-			else if(event.key === "l") {
-				const layerArray = Array.from(this.mapper.backend.layerRegistry.getLayers());
-				const layerIdArray = layerArray.map(layer => layer.id);
-				this.setCurrentLayer(layerArray[(layerIdArray.indexOf(this.getCurrentLayer().id) + 1) % layerArray.length]);
-			}
-			else if(event.key === "`") {
-				this.debugMode = !this.debugMode;
-			}
-			else if(event.key === "n") {
-				const nodeRef = await this.hoverSelection.getParent();
-				if(nodeRef) {
-					const where = (await this.getNamePosition(nodeRef)).center.subtract(this.scrollOffset);
+				else if(event.key === "`") {
+					this.debugMode = !this.debugMode;
+				}
+				else if(event.key === "n") {
+					const nodeRef = await this.hoverSelection.getParent();
+					if(nodeRef) {
+						const where = (await this.getNamePosition(nodeRef)).center.subtract(this.scrollOffset);
 
-					const input = document.createElement("input");
-					input.value = (await nodeRef.getPString("name")) || "";
+						const input = document.createElement("input");
+						input.value = (await nodeRef.getPString("name")) || "";
 
-					input.style.position = "absolute";
-					input.style.left = `${where.x}px`;
-					input.style.top = `${where.y}px`;
-					input.style.fontSize = "16px";
+						input.style.position = "absolute";
+						input.style.left = `${where.x}px`;
+						input.style.top = `${where.y}px`;
+						input.style.fontSize = "16px";
 
-					const cancel = () => {
-						input.removeEventListener("blur", cancel);
-						input.remove();
-						this.focus();
-					};
+						const cancel = () => {
+							input.removeEventListener("blur", cancel);
+							input.remove();
+							this.focus();
+						};
 
-					const submit = async () => {
-						this.performAction(new ChangeNameAction(this, {nodeRef: nodeRef, name: input.value}), true);
-						cancel();
-					};
-
-					input.addEventListener("blur", cancel);
-
-					input.addEventListener("keyup", (event) => {
-						if(event.key === "Escape") {
+						const submit = async () => {
+							this.performAction(new ChangeNameAction(this, {nodeRef: nodeRef, name: input.value}), true);
 							cancel();
-						}
-						else if(event.key === "Enter") {
-							submit();
-						}
-						event.preventDefault();
-					});
+						};
 
-					this.parent.appendChild(input);
-					input.focus();
-					event.preventDefault();
+						input.addEventListener("blur", cancel);
+
+						input.addEventListener("keyup", (event) => {
+							if(event.key === "Escape") {
+								cancel();
+							}
+							else if(event.key === "Enter") {
+								submit();
+							}
+							event.preventDefault();
+						});
+
+						this.parent.appendChild(input);
+						input.focus();
+						event.preventDefault();
+					}
 				}
 			}
 			this.requestRedraw();
@@ -360,11 +392,37 @@ class RenderContext {
 
 		window.requestAnimationFrame(this.redrawLoop.bind(this));
 		setTimeout(this.recalculateLoop.bind(this), 10);
-		setTimeout(this.recalculateSelection.bind(this), 10);
-		setTimeout(this.toggleSelectionCanvas.bind(this), this.selectionCanvasToggleTime);
+
+		if(this.inNormalMode()) {
+			setTimeout(this.recalculateSelection.bind(this), 10);
+			setTimeout(this.toggleSelectionCanvas.bind(this), this.selectionCanvasToggleTime);
+		}
 
 		this.changeBrush(this.brushes.add);
 		this.setCurrentLayer(this.getCurrentLayer());
+	}
+
+	inNormalMode() {
+		return this.options.mode === "normal";
+	}
+
+	inExportMode() {
+		return this.options.mode === "export";
+	}
+
+	inControlledMode() {
+		return this.options.mode === "normal" || this.options.mode === "preview";
+	}
+
+	async openExportModal() {
+		this.canvas.style.display = "none";
+		this.brushbar.element.style.display = "none";
+		const exportUI = new ExportUI(this);
+		await exportUI.show();
+		this.brushbar.element.style.display = "";
+		this.canvas.style.display = "";
+		this.clearKeysDown();
+		this.focus();
 	}
 
 	toggleSelectionCanvas() {
@@ -1277,6 +1335,10 @@ class RenderContext {
 			}
 		}
 
+		if(!this.calculatedOnce) {
+			this.calculatedOnce = true;
+		}
+
 		this.requestRedraw();
 	}
 
@@ -1710,25 +1772,34 @@ class RenderContext {
 		await this.drawNodes();
 		await this.drawLabels();
 
-		if(this.isCalculatingDistance()) {
-			await this.drawPegs();
+		if(this.inControlledMode()) {
+			if(this.isCalculatingDistance()) {
+				await this.drawPegs();
+			}
+			await this.drawBrush();
+
+			if(this.msSinceLastZoomRequest() < this.zoomRequestTimeout) {
+				await this.drawZoom();
+				this.requestRedraw();
+			}
+
+			await this.drawHelp();
+			await this.drawScale();
+			await this.drawInfoMessages();
+
+			if(this.debugMode) {
+				await this.drawDebug();
+			}
+
+			await this.drawVersion();
 		}
-		await this.drawBrush();
 
-		if(this.msSinceLastZoomRequest() < this.zoomRequestTimeout) {
-			await this.drawZoom();
-			this.requestRedraw();
+		if(this.calculatedOnce) {
+			if(!this.drawnOnce) {
+				this.drawnOnce = true;
+				await this.hooks.call("drawn_once");
+			}
 		}
-
-		await this.drawHelp();
-		await this.drawScale();
-		await this.drawInfoMessages();
-
-		if(this.debugMode) {
-			await this.drawDebug();
-		}
-
-		await this.drawVersion();
 	}
 
 	async * visibleObjectNodes() {
@@ -1872,8 +1943,8 @@ class Mapper {
 	 * @returns {RenderContext}
 	 * Example: const renderContext = mapper.render(document.getElementById("mapper_div"))
 	 */
-	render(element) {
-		return new RenderContext(element, this);
+	render(element, options={}) {
+		return new RenderContext(element, this, options);
 	}
 
 	async insertNode(point, nodeType, options) {
