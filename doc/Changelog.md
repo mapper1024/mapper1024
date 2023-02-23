@@ -59,5 +59,6 @@
 * Large performance improvements
 * Many additional textures
 
-# FUTURE
+# v0.6.1
 * Image exporting
+* User interface readability improvements
