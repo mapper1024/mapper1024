@@ -1403,16 +1403,6 @@ class RenderContext {
 		}
 
 		infoLine("Right click or arrow keys to move map.");
-
-		if(this.isCalculatingDistance()) {
-			const a = this.distanceMarkers[1];
-			const b = this.distanceMarkers[2];
-
-			if(a && b) {
-				const meters = this.mapper.unitsToMeters(a.subtract(b).length());
-				infoLine(`Distance between markers: ${Math.floor(meters + 0.5)}m (${Math.floor(meters / 1000 + 0.5)}km)`);
-			}
-		}
 	}
 
 	async drawDebug() {

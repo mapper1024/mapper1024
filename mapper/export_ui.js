@@ -22,7 +22,7 @@ class ExportUI {
 		const exportButton = document.createElement("button");
 		exportButton.setAttribute("class", "mapper1024_zoom_button");
 		exportButton.setAttribute("title", "Export [Shortcut: Enter]");
-		exportButton.innerText = "📷";
+		exportButton.innerText = "📷 Export...";
 		exportButton.disabled = true;
 		exportButton.onclick = async () => {
 			await this.exportImage();
@@ -36,7 +36,7 @@ class ExportUI {
 		const cancelButton = document.createElement("button");
 		cancelButton.setAttribute("class", "mapper1024_zoom_button");
 		cancelButton.setAttribute("title", "Cancel [shortcut: Escape]");
-		cancelButton.innerText = "🗙";
+		cancelButton.innerText = "🗙 Cancel";
 		cancelButton.onclick = () => {
 			this.close();
 		};

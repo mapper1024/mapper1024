@@ -32,8 +32,30 @@ class DistancePegBrush extends Brush {
 		context.fillText(positionText, position.x - context.measureText(positionText).width / 2, position.y + 16);
 	}
 
+	async displaySidebar(brushbar, container) {
+		const make = async () => {
+			const a = this.context.distanceMarkers[1];
+			const b = this.context.distanceMarkers[2];
+
+			if(a && b) {
+				const meters = this.context.mapper.unitsToMeters(a.subtract(b).length());
+				container.innerText = `Distance between markers: ${Math.floor(meters + 0.5)}m (${Math.floor(meters / 1000 + 0.5)}km)`;
+			}
+			else if(a || b) {
+				container.innerText = "Place the other marker to calculate distance";
+			}
+			else {
+				container.innerText = "Place the first marker to calculate distance";
+			}
+		};
+
+		await make();
+		this.hooks.add("context_distance_marker_update", make);
+	}
+
 	async activate(where) {
 		this.context.distanceMarkers[this.n] = this.context.canvasPointToMap(where);
+		this.context.hooks.call("distance_marker_update", this.n, where);
 	}
 }
 

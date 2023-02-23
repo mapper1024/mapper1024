@@ -28,7 +28,7 @@ class Brushbar {
 			const exportButton = document.createElement("button");
 			exportButton.setAttribute("class", "mapper1024_zoom_button");
 			exportButton.setAttribute("title", "Export [shortcut: Control+e]");
-			exportButton.innerText = "📷";
+			exportButton.innerText = "📷 Export as image...";
 			exportButton.onclick = () => {
 				this.context.openExportModal();
 			};
@@ -44,7 +44,7 @@ class Brushbar {
 
 			const undo = document.createElement("button");
 			undo.setAttribute("class", "mapper1024_zoom_button");
-			undo.innerText = "⟲";
+			undo.innerText = "⟲ Undo";
 			undo.setAttribute("title", "Undo [shortcut: Control+z]");
 			undo.onclick = async () => {
 				await this.context.undo();
@@ -55,9 +55,16 @@ class Brushbar {
 			const undoStatus = document.createElement("span");
 			undoRow.appendChild(undoStatus);
 
+			const separator = document.createElement("span");
+			separator.innerText = "|";
+			undoRow.appendChild(separator);
+
+			const redoStatus = document.createElement("span");
+			undoRow.appendChild(redoStatus);
+
 			const redo = document.createElement("button");
 			redo.setAttribute("class", "mapper1024_zoom_button");
-			redo.innerText = "⟳";
+			redo.innerText = "⟳ Redo";
 			redo.setAttribute("title", "Redo [shortcut: Control+y]");
 			redo.onclick = async () => {
 				await this.context.redo();
@@ -66,7 +73,8 @@ class Brushbar {
 			undoRow.appendChild(redo);
 
 			const updateUndoStatus = () => {
-				undoStatus.innerText = `${this.context.undoStack.length} --- ${this.context.redoStack.length}`;
+				undoStatus.innerText = `${this.context.undoStack.length}`;
+				redoStatus.innerText = `${this.context.redoStack.length}`;
 				undo.disabled = this.context.undoStack.length === 0;
 				redo.disabled = this.context.redoStack.length === 0;
 			};
