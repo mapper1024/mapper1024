@@ -234,6 +234,8 @@ I put some development toward refactoring the action system to support custom ke
 
 I implemented image exporting, a valuable feature so that maps can be used as illustrations or images outside of the tool itself. It works fairly straightforwardly, by opening a modal copy of the rendered map with a special brush used to select an area. Once the area is selected, the user can choose to export it, which loads another copy of the rendered map without any UI elements, navigates to the selected area at the selected zoom level, and exports the rendered canvas to a PNG image which is then downloaded by the browser.
 
+Version 0.6.1 was released with image exporting and some small user interface improvements: making the undo and redo buttons more readable and making distance calculation appear in the brushbar.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
