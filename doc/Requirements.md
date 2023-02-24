@@ -264,7 +264,7 @@ The development environment assumes a UNIX-like system for development scripts (
 The sample online demo server is written in Python using [Flask](https://flask.palletsprojects.com) to serve the web files and [Pipenv](https://pypi.org/project/pipenv/) to manage dependencies. The sample online demo server is used for development purposes only, as a test of the ability of the mapping tool to be embedded in a web page and as a test of the online demo deployment of the software.
 No IDE is assumed; I have used [KDevelop](https://www.kdevelop.org/).
 
-## TODO: System Models
+## System Models
 This section includes diagrams showing relationships between major system components and the environment. It may include one or more of the following:
 
 ### Context Models
