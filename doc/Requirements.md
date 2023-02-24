@@ -11,7 +11,7 @@ The mapping tool software is for lay users such as authors, storytellers, and ro
 ### Human Resources
 As part of the Honors division of this project, a group of testers should receive incremental releases to give feedback on as major milestones are developed: the software is developed for myself, them, and anyone else who may find the tool useful.
 
-## User Requirements (written for customers, may need user stories and/or use case diagrams)
+## User Requirements
 
 ### User Objectives
 The mapping tool software MUST allow users (e.g. authors or other storytellers) to create custom (e.g. fictional) maps for their worlds or environments. These maps may be used to organize world-building, create book illustrations, or showcase a story, to list a few possibilities.
