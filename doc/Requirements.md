@@ -173,7 +173,7 @@ To avoid creating specific images for each configuration of terrain, the map gra
 ## Interface Requirements
 
 ### User Interfaces
-The primary interface into the system that MUST exist is the map editing UI. This provides controls to edit existing maps and a display of the map in editing. An interface to export maps as image files SHOULD also exist. The primary interface MUST be supplemented with platform-specific controls (i.e. keyboard shortcuts or menu options) to create new maps, save maps, and otherwise manage multiple maps---the exact behavior depends on the platform and system the mapping tool is running on. Basic command-line options MUST be supported to load existing maps.
+The primary interface into the system that MUST exist is the map editing UI. This provides controls to edit existing maps and a display of the map in editing. An interface to export maps as image files SHOULD also exist (see [#88](https://github.com/mapper1024/mapper1024/issues/88)). The primary interface MUST be supplemented with platform-specific controls (i.e. keyboard shortcuts or menu options) to create new maps, save maps, and otherwise manage multiple maps---the exact behavior depends on the platform and system the mapping tool is running on. Basic command-line options MUST be supported to load existing maps.
 
 #### Map Editing UI
 A representation of the map SHOULD be rendered onto the screen with editing controls. The user can zoom in and out of varying levels of detail and scale. The scale the map is being rendered at SHOULD be displayed on screen. The position of the cursor SHOULD correspond to a position in the map, which SHOULD be displayed to the user.
