@@ -75,6 +75,15 @@ Users should have a way to easily transfer pieces or objects of their maps to ot
 * Risks: Copying objects between maps may require additional subsystems for inter-process communication or OS clipboard methods.
 * Criticality: LOW
 
+### DONE: The user should be able to discover the physical area covered by an arbitrary area on the map
+The user should be able to discover the physical area (such as in square kilometers) of an arbitrary area on the map.
+This may be used to keep track of in-world dimensions of map objects, such as how much land area a kingdom owns, or how big a lake is.
+
+* Issues: [#79](https://github.com/mapper1024/mapper1024/issues/79)
+* Inputs: User indication of an area on the rendered map.
+* Outputs: Display of the in-world area of the selected area.
+* Criticality: LOW
+
 ### DONE: The software should provide help to users
 Users need assistance with using the software beyond simple documentation. Help may be in the form of help text, interactive help, or even a tutorial.
 
@@ -194,6 +203,7 @@ A representation of the map SHOULD be rendered onto the screen with editing cont
   * Deleting objects from the map
 * Naming objects on the map
 * Discovering distance between points on the map
+* Calculating in-world area of an area on the rendered map
 
 ### Hardware Interfaces
 The mapping tool MUST interface with the mouse for drawing the map and selecting options, and SHOULD interface with the keyboard for faster editing. The mapping tool MUST support the "trackpad" model of mouse, for laptop users. The mapping tool may support touchscreen interfaces with gestures as a WISH-LIST feature.
