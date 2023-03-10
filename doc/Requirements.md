@@ -38,18 +38,6 @@ The user community consists of people with all levels of computer expertise; the
 
 ## Functional or System Requirements
 
-### The map must graphically satisfy median user expectations
-The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
-
-This may be judged by achieving an average middle-or-above (i.e. *Fair* or better) score on a [Likert scale](https://www.simplypsychology.org/likert-scale.html) user survey of the appearance of the map during editing. Questions should cover aesthetics and readability/usability.
-
-* Inputs: The map created by the user.
-* Outputs: Algorithmically rendered graphics.
-* Issues: [#31](https://github.com/mapper1024/mapper1024/issues/31)
-* Risks: Failure to prioritize can result in getting bogged down messing with graphics. Performance of the algorithmic renderer must also be maintained.
-* Dependencies: Algorithmic rendering, multiple layers, explicit nodes, paths
-* Criticality: HIGH, users need things to look OK
-
 ### Maps should be renderable in arbitrary styles
 Maps should be able to be rendered in different styles (e.g. like a Tolkien map, or like a geographical survey). Renderers should be easily swappable.
 
@@ -74,6 +62,18 @@ Users should have a way to easily transfer pieces or objects of their maps to ot
 * Issues: [#14](https://github.com/mapper1024/mapper1024/issues/14)
 * Risks: Copying objects between maps may require additional subsystems for inter-process communication or OS clipboard methods.
 * Criticality: LOW
+
+### DONE: The map must graphically satisfy median user expectations
+The rendered map must be vaguely realistic and smooth so that users can understand what they are looking at and be comfortable editing their maps.
+
+This may be judged by achieving an average middle-or-above (i.e. *Fair* or better) score on a [Likert scale](https://www.simplypsychology.org/likert-scale.html) user survey of the appearance of the map during editing. Questions should cover aesthetics and readability/usability.
+
+* Inputs: The map created by the user.
+* Outputs: Algorithmically rendered graphics.
+* Issues: [#31](https://github.com/mapper1024/mapper1024/issues/31)
+* Risks: Failure to prioritize can result in getting bogged down messing with graphics. Performance of the algorithmic renderer must also be maintained.
+* Dependencies: Algorithmic rendering, multiple layers, explicit nodes, paths
+* Criticality: HIGH, users need things to look OK
 
 ### DONE: The user should be able to discover the physical area covered by an arbitrary area on the map
 The user should be able to discover the physical area (such as in square kilometers) of an arbitrary area on the map.
