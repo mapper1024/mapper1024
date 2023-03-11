@@ -199,6 +199,7 @@ A representation of the map SHOULD be rendered onto the screen with editing cont
 * Map actions (with layer selection)
   * Drawing objects on the map at various sizes and of various types
   * Selecting objects on the map
+  * Merging objects on the map
   * Moving objects on the map
   * Deleting objects from the map
 * Naming objects on the map
