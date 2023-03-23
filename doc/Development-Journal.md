@@ -236,6 +236,12 @@ I implemented image exporting, a valuable feature so that maps can be used as il
 
 Version 0.6.1 was released with image exporting and some small user interface improvements: making the undo and redo buttons more readable and making distance calculation appear in the brushbar.
 
+# Through 2023-03-26
+
+I put much time toward the Honors project report and preparing to present this project.
+
+I also filled out more unit tests for the glue of the program---pieces such as the Line3 class and utility functions.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

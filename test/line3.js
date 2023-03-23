@@ -16,6 +16,8 @@ describe("Line3", function() {
 		expect(a.map((v) => v.map((a) => a - 1))).to.deep.equal(new Line3(new Vector3(1, 3, 5), new Vector3(5, 11, 17)));
 		expect(a.subtract(new Vector3(1, 1, 1))).to.deep.equal(new Line3(new Vector3(1, 3, 5), new Vector3(5, 11, 17)));
 		expect(a.add(new Vector3(1, 1, 1))).to.deep.equal(new Line3(new Vector3(3, 5, 7), new Vector3(7, 13, 19)));
+		expect(a.multiplyScalar(2)).to.deep.equal(new Line3(new Vector3(4, 8, 12), new Vector3(12, 24, 36)));
+		expect(a.divideScalar(0.5)).to.deep.equal(new Line3(new Vector3(4, 8, 12), new Vector3(12, 24, 36)));
 	});
 
 	it("should convert to a vector", function() {

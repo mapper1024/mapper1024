@@ -67,4 +67,9 @@ describe("Vector3", function() {
 		const a = new Vector3(14, 28, -42);
 		expect(a.map((v) => v / 7)).to.deep.equal(new Vector3(2, 4, -6));
 	});
+
+	it("should have a removable z coordinate", function() {
+		const a = new Vector3(1, 2, 3);
+		expect(a.noZ()).to.deep.equal(new Vector3(1, 2, 0));
+	});
 });

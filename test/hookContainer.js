@@ -71,5 +71,26 @@ describe("HookContainer", function() {
 		await hooks.call("test", 4);
 		expect(counter).to.equal(14);
 	});
+
+	it("should have catchall hooks", async function() {
+		let counter = 0;
+		const hooks = new HookContainer();
+
+		function f(n) {
+			counter = counter + n;
+		}
+
+		function catchall(hookname, ...args) {
+			if(hookname === "test") {
+				counter = counter + args[0] * 2;
+			}
+		}
+
+		hooks.add("test", f);
+		hooks.add("", catchall);
+
+		await hooks.call("test", 2);
+		expect(counter).to.equal(6);
+	});
 });
 
