@@ -17,6 +17,8 @@ sql.js backend | Database backend
 SQLite3 <-> sql.js compatibility | Database backends
 Vector3 | Geometry class
 
+To run the unit tests, simply run the command: `yarn test` which will invoke electron-mocha and run all of the unit tests. The unit tests are required by the Github Actions workflow before a release can be made, and unit test failures will show up in pull requests and on any branch that gets pushed to Github.
+
 # Component Tests
 # System Tests
 # User Tests
