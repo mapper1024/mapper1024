@@ -238,9 +238,9 @@ Version 0.6.1 was released with image exporting and some small user interface im
 
 # Through 2023-03-26
 
-I put much time toward the Honors project report and preparing to present this project.
+I put time toward the Honors project report and preparing to present this project at SURC on April 5th.
 
-I also filled out more unit tests for the glue of the program---pieces such as the Line3 class and utility functions.
+I also filled out more unit tests for the glue of the program---pieces such as the Line3 class and utility functions. I began the test plan document, which will describe unit tests as well as scripted tests to ensure each requirement is correctly fulfilled.
 
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
