@@ -37,3 +37,16 @@ To run the unit tests, simply run the command: `yarn test` which will invoke ele
 10. EXPECT: the area should come out to roughly ~7km², depending on how close to the actual shape of the island you selected.
 11. Hold shift and click and drag across your selection.
 12. EXPECT: The selection you drag over should be removed, and the calculated area decrease accordingly.
+
+### The user should be able to discover the distance between arbitrary points on the map
+
+1. Load the sample map
+2. Select the "distance peg (1)" brush (press '1')
+3. Click once on the map near the "House of the Elves"
+4. EXPECT: The first distance peg will be placed on the map, indicating its position and coordinates.
+5. Select the "distance peg (2)" brush (press '2')
+6. Click once on the map near the "King's Castle"
+7. EXPECT: The second distance peg will be placed on the map.
+8. EXPECT: The calculated distance between the two pegs will be roughly 1.3km, indicated on a line between the two points as well as in the palette.
+9. Zoom lower and higher than the initial zoom level.
+10. EXPECT: The calculated distance will never change between zoom levels, and the distance pegs will remain on top of where they were placed.
