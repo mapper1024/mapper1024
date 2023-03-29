@@ -50,3 +50,15 @@ To run the unit tests, simply run the command: `yarn test` which will invoke ele
 8. EXPECT: The calculated distance between the two pegs will be roughly 1.3km, indicated on a line between the two points as well as in the palette.
 9. Zoom lower and higher than the initial zoom level.
 10. EXPECT: The calculated distance will never change between zoom levels, and the distance pegs will remain on top of where they were placed.
+
+### The map must have a representation of explicit objects
+
+1. Load the sample map
+2. EXPECT: Explicit objects such as the "King's Boulder" and the "Great Tree" will be displayed standing out from normal terrain as explicit, specific objects.
+3. Select an explicit object type such as "Tree" (in the add brush menu, Forest -> Tree).
+4. Place a tree on the map.
+5. Vary the brush size and place another tree.
+6. EXPECT: Each tree will be placed and displayed on the map, sized to match the brush size when they were placed.
+7. Select the "delete" brush (press 'd').
+8. Hold shift and click on one of the trees.
+9. EXPECT: The tree will be deleted.
