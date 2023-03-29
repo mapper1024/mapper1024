@@ -6,7 +6,6 @@
 	"scripts": {
 		"test": "electron-mocha --renderer",
 		"start": "electron .",
-		"build-and-run": "yarn run check-format; yarn run start",
 		"format": "git ls-files | grep '\\.js$' | xargs yarn run eslint --fix",
 		"check-format": "git ls-files | grep '\\.js$' | xargs yarn run eslint",
 		"libpack": "rollup -o dist/mapper1024.$(jq < package.json .version -r).js -i mapper/index.js",

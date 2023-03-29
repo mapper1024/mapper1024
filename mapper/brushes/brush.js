@@ -19,6 +19,8 @@ class Brush {
 		this.sizeChangeRecentTimeout = 1000;
 
 		this.hooks = new HookContainer();
+
+		this.hooksToClear = [];
 	}
 
 	usesSelection() {
@@ -47,6 +49,11 @@ class Brush {
 
 	/** Called when the brush is switched to from another brush. */
 	switchTo() {
+		for(const hook of this.hooksToClear.splice(0, this.hooksToClear.length)) {
+			const k = hook[0];
+			const f = hook[1];
+			this.hooks.remove(k, f);
+		}
 		this.lastSizeChange = performance.now();
 	}
 

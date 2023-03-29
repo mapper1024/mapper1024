@@ -40,7 +40,7 @@ class AddBrush extends Brush {
 			this.setNodeTypeIndex(0);
 		};
 
-		this.hooks.add("context_current_layer_change", (layer) => reset(layer));
+		this.context.hooks.add("current_layer_change", (layer) => reset(layer));
 	}
 
 	usesHover() {
@@ -171,8 +171,8 @@ class AddBrush extends Brush {
 		};
 
 		await make(this.context.getCurrentLayer());
-		this.hooks.add("context_current_layer_change", async (layer) => await make(layer));
-		this.hooks.add("type_changed", async () => await make(this.context.getCurrentLayer()));
+		this.hooksToClear.push(["context_current_layer_change", this.hooks.add("context_current_layer_change", async (layer) => await make(layer))]);
+		this.hooksToClear.push(["type_changed", this.hooks.add("type_changed", async () => await make(this.context.getCurrentLayer()))]);
 	}
 
 	setNodeTypeIndex(index) {

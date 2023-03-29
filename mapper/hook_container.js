@@ -10,6 +10,7 @@ class HookContainer {
 	/** Register a function to be called upon a specific hook.
 	 * @param hookName {string} The name of the hook this method will be called on.
 	 * @param hookFunction {function} A function that will be called when the specified hook is called.
+	 * @returns {function} the function passed into the hook
 	 */
 	add(hookName, hookFunction) {
 		if(!(hookName in this.hooks)) {
@@ -17,6 +18,8 @@ class HookContainer {
 		}
 
 		this.hooks[hookName].push(hookFunction);
+
+		return hookFunction;
 	}
 
 	/** Remove a function from being called upon a specific hook.

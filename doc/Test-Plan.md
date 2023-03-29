@@ -21,7 +21,7 @@ To run the unit tests, simply run the command: `yarn test` which will invoke ele
 
 # Requirement Tests
 
-## Scripted Tests
+## Scripted Tests (Electron desktop app)
 
 ### The user should be able to discover the physical area covered by an arbitrary area on the map
 
@@ -62,3 +62,29 @@ To run the unit tests, simply run the command: `yarn test` which will invoke ele
 7. Select the "delete" brush (press 'd').
 8. Hold shift and click on one of the trees.
 9. EXPECT: The tree will be deleted.
+
+### The map must support multiple layers
+
+1. Load the sample map.
+2. EXPECT: The geographical layer should be selected in the palette.
+3. Draw geographical terrain such as water or sand around the "desert kingdom"'s borders.
+4. EXPECT: The terrain is drawn underneath the political borders of the desert kingdom.
+5. Select the "select" brush (press 's')
+6. Mouse over the "desert kingdom".
+7. EXPECT: Only the terrain within the "desert kingdom" will be highlighted as selectable; the political region will not be highlighted.
+8. Switch to the political layer (press 'l')
+9. EXPECT: Now no terrain will be highlighted as selectable, only the political region of the "desert kingdom" will be highlighted.
+10. Switch to the add brush (press 'a')
+11. EXPECT: Only political map objects should be selectable in the palette (region, route).
+12. Choose the "region" map object to add, and add a region to the map.
+13. EXPECT: The region should encapsulate the area brushed over, and should be displayed over the terrain.
+14. Choose the "delete" brush (press 'd')
+15. Click and drag over an area of the political region you added.
+16. EXPECT: Pieces of the political region should be deleted, but not the terrain underneath.
+
+### The mapping tool should let users create maps
+
+1. Press the "new map" button (Control+'n')
+2. EXPECT: The map should be cleared and all zoom and pan reset.
+3. Draw any terrain on the map.
+4. EXPECT: The terrain should appear.
