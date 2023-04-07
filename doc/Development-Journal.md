@@ -242,6 +242,12 @@ I put time toward the Honors project report and preparing to present this projec
 
 I also filled out more unit tests for the glue of the program---pieces such as the Line3 class and utility functions. I began the test plan document, which will describe unit tests as well as scripted tests to ensure each requirement is correctly fulfilled.
 
+# Through 2023-04-09
+
+I developed presentation slides for [sURC](https://www.mvnu.edu/undergraduate/academics/honorsprogram/surc) to show off the project. I had originally planned to live demo the software, but the 15 minute presentation time as well as difficulty of loading up software for demonstration led me to use animated gifs of the project instead of a live demo, which was actually the [most technically involved part](https://benleskey.com/blog/mapper_gifs) of the presentation requiring me to record a suitable video, convert it to a gif, and compress it lossily so it would fit well into the presentation.
+
+On April 5th presented the project at sURC, with my presentation and the project winning the top prize.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
