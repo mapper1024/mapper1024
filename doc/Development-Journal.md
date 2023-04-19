@@ -252,7 +252,7 @@ On April 5th presented the project at sURC, with my presentation and the project
 
 All outstanding feedback came in for the Honors project report, and I made the necessary revisions and submitted the final report to the Honors program.
 
-I also unlocked map scaling. Previously, the zoom was capped at zoom level 30, meaning that a 1920x1080 screen could display at most 80 kilometers diagonally, which was not nearly enough for larger worlds.
+I also unlocked map scaling. Previously, the zoom was capped at zoom level 30, meaning that a 1920x1080 screen could display at most 80 kilometers diagonally, which was not nearly enough for larger worlds. Now zoom is unlimited, with number inputs to manually specify any zoom to be desired in addition to zoom scrolling. Kilometers per screen diagonal was chosen as a platform independent way to represent the zoom scale, along with the standard, if less intuitive, zoom level.
 
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
