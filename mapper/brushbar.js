@@ -237,7 +237,7 @@ class Brushbar {
 
 			updateSize(this.context.brush);
 
-			this.context.hooks.add("size_change", updateSize);
+			this.context.hooks.add("size_change", () => updateSize(this.context.brush));
 			this.context.hooks.add("brush_size_change", updateSize);
 			this.context.hooks.add("changed_brush", updateSize);
 			this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
