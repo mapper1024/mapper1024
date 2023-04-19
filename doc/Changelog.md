@@ -62,3 +62,6 @@
 # v0.6.1
 * Image exporting
 * User interface readability improvements
+
+# v0.6.2
+* Unlimited zoom and scaling
