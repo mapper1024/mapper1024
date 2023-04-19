@@ -107,7 +107,7 @@ class Brushbar {
 
 			const zoomLevelSubmit = () => {
 				this.context.requestZoomChange(zoomLevelInput.value);
-			}
+			};
 
 			zoomLevelInput.setAttribute("class", "mapper1024_property_number");
 			zoomLevelInput.setAttribute("type", "number");
@@ -119,7 +119,7 @@ class Brushbar {
 					this.context.focus();
 				}
 			});
-			zoomLevelInput.addEventListener("change", (event) => {
+			zoomLevelInput.addEventListener("change", () => {
 				zoomLevelSubmit();
 				this.context.focus();
 			});
@@ -151,7 +151,7 @@ class Brushbar {
 				const diagonalPixels = (new Vector3(0, 0, 0)).subtract(this.context.screenSize()).length();
 				const newZoom = this.context.unitsPerPixelToZoom(this.context.mapper.metersToUnits(screenDiagonalInput.value * 1000 / diagonalPixels));
 				this.context.requestZoomChange(newZoom);
-			}
+			};
 
 			screenDiagonalInput.setAttribute("class", "mapper1024_property_number");
 			screenDiagonalInput.setAttribute("type", "number");
@@ -164,7 +164,7 @@ class Brushbar {
 					this.context.focus();
 				}
 			});
-			screenDiagonalInput.addEventListener("change", (event) => {
+			screenDiagonalInput.addEventListener("change", () => {
 				screenDiagonalSubmit();
 				this.context.focus();
 			});
