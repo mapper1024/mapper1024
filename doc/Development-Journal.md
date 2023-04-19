@@ -254,6 +254,8 @@ All outstanding feedback came in for the Honors project report, and I made the n
 
 I also unlocked map scaling. Previously, the zoom was capped at zoom level 30, meaning that a 1920x1080 screen could display at most 80 kilometers diagonally, which was not nearly enough for larger worlds. Now zoom is unlimited, with number inputs to manually specify any zoom to be desired in addition to zoom scrolling. Kilometers per screen diagonal was chosen as a platform independent way to represent the zoom scale, along with the standard, if less intuitive, zoom level.
 
+I wrote a quick start guide for the mapping tool, providing basic usage and installation instructions. This serves as documentation along with the tooltips and help inside the tool itself.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
