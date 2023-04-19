@@ -77,6 +77,7 @@ function style() {
 
 .mapper1024_property_row > input {
 	flex: 3 1 0;
+	width: 3em;
 }
 	`;
 	return styleElement;

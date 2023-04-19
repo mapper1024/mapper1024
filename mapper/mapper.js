@@ -69,7 +69,6 @@ class RenderContext {
 
 		this.scrollOffset = Vector3.ZERO;
 		this.defaultZoom = 5;
-		this.maxZoom = 30;
 		this.zoom = this.defaultZoom;
 		this.requestedZoom = this.zoom;
 		this.lastZoomRequest = 0;
@@ -540,7 +539,7 @@ class RenderContext {
 
 	requestZoomChange(zoom) {
 		if(this.requestedZoom !== zoom) {
-			this.requestedZoom = Math.max(1, Math.min(zoom, this.maxZoom));
+			this.requestedZoom = Math.max(1, zoom);
 			this.lastZoomRequest = performance.now();
 			this.requestRedraw();
 			this.hooks.call("requested_zoom", zoom);
@@ -972,6 +971,10 @@ class RenderContext {
 	 */
 	zoomFactor(zoom) {
 		return zoom / (1 + 20 / zoom);
+	}
+
+	unitsPerPixelToZoom(unitsPerPixel) {
+		return Math.ceil((unitsPerPixel + Math.sqrt((unitsPerPixel ** 2) + 80 * unitsPerPixel)) / 2);
 	}
 
 	pixelsToUnits(pixels) {
@@ -1680,9 +1683,10 @@ class RenderContext {
 		const pixelToMeters = this.mapper.unitsToMeters(this.zoomFactor(this.requestedZoom));
 
 		const lines = [
-			`Zoom ${this.requestedZoom} / ${this.maxZoom}`,
+			`Zoom ${this.requestedZoom}`,
 			`1px = ${pixelToMeters.toFixed(2)}m`,
 			`Brush diameter ${(pixelToMeters * this.brush.getRadius()).toFixed(2)}m`,
+			`Screen diagonal ${(this.mapper.unitsToMeters(this.zoomFactor(this.requestedZoom) * (new Vector3(0, 0, 0)).subtract(this.screenSize()).length()) / 1000).toFixed(2)}km`,
 			"Click to apply",
 		];
 

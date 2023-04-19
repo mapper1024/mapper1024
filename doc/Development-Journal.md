@@ -248,6 +248,12 @@ I developed presentation slides for [sURC](https://www.mvnu.edu/undergraduate/ac
 
 On April 5th presented the project at sURC, with my presentation and the project winning the top prize.
 
+# Through 2023-04-23
+
+All outstanding feedback came in for the Honors project report, and I made the necessary revisions and submitted the final report to the Honors program.
+
+I also unlocked map scaling. Previously, the zoom was capped at zoom level 30, meaning that a 1920x1080 screen could display at most 80 kilometers diagonally, which was not nearly enough for larger worlds.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.

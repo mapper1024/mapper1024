@@ -92,6 +92,95 @@ class Brushbar {
 		const zoomLabel = document.createElement("span");
 		this.element.appendChild(zoomLabel);
 
+		let zoomLevelInput;
+
+		{
+			const zoomLevelLabel = document.createElement("div");
+			zoomLevelLabel.innerText = "Zoom level:";
+			this.element.appendChild(zoomLevelLabel);
+
+			const zoomLevelRow = document.createElement("div");
+			zoomLevelRow.setAttribute("class", "mapper1024_property_row");
+			this.element.appendChild(zoomLevelRow);
+
+			zoomLevelInput = document.createElement("input");
+
+			const zoomLevelSubmit = () => {
+				this.context.requestZoomChange(zoomLevelInput.value);
+			}
+
+			zoomLevelInput.setAttribute("class", "mapper1024_property_number");
+			zoomLevelInput.setAttribute("type", "number");
+			zoomLevelInput.setAttribute("min", "1");
+			zoomLevelInput.addEventListener("keyup", (event) => {
+				if(event.key === "Enter") {
+					zoomLevelSubmit();
+					event.preventDefault();
+					this.context.focus();
+				}
+			});
+			zoomLevelInput.addEventListener("change", (event) => {
+				zoomLevelSubmit();
+				this.context.focus();
+			});
+			zoomLevelRow.appendChild(zoomLevelInput);
+
+			const zoomLevelButton = document.createElement("button");
+			zoomLevelButton.innerText = "💾";
+			zoomLevelButton.onclick = () => {
+				zoomLevelSubmit();
+				this.context.focus();
+			};
+			zoomLevelRow.appendChild(zoomLevelButton);
+		}
+
+		let screenDiagonalInput;
+
+		{
+			const screenDiagonalLabel = document.createElement("div");
+			screenDiagonalLabel.innerText = "Screen diagonal (km):";
+			this.element.appendChild(screenDiagonalLabel);
+
+			const screenDiagonalRow = document.createElement("div");
+			screenDiagonalRow.setAttribute("class", "mapper1024_property_row");
+			this.element.appendChild(screenDiagonalRow);
+
+			screenDiagonalInput = document.createElement("input");
+
+			const screenDiagonalSubmit = () => {
+				const diagonalPixels = (new Vector3(0, 0, 0)).subtract(this.context.screenSize()).length();
+				const newZoom = this.context.unitsPerPixelToZoom(this.context.mapper.metersToUnits(screenDiagonalInput.value * 1000 / diagonalPixels));
+				this.context.requestZoomChange(newZoom);
+			}
+
+			screenDiagonalInput.setAttribute("class", "mapper1024_property_number");
+			screenDiagonalInput.setAttribute("type", "number");
+			screenDiagonalInput.setAttribute("min", "1");
+			screenDiagonalInput.setAttribute("step", 10);
+			screenDiagonalInput.addEventListener("keyup", (event) => {
+				if(event.key === "Enter") {
+					screenDiagonalSubmit();
+					event.preventDefault();
+					this.context.focus();
+				}
+			});
+			screenDiagonalInput.addEventListener("change", (event) => {
+				screenDiagonalSubmit();
+				this.context.focus();
+			});
+			screenDiagonalRow.appendChild(screenDiagonalInput);
+
+			const screenDiagonalButton = document.createElement("button");
+			screenDiagonalButton.innerText = "💾";
+			screenDiagonalButton.onclick = () => {
+				screenDiagonalSubmit();
+				this.context.focus();
+			};
+			screenDiagonalRow.appendChild(screenDiagonalButton);
+		}
+
+		//const screenDiagonalZoomInput;
+
 		const zoomRow = document.createElement("div");
 		zoomRow.setAttribute("class", "mapper1024_zoom_row");
 		this.element.appendChild(zoomRow);
@@ -140,12 +229,15 @@ class Brushbar {
 					if(this.context.inNormalMode()) {
 						size.innerText = `Brush radius ${Math.floor(brush.sizeInMeters() + 0.5)}m`;
 					}
-					zoomLabel.innerText = `Zoom ${this.context.requestedZoom}/${this.context.maxZoom}\n1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}m`;
+					zoomLevelInput.value = this.context.requestedZoom;
+					screenDiagonalInput.value = Math.ceil((this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom) * (new Vector3(0, 0, 0)).subtract(this.context.screenSize()).length()) / 1000));
+					zoomLabel.innerText = `1px = ${this.context.mapper.unitsToMeters(this.context.zoomFactor(this.context.requestedZoom)).toFixed(2)}km`;
 				}
 			};
 
 			updateSize(this.context.brush);
 
+			this.context.hooks.add("size_change", updateSize);
 			this.context.hooks.add("brush_size_change", updateSize);
 			this.context.hooks.add("changed_brush", updateSize);
 			this.context.hooks.add("changed_zoom", () => updateSize(this.context.brush));
