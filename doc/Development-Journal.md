@@ -256,6 +256,10 @@ I also unlocked map scaling. Previously, the zoom was capped at zoom level 30, m
 
 I wrote a quick start guide for the mapping tool, providing basic usage and installation instructions. This serves as documentation along with the tooltips and help inside the tool itself.
 
+# Through 2023-04-30
+
+I performed the entire [test suite](https://github.com/mapper1024/mapper1024/wiki/Test-Plan), including automated unit tests and scripted tests, with version 0.6.2 of the program. All tests passed.
+
 # References
 * Neupane, S. (2017). *Storing and Rendering Geospatial Data in Mobile Applications*. https://scholarworks.uno.edu/honors_theses/90
 * Rigaux, P., Scholl, M., & Voisard, A. (2001). *Spatial databases with application to GIS*. Morgan Kaufmann.
