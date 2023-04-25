@@ -1,6 +1,8 @@
 # Welcome to the map-making tool!
 This tool is built for authors, storytellers, role-players, and anyone else who wants to make a map to organize or illustrate their worlds with minimal effort.
 
+If you have any feature requests or bug reports while using the mapping tool, [report them on the issue tracker](https://github.com/mapper1024/mapper1024/issues).
+
 ## Getting started
 First you need to get the mapping tool. There are two options: [download the app](https://github.com/mapper1024/mapper1024/blob/master/DOWNLOAD.md#download-options) or use the [online demo](https://mapper1024.github.io/demo). The app is the recommended option, you can install it on Windows or Linux.
 
