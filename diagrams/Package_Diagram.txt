@@ -14,7 +14,7 @@ folder "Mapping Tool" as MappingTool {
 	folder "Mapping Component" as MappingComponent {
 		folder "Render Context" as RenderContext {
 			component Canvas
-			component "Tile Renderer"
+			component "Node Renderer"
 			component Brushes
 			component Actions
 		}
