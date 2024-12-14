@@ -4,6 +4,7 @@ const _require = require("esm")(module);
 const fs = require("fs/promises");
 const { SQLiteMapBackend } = _require("../src/electron/sqlite_map_backend.js");
 const { SqlJsMapBackend } = _require("../mapper/index.js");
+const initSqlJs = require("sql.js");
 
 describe("SQLite backend intercompatibility", function() {
 	this.timeout(10000);
@@ -14,7 +15,7 @@ describe("SQLite backend intercompatibility", function() {
 	});
 
 	it("should be interchangable sql.js -> sqlite", async function() {
-		this.backend = new SqlJsMapBackend();
+		this.backend = new SqlJsMapBackend({sqlJsFactory: initSqlJs});
 		await this.backend.load();
 
 		await this.backend.global.setPString("some property", "some value");
@@ -56,6 +57,7 @@ describe("SQLite backend intercompatibility", function() {
 		this.backend2 = new SqlJsMapBackend({
 			loadFrom: "data",
 			data: await backendFile.readFile(),
+			sqlJsFactory: initSqlJs,
 		});
 		await backendFile.close();
 

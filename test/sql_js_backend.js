@@ -2,12 +2,13 @@ const expect = require("chai").expect;
 const _require = require("esm")(module);
 const { testGenericBackend } = _require("./generic_backend.js");
 const { SqlJsMapBackend } = _require("../mapper/index.js");
+const initSqlJs = require("sql.js");
 
 describe("SqlJsMapBackend", function() {
 	this.timeout(10000);
 
 	beforeEach(async function() {
-		this.backend = new SqlJsMapBackend();
+		this.backend = new SqlJsMapBackend({sqlJsFactory: initSqlJs});
 		await this.backend.load();
 	});
 
@@ -24,6 +25,7 @@ describe("SqlJsMapBackend", function() {
 
 		this.backend2 = new SqlJsMapBackend({
 			loadFrom: "data",
+			sqlJsFactory: initSqlJs,
 			data: await this.backend.getData(),
 		});
 		await this.backend2.load();

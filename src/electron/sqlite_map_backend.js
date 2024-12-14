@@ -1,4 +1,6 @@
 import { MapBackend, Vector3, merge } from "../../mapper/index.js";
+const tmp = require("tmp");
+const fs = require("fs/promises");
 const Database = require("better-sqlite3");
 
 /** SQLite-backed map backend.
@@ -18,6 +20,7 @@ class SQLiteMapBackend extends MapBackend {
 			cleanup: true,
 			create: false,
 			readOnly: false,
+			buildDatabase: true,
 		}, options);
 
 		this.options.autosave = this.options.autosave && !this.options.readOnly;
@@ -31,25 +34,36 @@ class SQLiteMapBackend extends MapBackend {
 
 	/** Open the backend database, or create it if it does not exist. */
 	async load() {
-		if(this.options.autosave) {
-			this.db = Database(this.filename, this.getDbOptions());
-		}
-		else {
-			const db = Database(this.filename, this.getDbOptions());
-			this.db = Database(db.serialize());
-			db.close();
-		}
+		this.db = Database(this.filename, this.getDbOptions());
 
 		this.s_getVersionNumber = this.db.prepare("PRAGMA user_version");
 
 		let gotVersion = this.getVersionNumber();
 		const wantVersion = this.getBackendVersionNumber();
 
+		let freshDatabase = false;
+
 		// No version yet, let's see if there are any tables or else this is a fresh DB.
 		if(gotVersion === 0) {
 			if(this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entity'").get() === undefined) {
 				this.db.pragma("user_version = " + wantVersion);
+				freshDatabase = true;
 			}
+		}
+
+		if(!this.options.autosave) {
+			if(freshDatabase) {
+				this.db.close();
+				this.db = Database(":memory:");
+				this.db.pragma("user_version = " + wantVersion);
+			}
+			else {
+				const newDatabase = await this.cloneToMemory();
+				this.db.close();
+				this.db = newDatabase;
+			}
+
+			this.s_getVersionNumber = this.db.prepare("PRAGMA user_version");
 		}
 
 		if(this.getVersionNumber() == 2) {
@@ -127,18 +141,20 @@ class SQLiteMapBackend extends MapBackend {
 		this.s_invalidateEntity = this.db.prepare("UPDATE entity SET valid = FALSE WHERE entityid = $entityId AND valid = TRUE");
 		this.s_validateEntity = this.db.prepare("UPDATE entity SET valid = TRUE WHERE entityid = $entityId");
 
-		/* Find or create the global entity.
-		 * There can be only one.
-		 */
-		this.db.transaction(() => {
-			let globalEntityIdRow = this.db.prepare("SELECT entityid FROM entity WHERE type = 'global'").get();
-			if(globalEntityIdRow === undefined) {
-				this.global = this.getEntityRef(this.baseCreateEntity("global"));
-			}
-			else {
-				this.global = this.getEntityRef(globalEntityIdRow.entityid);
-			}
-		}).exclusive();
+		if(this.options.buildDatabase) {
+			/* Find or create the global entity.
+			* There can be only one.
+			*/
+			this.db.transaction(() => {
+				let globalEntityIdRow = this.db.prepare("SELECT entityid FROM entity WHERE type = 'global'").get();
+				if(globalEntityIdRow === undefined) {
+					this.global = this.getEntityRef(this.baseCreateEntity("global"));
+				}
+				else {
+					this.global = this.getEntityRef(globalEntityIdRow.entityid);
+				}
+			}).exclusive();
+		}
 
 		/** Create a node atomically.
 		 * @param parentId {number|null} The ID of the node's parent, or null if none.
@@ -164,7 +180,7 @@ class SQLiteMapBackend extends MapBackend {
 			return id;
 		});
 
-		if(this.options.cleanup && !this.options.readOnly) {
+		if(this.options.cleanup && !this.options.readOnly && this.options.buildDatabase) {
 			this.db.exec("DELETE FROM entity WHERE valid = FALSE");
 			this.db.exec("VACUUM");
 		}
@@ -215,6 +231,29 @@ class SQLiteMapBackend extends MapBackend {
 			await saved.load();
 			await saved.flush();
 		}
+	}
+
+	async cloneToMemory() {
+		const clone = new SQLiteMapBackend(":memory:", {buildDatabase: false, autosave: true});
+		await clone.load();
+
+		this.db.exec("BEGIN EXCLUSIVE TRANSACTION");
+
+		for(const table of ["entity", "property", "node", "edge", "node_edge"]) {
+			const statement = this.db.prepare(`SELECT * FROM ${table}`);
+			statement.raw();
+			const placeholders = statement.columns().map(() => "?");
+			const sql = `INSERT INTO ${table} VALUES (${placeholders.join(", ")})`;
+			for(const row of statement.all()) {
+				clone.db.prepare(sql).run(row);
+			}
+		}
+
+		clone.db.exec("PRAGMA user_version = " + this.getBackendVersionNumber())
+
+		this.db.exec("COMMIT");
+
+		return clone.db;
 	}
 
 	baseCreateEntity(type) {

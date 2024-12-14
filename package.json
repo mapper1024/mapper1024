@@ -23,10 +23,9 @@
 	"homepage": "https://github.com/mapper1024/mapper1024#readme",
 	"devDependencies": {
 		"chai": "^4.3.4",
-		"electron": "^18.3.7",
-		"electron-builder": "^22.14.5",
-		"electron-mocha": "^11.0.2",
-		"electron-rebuild": "^3.2.5",
+		"electron": "^33.2.1",
+		"electron-builder": "^25.1.8",
+		"electron-mocha": "^13.0.1",
 		"eslint": "^8.5.0",
 		"esm": "^3.2.25",
 		"jsdoc": "^3.6.7",
@@ -41,9 +40,11 @@
 		]
 	},
 	"dependencies": {
-		"@electron/remote": "^2.0.8",
-		"better-sqlite3": "^7.5.3",
+		"@electron/rebuild": "^3.7.1",
+		"@electron/remote": "^2.1.2",
+		"better-sqlite3": "^11.7.0",
 		"eslint-plugin-mocha": "^10.1.0",
+		"sql.js": "^1.12.0",
 		"tmp": "^0.2.1"
 	}
 }

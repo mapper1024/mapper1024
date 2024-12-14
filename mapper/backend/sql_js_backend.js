@@ -1,9 +1,8 @@
 import { MapBackend, Vector3, merge } from "../index.js";
 
-// Load [sql.js](https://sql.js.org) from the remote server.
-// Will not attempt to load until the function is called the first time to avoid unnecessary remote fetches.
+
 let sqlJsPromise;
-async function SqlJs() {
+async function SqlJsForBrowser() {
 	if(sqlJsPromise === undefined) {
 		sqlJsPromise = new Promise((resolve, reject) => {
 			const script = document.createElement("script");
@@ -40,11 +39,12 @@ class SqlJsMapBackend extends MapBackend {
 			url: null,
 			data: null,
 			buildDatabase: true,
+			sqlJsFactory: SqlJsForBrowser,
 		}, options);
 	}
 
 	async load() {
-		const Database = (await SqlJs()).Database;
+		const Database = (await this.options.sqlJsFactory()).Database;
 
 		if(this.options.loadFrom === "url") {
 			this.db = new Database(new Uint8Array(await (await fetch(this.options.url)).arrayBuffer()));
@@ -215,7 +215,7 @@ class SqlJsMapBackend extends MapBackend {
 	async getData() {
 		// sql.js must close the database before exporting, but we want to export while the database is open.
 		// Easy solution: clone the database manually before exporting.
-		const clone = new SqlJsMapBackend({buildDatabase: false});
+		const clone = new SqlJsMapBackend({buildDatabase: false, sqlJsFactory: this.options.sqlJsFactory});
 		await clone.load();
 
 		this.db.run("BEGIN EXCLUSIVE TRANSACTION");
